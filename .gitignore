@@ -1,1 +1,23 @@
+# Secretos y configuración local (NUNCA subir)
+.env
+.env.*
+!.env.example
 
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Django
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+*.log
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
