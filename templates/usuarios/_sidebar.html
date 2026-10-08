@@ -1,0 +1,216 @@
+{% load static %}
+<aside class="sidebar" id="sidebar">
+  <!-- Brand -->
+  <div class="sidebar__brand">
+    <div class="sidebar__brand-logo" style="width: 36px; height: 36px; min-width: 36px; min-height: 36px;">
+      <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+    <div class="sidebar__brand-text">
+      <span class="sidebar__brand-name">Prados Pets</span>
+      <span class="sidebar__brand-tagline">Sistema Veterinario</span>
+    </div>
+    <button type="button" class="sidebar__close-btn" id="sidebar-close-btn" aria-label="Cerrar menú">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sidebar__nav">
+
+    <!-- Dashboard -->
+    <a href="{% url 'usuarios:dashboard' %}"
+       class="sidebar__item {% if request.resolver_match.url_name == 'dashboard' %}sidebar__item--active{% endif %}"
+       id="nav-dashboard">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Dashboard</span>
+    </a>
+
+    <!-- DIRECTORIO group -->
+    <div class="sidebar__group-label">Directorio</div>
+
+    <a href="/directorio/registrar-dueno/"
+       class="sidebar__item {% if request.resolver_match.url_name == 'registrar_dueno' %}sidebar__item--active{% endif %}"
+       id="nav-registrar-dueno">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Registrar Dueño</span>
+    </a>
+
+    <a href="/directorio/mascotas/registrar/"
+       class="sidebar__item {% if request.resolver_match.url_name == 'registrar_mascota' %}sidebar__item--active{% endif %}"
+       id="nav-registrar-mascota">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/>
+          <path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5"/>
+          <path d="M8 14v.5"/><path d="M16 14v.5"/>
+          <path d="M11.25 16.25h1.5L12 17l-.75-.75z"/>
+          <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Registrar Mascota</span>
+    </a>
+
+    <a href="/directorio/buscar/"
+       class="sidebar__item {% if request.resolver_match.url_name == 'buscar_directorio' %}sidebar__item--active{% endif %}"
+       id="nav-buscar">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Buscar</span>
+    </a>
+
+    <!-- GESTIÓN group -->
+    <div class="sidebar__group-label">Gestión</div>
+
+    <!-- Calendario (HU08) -->
+    <a href="{% url 'agendamiento:calendario' %}"
+       class="sidebar__item {% if request.resolver_match.url_name == 'calendario' %}sidebar__item--active{% endif %}"
+       id="nav-calendario">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Calendario</span>
+    </a>
+
+    <!-- Consultas / Citas Médicas (HU06) -->
+    <a href="{% url 'agendamiento:agendar_cita' %}"
+       class="sidebar__item {% if request.resolver_match.url_name == 'agendar_cita' %}sidebar__item--active{% endif %}"
+       id="nav-citas">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Consultas y Citas</span>
+    </a>
+
+    <!-- Hospitalización (HU13) -->
+    <a href="/clinico/hospitalizacion/"
+       class="sidebar__item {% if 'hospitalizacion' in request.path %}sidebar__item--active{% endif %}"
+       id="nav-hospitalizacion">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+          <line x1="12" y1="6" x2="12" y2="10"/>
+          <line x1="10" y1="8" x2="14" y2="8"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Hospitalización</span>
+    </a>
+
+    <!-- Peluquería (HU21) -->
+    <a href="{% url 'peluqueria:agendar' %}"
+       class="sidebar__item {% if request.resolver_match.app_name == 'peluqueria' %}sidebar__item--active{% endif %}"
+       id="nav-peluqueria">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Peluquería</span>
+    </a>
+
+    <!-- ADMINISTRACIÓN group -->
+    <div class="sidebar__group-label">Administración</div>
+
+    <div class="sidebar__item sidebar__item--soon" title="Próximamente">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Facturación</span>
+      <span class="sidebar__badge-soon">Pronto</span>
+    </div>
+
+    <div class="sidebar__item sidebar__item--soon" title="Próximamente">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Inventario</span>
+      <span class="sidebar__badge-soon">Pronto</span>
+    </div>
+
+    <div class="sidebar__item sidebar__item--soon" title="Próximamente">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Reportes</span>
+      <span class="sidebar__badge-soon">Pronto</span>
+    </div>
+
+    {% if user.es_administrador %}
+    <!-- SISTEMA group (solo admin) -->
+    <div class="sidebar__group-label">Sistema</div>
+    <a href="{% url 'usuarios:usuarios_lista' %}"
+       class="sidebar__item {% if 'usuarios' in request.resolver_match.url_name %}sidebar__item--active{% endif %}"
+       id="nav-usuarios">
+      <span class="sidebar__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Usuarios y Roles</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <!-- User footer -->
+  <div class="sidebar__footer">
+    <div class="sidebar__user-avatar">
+      {{ user.nombre_completo|default:user.username|slice:":1"|upper }}
+    </div>
+    <div class="sidebar__user-info">
+      <span class="sidebar__user-name">{{ user.nombre_completo|default:user.username }}</span>
+      {% if user.id_rol %}
+      <span class="sidebar__user-role">{{ user.id_rol }}</span>
+      {% endif %}
+    </div>
+    <form method="post" action="{% url 'usuarios:logout' %}" class="sidebar__logout-form">
+      {% csrf_token %}
+      <button type="submit" class="sidebar__logout-btn" title="Cerrar sesión">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </form>
+  </div>
+</aside>

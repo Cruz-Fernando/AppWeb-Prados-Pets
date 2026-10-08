@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Dueño · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Directorio</span>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Registrar Dueño</span>
+      </div>
+    </header>
+
+    <main class="pp-form-main">
+      <div class="pp-form-card" id="pp-card-dueno">
+
+        <div class="pp-form-card__header">
+          <div class="pp-form-card__icon">👤</div>
+          <div>
+            <h2 class="pp-form-card__title">Registrar Dueño</h2>
+            <p class="pp-form-card__sub">Ingresa los datos del propietario de la mascota</p>
+          </div>
+        </div>
+
+        {% if messages %}
+        <ul class="pp-alert-list">
+          {% for message in messages %}
+            <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="POST" class="pp-form" id="form-dueno" novalidate>
+          {% csrf_token %}
+
+          <div class="pp-field">
+            <label for="nombre" class="pp-label">Nombre Completo <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">👤</span>
+              <input type="text" id="nombre" name="nombre" class="pp-input pp-input--icon"
+                     value="{{ nombre|default:'' }}" placeholder="Ej: María Gómez" required autocomplete="name">
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label for="telefono" class="pp-label">Teléfono <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">📱</span>
+              <input type="tel" id="telefono" name="telefono" class="pp-input pp-input--icon"
+                     value="{{ telefono|default:'' }}" placeholder="Ej: 3001234567" required autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label for="direccion" class="pp-label">Dirección <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">📍</span>
+              <input type="text" id="direccion" name="direccion" class="pp-input pp-input--icon"
+                     value="{{ direccion|default:'' }}" placeholder="Ej: Calle 15 #32-10" required autocomplete="street-address">
+            </div>
+          </div>
+
+          <div class="pp-form__actions">
+            <a href="{% url 'usuarios:dashboard' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
+            <a href="{% url 'registrar_mascota' %}" class="pp-btn pp-btn--ghost">🐾 Registrar Mascota</a>
+            <button type="submit" class="pp-btn pp-btn--primary" id="btn-save-dueno">
+              <span class="pp-btn__txt">Guardar Dueño</span>
+              <span class="pp-btn__arrow">→</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+{{ block.super }}
+{% endblock %}

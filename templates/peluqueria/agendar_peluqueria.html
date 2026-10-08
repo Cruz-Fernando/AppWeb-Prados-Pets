@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Agendar Peluquería · Prados Pets{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Agendar Peluquería</span>
+      </div>
+    </header>
+
+    <main class="pp-main">
+      <div class="pp-card" id="pp-card">
+
+        <div class="pp-card__header">
+          <div class="pp-card__icon">✂️</div>
+          <div>
+            <h2 class="pp-card__title">Peluquería &amp; Spa</h2>
+            <p class="pp-card__sub">Agendar Cita de Peluquería en Prados Pets</p>
+          </div>
+        </div>
+
+        {% if messages %}
+          <ul class="pp-alerts">
+            {% for message in messages %}
+              <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="pp-form">
+          {% csrf_token %}
+
+          <!-- MASCOTA -->
+          <div class="pp-field">
+            <label class="pp-label">Mascota <span class="pp-req">*</span></label>
+            <div class="pp-search-wrap">
+              <span class="pp-search-ico">🔍</span>
+              <input type="text" id="buscar_mascota_input" class="pp-input pp-input--search"
+                     placeholder="Busca por nombre, dueño o teléfono…" autocomplete="off">
+              <div id="mascota-dropdown" class="pp-dropdown"></div>
+            </div>
+            <input type="hidden" name="mascota_id" id="id_mascota_hidden">
+          </div>
+
+          <!-- INFO MASCOTA -->
+          <div id="info-mascota-box" class="pp-pet-card" style="display:none">
+            <div class="pp-pet-card__avatar" id="lbl_avatar">🐾</div>
+            <div class="pp-pet-card__data">
+              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Tipo</span><span class="pp-pet-card__val" id="lbl_especie"></span></div>
+              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Raza</span><span class="pp-pet-card__val" id="lbl_raza"></span></div>
+              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Tamaño</span><span class="pp-pet-card__val" id="lbl_tamano_texto"></span></div>
+              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Dueño</span><span class="pp-pet-card__val" id="lbl_dueno"></span></div>
+            </div>
+          </div>
+
+          <input type="hidden" name="raza"   id="id_raza">
+          <input type="hidden" name="tamano" id="id_tamano">
+
+          <!-- SERVICIO + DURACIÓN -->
+          <div class="pp-row-2">
+            <div class="pp-field">
+              <label class="pp-label">Tipo de Servicio <span class="pp-req">*</span></label>
+              <select name="servicio" required class="pp-input">
+                <option value="BANO">🛁 Solamente Baño</option>
+                <option value="CORTE">✂️ Corte Despuntado (Solo tijera)</option>
+                <option value="COMPLETO">💈 Corte Total (Máquina y tijera)</option>
+              </select>
+            </div>
+            <div class="pp-field">
+              <label class="pp-label">Duración Estimada</label>
+              <input type="text" id="id_duracion" readonly placeholder="Se calcula por tamaño"
+                     class="pp-input pp-input--readonly">
+            </div>
+          </div>
+
+          <!-- GROOMER -->
+          <div class="pp-field">
+            <label class="pp-label">Groomer Responsable <span class="pp-req">*</span></label>
+            <select name="groomer_id" required class="pp-input">
+              <option value="">— Selecciona un groomer —</option>
+              {% for g in groomers %}
+                <option value="{{ g.pk }}">{{ g.nombre_completo }}</option>
+              {% empty %}
+                <option disabled>No hay groomers registrados en el sistema</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- FECHA + PRECIO -->
+          <div class="pp-row-2">
+            <div class="pp-field">
+              <label class="pp-label">Fecha y Hora <span class="pp-req">*</span></label>
+              <input type="datetime-local" name="fecha_hora" required class="pp-input">
+            </div>
+            <div class="pp-field">
+              <label class="pp-label">Precio ($) <span class="pp-req">*</span></label>
+              <input type="text" name="precio" id="id_precio" value="$" required class="pp-input"
+                     inputmode="numeric" autocomplete="off">
+            </div>
+          </div>
+
+          <!-- OBSERVACIONES -->
+          <div class="pp-field">
+            <label class="pp-label">Observaciones</label>
+            <textarea name="observaciones" rows="3" class="pp-input pp-textarea"
+                      placeholder="Alergias, indicaciones especiales, etc."></textarea>
+          </div>
+
+          <!-- SUBMIT -->
+          <button type="submit" class="pp-btn" id="pp-submit">
+            <span class="pp-btn__ico">📄</span>
+            <span class="pp-btn__txt">Agendar Servicio y Generar PDF</span>
+            <span class="pp-btn__arrow">→</span>
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<style>
+.pp-main { display:flex; align-items:center; justify-content:center; padding:2rem; min-height:calc(100vh - 70px); }
+.pp-card { width:100%; max-width:660px; background:linear-gradient(160deg,#1a1a2e 0%,#16162a 100%); border:1px solid rgba(167,139,250,.25); border-radius:16px; padding:2.2rem 2.4rem; box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 0 1px rgba(167,139,250,.08); animation:ppFadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+@keyframes ppFadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+.pp-card__header { display:flex; align-items:center; gap:1rem; margin-bottom:1.6rem; }
+.pp-card__icon { font-size:2rem; background:rgba(124,58,237,.25); width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pp-card__title { font-size:1.35rem; font-weight:700; color:#a78bfa; margin:0; }
+.pp-card__sub   { font-size:.8rem; color:#64748b; margin:.2rem 0 0; }
+.pp-alerts { list-style:none; padding:0; margin:0 0 1rem; }
+.pp-alert  { padding:.7rem 1rem; border-radius:8px; background:rgba(239,68,68,.15); color:#fca5a5; font-size:.85rem; margin-bottom:.4rem; }
+.pp-form   { display:flex; flex-direction:column; gap:1.1rem; }
+.pp-row-2  { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+@media(max-width:520px){ .pp-row-2 { grid-template-columns:1fr; } }
+.pp-field  { display:flex; flex-direction:column; gap:.3rem; }
+.pp-label  { font-size:.8rem; font-weight:600; color:#94a3b8; letter-spacing:.3px; }
+.pp-req    { color:#f472b6; }
+.pp-input  { width:100%; padding:.72rem 1rem; background:rgba(15,15,30,.7); border:1px solid rgba(99,102,241,.25); border-radius:10px; color:#e2e8f0; font-size:.9rem; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .2s,box-shadow .2s; }
+.pp-input:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.2); }
+.pp-input--readonly { color:#a78bfa; font-weight:600; cursor:default; }
+.pp-input--search   { padding-left:2.4rem; }
+.pp-textarea { resize:vertical; min-height:80px; }
+select.pp-input option { background:#1a1a2e; }
+input[type="datetime-local"].pp-input { color-scheme:dark; }
+.pp-search-wrap { position:relative; }
+.pp-search-ico  { position:absolute; left:.75rem; top:50%; transform:translateY(-50%); font-size:.95rem; pointer-events:none; z-index:1; }
+.pp-dropdown { display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:#1e1e35; border:1px solid rgba(99,102,241,.3); border-radius:10px; z-index:200; max-height:210px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.pp-dropdown-item { padding:.7rem 1rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.05); font-size:.85rem; color:#e2e8f0; transition:background .15s; }
+.pp-dropdown-item:last-child { border-bottom:none; }
+.pp-dropdown-item:hover { background:rgba(124,58,237,.15); }
+.pp-dropdown-item__name { font-weight:600; color:#a78bfa; }
+.pp-dropdown-item__sub  { font-size:.78rem; color:#64748b; margin-top:.15rem; }
+.pp-dropdown-empty { padding:.9rem 1rem; color:#64748b; font-size:.85rem; }
+.pp-pet-card { display:flex; align-items:center; gap:1rem; background:rgba(124,58,237,.08); border:1px solid rgba(124,58,237,.3); border-radius:12px; padding:1rem 1.2rem; animation:ppFadeUp .3s ease both; }
+.pp-pet-card__avatar { font-size:2rem; background:rgba(124,58,237,.2); width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pp-pet-card__data { display:grid; grid-template-columns:1fr 1fr; gap:.3rem .8rem; flex:1; }
+.pp-pet-card__row  { display:flex; flex-direction:column; }
+.pp-pet-card__lbl  { font-size:.7rem; color:#64748b; text-transform:uppercase; letter-spacing:.5px; }
+.pp-pet-card__val  { font-size:.88rem; font-weight:600; color:#e2e8f0; }
+.pp-btn { display:flex; align-items:center; justify-content:center; gap:.6rem; padding:.9rem 1.5rem; margin-top:.3rem; background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; font-size:.95rem; font-weight:700; border:none; border-radius:12px; cursor:pointer; box-shadow:0 4px 20px rgba(124,58,237,.4); transition:transform .18s,box-shadow .18s; }
+.pp-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(124,58,237,.55); }
+.pp-btn__arrow { transition:transform .2s; }
+.pp-btn:hover .pp-btn__arrow { transform:translateX(4px); }
+</style>
+
+<script>
+(function(){
+  const input    = document.getElementById('buscar_mascota_input');
+  const hiddenId = document.getElementById('id_mascota_hidden');
+  const dropdown = document.getElementById('mascota-dropdown');
+  const boxInfo  = document.getElementById('info-mascota-box');
+  const avatar   = document.getElementById('lbl_avatar');
+  const lblEsp   = document.getElementById('lbl_especie');
+  const lblDueno = document.getElementById('lbl_dueno');
+  const lblRaza  = document.getElementById('lbl_raza');
+  const lblTam   = document.getElementById('lbl_tamano_texto');
+  const inRaza   = document.getElementById('id_raza');
+  const inTam    = document.getElementById('id_tamano');
+  const inDur    = document.getElementById('id_duracion');
+  const inPrecio = document.getElementById('id_precio');
+  const AJAX_URL = "{% url 'peluqueria:buscar_mascota' %}";
+  let timer = null;
+  const EMOJIS = { perro:'🐕', gato:'🐈', ave:'🦜', roedor:'🐹', conejo:'🐇', otro:'🐾' };
+
+  input.addEventListener('input', function(){
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if(q.length < 2){ dropdown.style.display='none'; return; }
+    timer = setTimeout(()=>{
+      fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
+        .then(r=>r.json()).then(renderDropdown);
+    }, 250);
+  });
+
+  function renderDropdown(items){
+    dropdown.innerHTML = '';
+    if(!items.length){
+      dropdown.innerHTML = '<div class="pp-dropdown-empty">Sin resultados para esa búsqueda.</div>';
+      dropdown.style.display = 'block'; return;
+    }
+    items.forEach(m=>{
+      const d = document.createElement('div');
+      d.className = 'pp-dropdown-item';
+      const emoji = EMOJIS[m.especie] || '🐾';
+      d.innerHTML = `
+        <div class="pp-dropdown-item__name">${emoji} ${m.nombre}</div>
+        <div class="pp-dropdown-item__sub">${m.especie_display||m.especie} · ${m.raza||'Sin raza'} · Dueño: ${m.dueno}</div>
+      `;
+      d.addEventListener('click', ()=> seleccionar(m));
+      dropdown.appendChild(d);
+    });
+    dropdown.style.display = 'block';
+  }
+
+  function seleccionar(m){
+    input.value    = m.nombre;
+    hiddenId.value = m.id;
+    inRaza.value   = m.raza || '';
+    inTam.value    = m.tamano || 'pequeno';
+    const emoji = EMOJIS[m.especie] || '🐾';
+    avatar.textContent   = emoji;
+    lblEsp.textContent   = m.especie_display || m.especie || '–';
+    lblRaza.textContent  = m.raza || 'No especificada';
+    lblTam.textContent   = m.tamano_display || m.tamano || '–';
+    lblDueno.textContent = m.dueno;
+    boxInfo.style.display = 'flex';
+    dropdown.style.display = 'none';
+    const t = (m.tamano||'').toUpperCase();
+    inDur.value = t === 'GRANDE' ? '2 horas' : t === 'MEDIANO' ? '1 hora y media' : '1 hora';
+  }
+
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.pp-search-wrap')) dropdown.style.display='none';
+  });
+
+  // ── PRECIO: punto de miles automático (123.456) + sufijo COP ──
+  const SUFIJO = ' COP';
+
+  function formatearPrecio(){
+    const raw     = inPrecio.value;
+    const caret   = inPrecio.selectionStart || 0;
+    const antes   = raw.slice(0, caret).replace(/\D/g, '').length;   // dígitos a la izquierda del cursor
+    const digitos = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');  // solo números, sin ceros a la izquierda
+    if(!digitos){ inPrecio.value = '$'; return; }
+    const num = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    inPrecio.value = '$' + num + SUFIJO;
+    // Devuelve el cursor a la misma posición lógica dentro del número
+    const limite = Math.min(antes, digitos.length);
+    let vistos = 0, i = 0;
+    while(i < num.length && vistos < limite){ if(num[i] !== '.') vistos++; i++; }
+    inPrecio.setSelectionRange(1 + i, 1 + i);
+  }
+
+  // Evita que el cursor quede dentro del sufijo " COP"
+  function fijarCursor(){
+    const v = inPrecio.value;
+    if(!v.endsWith(SUFIJO)) return;
+    const limite = v.length - SUFIJO.length;
+    if(inPrecio.selectionStart === inPrecio.selectionEnd && inPrecio.selectionStart > limite){
+      inPrecio.setSelectionRange(limite, limite);
+    }
+  }
+
+  inPrecio.addEventListener('input', formatearPrecio);
+  inPrecio.addEventListener('click', fijarCursor);
+  inPrecio.addEventListener('focus', ()=> setTimeout(fijarCursor, 0));
+  inPrecio.addEventListener('keyup', function(e){
+    if(e.key === 'ArrowRight' || e.key === 'End') fijarCursor();
+  });
+  inPrecio.addEventListener('keydown', function(e){
+    fijarCursor();
+    const colapsado = this.selectionStart === this.selectionEnd;
+    const pos = this.selectionStart;
+    if(e.key === 'Backspace' && colapsado){
+      if(pos <= 1){ e.preventDefault(); return; }               // no borrar el "$"
+      if(this.value[pos - 1] === '.') this.setSelectionRange(pos - 1, pos - 1); // saltar el punto
+    }
+    if(e.key === 'Delete' && colapsado){
+      if(pos < 1){ e.preventDefault(); return; }
+      if(this.value[pos] === '.') this.setSelectionRange(pos + 1, pos + 1);
+    }
+  });
+}());
+</script>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static l10n %}
+
+{% block title %}Calendario · Prados Pets{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=2">
+
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Calendario</span>
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide cal-page">
+      <!-- ── Encabezado ─────────────────────────────── -->
+      <section class="cal-hero">
+        <div class="cal-hero__text">
+          <span class="cal-hero__eyebrow">
+            <span class="cal-live-dot"></span> Agenda operativa
+          </span>
+          <h1 class="cal-hero__title">Calendario de citas</h1>
+          <p class="cal-hero__range">{{ titulo_rango|capfirst }}</p>
+        </div>
+        <div class="cal-hero__actions">
+          <a href="{% url 'agendamiento:agendar_cita' %}" class="cal-btn cal-btn--consulta">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
+            Nueva consulta
+          </a>
+          <a href="{% url 'peluqueria:agendar' %}" class="cal-btn cal-btn--peluqueria">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+            Nueva peluquería
+          </a>
+        </div>
+      </section>
+
+      <!-- ── Tarjetas de resumen ──────────────────── -->
+      <section class="cal-stats">
+        <div class="cal-stat" style="--i:0">
+          <span class="cal-stat__icon cal-stat__icon--total">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <div><b class="cal-count" data-to="{{ total_citas }}">0</b><span>Citas {% if vista == 'dia' %}del día{% else %}de la semana{% endif %}</span></div>
+        </div>
+        <button type="button" class="cal-stat cal-filter is-on" data-filter="consulta" style="--i:1" aria-pressed="true" title="Mostrar u ocultar consultas">
+          <span class="cal-stat__icon cal-stat__icon--consulta">
+            <svg viewBox="0 0 24 24"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
+          </span>
+          <div><b class="cal-count" data-to="{{ total_consultas }}">0</b><span>Consultas médicas</span></div>
+          <span class="cal-filter__check" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="cal-stat cal-filter is-on" data-filter="peluqueria" style="--i:2" aria-pressed="true" title="Mostrar u ocultar peluquería">
+          <span class="cal-stat__icon cal-stat__icon--peluqueria">
+            <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+          </span>
+          <div><b class="cal-count" data-to="{{ total_peluqueria }}">0</b><span>Peluquería y Spa</span></div>
+          <span class="cal-filter__check" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="cal-stat cal-filter is-on" data-filter="cancelada" style="--i:3" aria-pressed="true" title="Mostrar u ocultar canceladas">
+          <span class="cal-stat__icon cal-stat__icon--cancelada">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </span>
+          <div><b class="cal-count" data-to="{{ total_canceladas }}">0</b><span>Canceladas</span></div>
+          <span class="cal-filter__check" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <!-- ── Barra de navegación ──────────────────── -->
+      <div class="cal-toolbar">
+        <div class="cal-nav">
+          <a class="cal-icon-btn" href="?vista={{ vista }}&fecha={{ fecha_anterior }}&dir=prev" aria-label="Anterior" data-key="ArrowLeft">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </a>
+          <a class="cal-today-btn" href="?vista={{ vista }}&fecha={{ hoy }}">Hoy</a>
+          <a class="cal-icon-btn" href="?vista={{ vista }}&fecha={{ fecha_siguiente }}&dir=next" aria-label="Siguiente" data-key="ArrowRight">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+          <form method="get" class="cal-goto">
+            <input type="hidden" name="vista" value="{{ vista }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" onchange="this.form.submit()" aria-label="Ir a fecha">
+          </form>
+        </div>
+
+        <div class="cal-switch" data-active="{{ vista }}">
+          <span class="cal-switch__pill" aria-hidden="true"></span>
+          <a href="?vista=dia&fecha={{ fecha|date:'Y-m-d' }}" class="cal-switch__opt {% if vista == 'dia' %}is-active{% endif %}">Día</a>
+          <a href="?vista=semana&fecha={{ fecha|date:'Y-m-d' }}" class="cal-switch__opt {% if vista == 'semana' %}is-active{% endif %}">Semana</a>
+        </div>
+      </div>
+
+      <!-- ── Calendario ─────────────────────────────── -->
+      <div class="cal-scroll" id="cal-scroll">
+        <div class="cal {% if vista == 'dia' %}cal--dia{% endif %} {% if direccion %}cal--from-{{ direccion }}{% endif %}"
+             id="cal"
+             style="--dias: {{ dias|length }}; --horas: {{ horas|length }};"
+             data-hora-inicio="{{ hora_inicio }}" data-hora-fin="{{ hora_fin }}">
+
+          <!-- Cabecera de días -->
+          <div class="cal-corner"></div>
+          {% for dia in dias %}
+          <a href="?vista=dia&fecha={{ dia.fecha|date:'Y-m-d' }}" class="cal-dayhead {% if dia.es_hoy %}is-today{% endif %}" style="--i: {{ forloop.counter0 }}">
+            <span class="cal-dayhead__name">{% if vista == 'dia' %}{{ dia.nombre }}{% else %}{{ dia.nombre_corto }}{% endif %}</span>
+            <span class="cal-dayhead__num">{{ dia.fecha.day }}</span>
+            {% if dia.total_activas %}
+              <span class="cal-dayhead__dots">
+                {% for e in dia.eventos %}{% if not e.cancelada and forloop.counter <= 6 %}<i class="is-{{ e.categoria }}"></i>{% endif %}{% endfor %}
+              </span>
+            {% else %}
+              <span class="cal-dayhead__free">Libre</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+
+          <!-- Columna de horas -->
+          <div class="cal-hours" style="height: {{ alto_grilla }}px;">
+            <span class="cal-hours__now" id="cal-now-label" hidden></span>
+            {% for h in horas %}
+            <div class="cal-hours__label">{% if h == 0 %}12 a. m.{% elif h < 12 %}{{ h }} a. m.{% elif h == 12 %}12 p. m.{% else %}{{ h|add:"-12" }} p. m.{% endif %}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Columnas de días -->
+          {% for dia in dias %}
+          <div class="cal-col {% if dia.es_hoy %}is-today{% endif %}" style="height: {{ alto_grilla }}px;">
+            {% if dia.es_hoy %}<div class="cal-now" id="cal-now" hidden></div>{% endif %}
+            {% localize off %}
+            {% for e in dia.eventos %}
+            <button type="button"
+                 class="cal-event cal-event--{{ e.categoria }}{% if e.cancelada %} cal-event--cancelada{% endif %}{% if e.alto < 6 %} cal-event--corta{% endif %}"
+                 style="top: {{ e.top }}%; height: {{ e.alto }}%; left: calc({{ e.izquierda }}% + 3px); width: calc({{ e.ancho }}% - 6px); --d: {{ forloop.counter0 }};"
+                 data-categoria="{% if e.cancelada %}cancelada{% else %}{{ e.categoria }}{% endif %}"
+                 data-titulo="{{ e.titulo }}"
+                 data-servicio="{{ e.servicio }}"
+                 data-responsable="{{ e.responsable }}"
+                 data-horario="{{ e.inicio|time:'g:i a' }} – {{ e.fin|time:'g:i a' }}"
+                 data-fecha="{{ dia.nombre }} {{ dia.fecha.day }}"
+                 data-duracion="{{ e.duracion_min }}"
+                 data-estado="{{ e.estado_display }}">
+              <span class="cal-event__head">
+                <span class="cal-event__time">{{ e.inicio|time:"g:i a" }}</span>
+                <span class="cal-event__title">{{ e.titulo }}</span>
+              </span>
+              <span class="cal-event__detail">{{ e.servicio }}</span>
+              <span class="cal-event__who">{{ e.responsable }}</span>
+            </button>
+            {% endfor %}
+            {% endlocalize %}
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if not total_citas and not total_canceladas %}
+        <div class="cal-empty">
+          <img src="{% static 'img/mascotas_prados_pets.png' %}" alt="" class="cal-empty__img">
+          <h3>Agenda libre</h3>
+          <p>No hay citas {% if vista == 'dia' %}para este día{% else %}esta semana{% endif %}. ¡Buen momento para agendar!</p>
+          <a href="{% url 'agendamiento:agendar_cita' %}" class="cal-btn cal-btn--consulta">Agendar cita</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <p class="cal-hint">Consejo: usa <kbd>←</kbd> <kbd>→</kbd> para moverte, <kbd>D</kbd> / <kbd>S</kbd> para cambiar de vista y <kbd>T</kbd> para volver a hoy.</p>
+    </main>
+  </div>
+</div>
+
+<!-- ── Detalle de la cita ────────────────────────── -->
+<div class="cal-modal" id="cal-modal" hidden>
+  <div class="cal-modal__backdrop" data-close></div>
+  <div class="cal-modal__card" role="dialog" aria-modal="true" aria-labelledby="cal-modal-title">
+    <div class="cal-modal__band"></div>
+    <button type="button" class="cal-modal__close" data-close aria-label="Cerrar">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <span class="cal-modal__chip" id="cal-modal-chip"></span>
+    <h2 id="cal-modal-title"></h2>
+    <p class="cal-modal__service" id="cal-modal-service"></p>
+    <dl class="cal-modal__grid">
+      <div><dt>Día</dt><dd id="cal-modal-fecha"></dd></div>
+      <div><dt>Horario</dt><dd id="cal-modal-horario"></dd></div>
+      <div><dt>Duración</dt><dd id="cal-modal-duracion"></dd></div>
+      <div><dt>Estado</dt><dd id="cal-modal-estado"></dd></div>
+      <div class="cal-modal__full"><dt id="cal-modal-resp-label">Responsable</dt><dd id="cal-modal-resp"></dd></div>
+    </dl>
+  </div>
+</div>
+
+<script src="{% static 'js/calendario.js' %}?v=2" defer></script>
+{% endblock %}

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprobante Peluquería – {{ mascota.nombre }}</title>
+  <style>
+    @page {
+      size: A5 portrait;
+      margin: 1cm 1.2cm 1cm 1.2cm;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 10.5px;
+      color: #1e1e2d;
+      background: #ffffff;
+    }
+
+    /* ─ CABECERA ─ */
+    .header {
+      background-color: #6d28d9;
+      padding: 12px 14px 10px 14px;
+      border-radius: 6px;
+      margin-bottom: 0;
+    }
+    .header table { width: 100%; border-collapse: collapse; }
+    .header td { vertical-align: middle; }
+    .brand-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: 0.4px;
+    }
+    .brand-sub {
+      font-size: 8.5px;
+      color: rgba(255,255,255,0.75);
+      margin-top: 2px;
+    }
+    .doc-badge {
+      background-color: rgba(255,255,255,0.2);
+      color: #ffffff;
+      font-size: 8.5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-align: right;
+      float: right;
+    }
+
+    /* ─ DIVIDER ─ */
+    .divider {
+      height: 3px;
+      background-color: #7c3aed;
+      margin-bottom: 10px;
+    }
+
+    /* ─ SECCIONES ─ */
+    .section-title {
+      font-size: 7.5px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6d28d9;
+      border-bottom: 1px solid #ede9fe;
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+    }
+
+    /* ─ TABLA INFO (2 cols) ─ */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    .info-table td {
+      vertical-align: top;
+      padding: 0;
+      width: 50%;
+    }
+    .info-table td:first-child { padding-right: 10px; }
+
+    /* ─ FILAS DE DATO ─ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+    }
+    .data-table tr td {
+      padding: 2.5px 0;
+      vertical-align: top;
+    }
+    .data-lbl {
+      width: 36%;
+      color: #888888;
+      font-size: 8.5px;
+      padding-right: 4px;
+    }
+    .data-val {
+      font-weight: 600;
+      font-size: 9.5px;
+      color: #1a1a1a;
+    }
+
+    /* ─ BADGE ESPECIE ─ */
+    .badge {
+      background-color: #ede9fe;
+      color: #5b21b6;
+      border-radius: 8px;
+      padding: 1px 7px;
+      font-size: 8px;
+      font-weight: bold;
+    }
+
+    /* ─ SERVICIO ─ */
+    .service-box {
+      background-color: #faf5ff;
+      border-left: 3px solid #7c3aed;
+      padding: 7px 10px;
+      margin-bottom: 10px;
+      border-radius: 2px;
+    }
+    .service-name {
+      font-size: 12px;
+      font-weight: bold;
+      color: #5b21b6;
+      margin-bottom: 5px;
+    }
+    .service-meta {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .service-meta td {
+      font-size: 9px;
+      color: #555555;
+      width: 33%;
+      vertical-align: middle;
+    }
+    .service-meta strong { color: #1e1e2d; }
+
+    /* ─ PRECIO ─ */
+    .price-box {
+      background-color: #6d28d9;
+      border-radius: 4px;
+      padding: 7px 12px;
+      margin-bottom: 10px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .price-box td { vertical-align: middle; }
+    .price-lbl { color: #e0d7ff; font-size: 9.5px; }
+    .price-val {
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: right;
+    }
+
+    /* ─ OBSERVACIONES ─ */
+    .obs-box {
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      color: #444444;
+      min-height: 24px;
+      margin-bottom: 10px;
+    }
+
+    /* ─ FOOTER ─ */
+    .footer {
+      border-top: 1px solid #ede9fe;
+      padding-top: 7px;
+      text-align: center;
+      font-size: 8.5px;
+      color: #aaaaaa;
+    }
+    .footer b { color: #7c3aed; }
+  </style>
+</head>
+<body>
+
+  <!-- CABECERA -->
+  <div class="header">
+    <table>
+      <tr>
+        <td>
+          <div class="brand-name">Prados Pets</div>
+          <div class="brand-sub">Clínica Veterinaria &amp; Spa Canino</div>
+        </td>
+        <td style="text-align:right;">
+          <span class="doc-badge">Comprobante de Peluquería</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div class="divider"></div>
+
+  <!-- MASCOTA + PROPIETARIO -->
+  <table class="info-table">
+    <tr>
+      <td>
+        <div class="section-title">Datos de la Mascota</div>
+        <table class="data-table">
+          <tr>
+            <td class="data-lbl">Nombre</td>
+            <td class="data-val">{{ mascota.nombre }}</td>
+          </tr>
+          <tr>
+            <td class="data-lbl">Tipo</td>
+            <td class="data-val">
+              <span class="badge">{{ mascota.get_especie_display }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="data-lbl">Raza</td>
+            <td class="data-val">{{ mascota.raza|default:"No especificada" }}</td>
+          </tr>
+          <tr>
+            <td class="data-lbl">Tamaño</td>
+            <td class="data-val">{{ cita.tamano|capfirst }}</td>
+          </tr>
+        </table>
+      </td>
+      <td>
+        <div class="section-title">Datos del Propietario</div>
+        <table class="data-table">
+          <tr>
+            <td class="data-lbl">Nombre</td>
+            <td class="data-val">{{ mascota.id_dueno.nombre_completo }}</td>
+          </tr>
+          <tr>
+            <td class="data-lbl">Teléfono</td>
+            <td class="data-val">{{ mascota.id_dueno.telefono }}</td>
+          </tr>
+          <tr>
+            <td class="data-lbl">Dirección</td>
+            <td class="data-val">{{ mascota.id_dueno.direccion|default:"-" }}</td>
+          </tr>
+          <tr>
+            <td class="data-lbl">Código</td>
+            <td class="data-val">{{ mascota.codigo_mascota }}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- SERVICIO -->
+  <div class="section-title">Servicio Agendado</div>
+  <div class="service-box">
+    <div class="service-name">{{ cita.get_servicio_display }}</div>
+    <table class="service-meta">
+      <tr>
+        <td>Fecha: <strong>{{ cita.fecha_hora|date:"d/m/Y" }}</strong></td>
+        <td>Hora: <strong>{{ cita.fecha_hora|date:"H:i" }}</strong></td>
+        <td>Duración: <strong>{{ cita.duracion_estimada_min }} min</strong></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- PRECIO -->
+  <table class="price-box">
+    <tr>
+      <td class="price-lbl">Total a pagar</td>
+      <td class="price-val">{{ cita.precio_formateado }}</td>
+    </tr>
+  </table>
+
+  <!-- OBSERVACIONES -->
+  <div class="section-title">Observaciones</div>
+  <div class="obs-box">{{ cita.observaciones|default:"Sin observaciones adicionales." }}</div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Gracias por confiar en <b>Prados Pets</b> para el cuidado de {{ mascota.nombre }}.
+    Este comprobante es válido como recibo de agendamiento.
+  </div>
+
+</body>
+</html>

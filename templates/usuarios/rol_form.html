@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{% if modo == "nuevo" %}Nuevo rol{% else %}Editar rol{% endif %} · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <a href="{% url 'usuarios:roles_lista' %}">Roles</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">{% if modo == "nuevo" %}Nuevo rol{% else %}Editar rol{% endif %}</span>
+      </div>
+    </header>
+    <main class="app-content app-content--narrow">
+    <h1>{% if modo == "nuevo" %}Nuevo rol{% else %}Editar rol{% endif %}</h1>
+
+    {% if form.errors %}
+      <p class="auth-form__error">Revisa los datos del formulario.</p>
+    {% endif %}
+
+    <form method="post" class="app-form">
+      {% csrf_token %}
+
+      <label for="{{ form.nombre_rol.id_for_label }}">Nombre del rol</label>
+      {{ form.nombre_rol }}
+      {% if form.nombre_rol.errors %}<p class="app-form__field-error">{{ form.nombre_rol.errors|striptags }}</p>{% endif %}
+
+      <label for="{{ form.descripcion.id_for_label }}">Descripción</label>
+      {{ form.descripcion }}
+
+      <div class="app-form__actions">
+        <a href="{% url 'usuarios:roles_lista' %}" class="btn btn--ghost">Cancelar</a>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+    </main>
+  </div>
+</div>
+{% endblock %}

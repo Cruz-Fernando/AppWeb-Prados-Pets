@@ -1,0 +1,42 @@
+{% if q %}
+  {% if not duenos and not mascotas %}
+    <p class="app-content__subtitle">No se encontraron resultados para "{{ q }}".</p>
+  {% endif %}
+
+  {% if duenos %}
+  <h2 class="app-search__section-title">Dueños</h2>
+  <table class="app-table">
+    <thead>
+      <tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th></tr>
+    </thead>
+    <tbody>
+      {% for d in duenos %}
+      <tr>
+        <td>{{ d.nombre_completo }}</td>
+        <td>{{ d.telefono }}</td>
+        <td>{{ d.direccion }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if mascotas %}
+  <h2 class="app-search__section-title">Mascotas</h2>
+  <table class="app-table">
+    <thead>
+      <tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th></tr>
+    </thead>
+    <tbody>
+      {% for m in mascotas %}
+      <tr>
+        <td>{{ m.nombre }}</td>
+        <td>{{ m.get_especie_display }}</td>
+        <td>{{ m.id_dueno.nombre_completo }}</td>
+        <td>{{ m.id_dueno.telefono }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+{% endif %}

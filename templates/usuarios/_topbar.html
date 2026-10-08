@@ -1,0 +1,23 @@
+{% load static %}
+<header class="app-topbar">
+  <span class="app-topbar__brand">
+    <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" class="app-topbar__logo"> Prados Pets
+  </span>
+
+  <nav class="app-topbar__nav">
+    <a href="{% url 'usuarios:dashboard' %}">Panel</a>
+    {% if user.es_administrador %}
+      <a href="{% url 'usuarios:usuarios_lista' %}">Usuarios</a>
+      <a href="{% url 'usuarios:roles_lista' %}">Roles</a>
+    {% endif %}
+  </nav>
+
+  <div class="app-topbar__user">
+    <span>{{ user.nombre_completo|default:user.username }}</span>
+    {% if user.id_rol %}<span class="app-topbar__role">{{ user.id_rol }}</span>{% endif %}
+    <form method="post" action="{% url 'usuarios:logout' %}" style="display:inline">
+      {% csrf_token %}
+      <button type="submit" class="link-button">Cerrar sesión</button>
+    </form>
+  </div>
+</header>

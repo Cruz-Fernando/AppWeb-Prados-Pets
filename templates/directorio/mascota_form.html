@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Registrar Mascota · Prados Pets{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Directorio</span>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Registrar Mascota</span>
+      </div>
+    </header>
+    <main class="app-content app-content--narrow">
+
+    <h1>Registrar Nueva Mascota</h1>
+    <p class="app-content__subtitle">Completa los datos. El código de mascota se genera automáticamente.</p>
+
+    {% if messages %}
+    <ul class="app-messages">
+      {% for message in messages %}
+        <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form method="POST" class="app-form" id="form-mascota" novalidate>
+      {% csrf_token %}
+
+      {# ── Código único (solo lectura, generado automático) ────────── #}
+      <div class="form-field">
+        <label for="id_codigo_preview" class="form-label">
+          Código de mascota
+          <span class="badge badge--codigo">🔖 Identificador único</span>
+        </label>
+        <div class="codigo-badge" id="id_codigo_preview" title="Este código se genera automáticamente al guardar">
+          <span class="codigo-badge__prefix">M-</span>
+          <span class="codigo-badge__chars" id="codigo-chars">????</span>
+        </div>
+        <p class="app-form__hint">Generado al guardar. Sirve para diferenciar mascotas con el mismo nombre.</p>
+      </div>
+
+      {# ── Propietario (autocomplete) ───────────────────────────────── #}
+      <div class="form-field">
+        <label for="buscar_dueno" class="form-label">Propietario *</label>
+
+        {# Input de texto visible #}
+        <div class="autocomplete-wrap" id="autocomplete-wrap">
+          <input
+            type="text"
+            id="buscar_dueno"
+            name="buscar_dueno"
+            class="app-form__input{% if form.buscar_dueno.errors %} app-form__input--error{% endif %}"
+            placeholder="Escribe el nombre o teléfono del dueño…"
+            autocomplete="off"
+            value="{{ form.buscar_dueno.value|default:'' }}"
+          >
+          <ul class="autocomplete-list" id="autocomplete-list" role="listbox" aria-label="Dueños encontrados"></ul>
+        </div>
+
+        {# Input oculto que lleva el id real al POST #}
+        {{ form.id_dueno }}
+
+        {% if form.buscar_dueno.errors %}
+          {% for error in form.buscar_dueno.errors %}
+            <p class="app-form__field-error">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      {# ── Nombre ──────────────────────────────────────────────────── #}
+      <div class="form-field">
+        <label for="id_nombre" class="form-label">Nombre *</label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}
+          {% for e in form.nombre.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+        {% endif %}
+      </div>
+
+      {# ── Especie y Raza ──────────────────────────────────────────── #}
+      <div class="form-row-2">
+        <div class="form-field">
+          <label for="id_especie" class="form-label">Especie *</label>
+          {{ form.especie }}
+          {% if form.especie.errors %}
+            {% for e in form.especie.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          {% endif %}
+        </div>
+        <div class="form-field">
+          <label for="id_raza" class="form-label">Raza</label>
+          {{ form.raza }}
+        </div>
+      </div>
+
+      {# ── Sexo y Tamaño ───────────────────────────────────────────── #}
+      <div class="form-row-2">
+        <div class="form-field">
+          <label for="id_sexo" class="form-label">Sexo</label>
+          {{ form.sexo }}
+        </div>
+        <div class="form-field">
+          <label for="id_tamano" class="form-label">Tamaño</label>
+          {{ form.tamano }}
+        </div>
+      </div>
+
+      {# ── Color ───────────────────────────────────────────────────── #}
+      <div class="form-field">
+        <label for="id_color" class="form-label">Color</label>
+        {{ form.color }}
+      </div>
+
+      {# ── Fecha de Nacimiento ─────────────────────────────────────── #}
+      <div class="form-field">
+        <label for="id_fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
+        {{ form.fecha_nacimiento }}
+      </div>
+
+      <div class="app-form__actions">
+        <a href="{% url 'usuarios:dashboard' %}" class="btn btn--ghost">Cancelar</a>
+        <a href="{% url 'registrar_dueno' %}" class="btn btn--ghost">+ Nuevo Dueño</a>
+        <button type="submit" class="btn btn--primary" id="btn-guardar">Guardar Mascota</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<style>
+/* ── Código badge ─────────────────────────────────────────────── */
+.badge--codigo {
+  margin-left: 8px;
+  background: rgba(167,139,250,.15);
+  color: var(--accent);
+  border: 1px solid rgba(167,139,250,.3);
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  vertical-align: middle;
+}
+
+.codigo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface-alt);
+  border: 1px dashed rgba(167,139,250,.45);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--accent-light);
+  cursor: default;
+  user-select: none;
+  margin-top: 4px;
+  animation: blinkCode 1.4s step-start infinite;
+}
+
+.codigo-badge__prefix {
+  color: var(--text-muted);
+}
+
+@keyframes blinkCode {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
+
+/* ── Layout del form ──────────────────────────────────────────── */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+}
+
+.form-field:first-child { margin-top: 0; }
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.app-form__input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--surface-alt);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.app-form__input:focus {
+  border-color: var(--accent);
+  background: #20172e;
+  box-shadow: 0 0 0 3px rgba(167,139,250,.22);
+  outline: none;
+}
+.app-form__input--error {
+  border-color: var(--error-border);
+}
+
+/* ── Autocomplete ─────────────────────────────────────────────── */
+.autocomplete-wrap {
+  position: relative;
+}
+
+.autocomplete-list {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid rgba(167,139,250,.35);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 240px;
+  overflow-y: auto;
+  animation: pageEnter .15s var(--ease-out);
+}
+
+.autocomplete-list.is-open {
+  display: block;
+}
+
+.autocomplete-list li {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background .1s ease, color .1s ease;
+  border-radius: 0;
+}
+
+.autocomplete-list li:hover,
+.autocomplete-list li.is-active {
+  background: rgba(167,139,250,.14);
+  color: var(--accent-light);
+}
+
+.autocomplete-list li.no-results {
+  color: var(--text-dim);
+  cursor: default;
+  font-style: italic;
+}
+
+.autocomplete-list li.no-results:hover {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+/* Scroll personalizado */
+.autocomplete-list::-webkit-scrollbar { width: 5px; }
+.autocomplete-list::-webkit-scrollbar-thumb {
+  background: rgba(167,139,250,.3);
+  border-radius: 99px;
+}
+
+@media (max-width: 600px) {
+  .form-row-2 { grid-template-columns: 1fr; }
+}
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Código de mascota animado ──────────────────────────────── */
+  const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function randomCode() {
+    let s = '';
+    for (let i = 0; i < 4; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
+    return s;
+  }
+  // Animación de "barajeo" antes de guardar — puramente visual, el código real lo genera Django
+  const codigoEl = document.getElementById('codigo-chars');
+  let shuffleTimer;
+  function startShuffle() {
+    shuffleTimer = setInterval(() => {
+      codigoEl.textContent = randomCode();
+    }, 80);
+  }
+  function stopShuffle(code) {
+    clearInterval(shuffleTimer);
+    codigoEl.textContent = code;
+    codigoEl.style.animation = 'none';
+    codigoEl.style.color = 'var(--success)';
+  }
+  startShuffle(); // Empieza barajeo al cargar — se detiene si el servidor devuelve un código real
+
+  /* ── Autocomplete de dueño ──────────────────────────────────── */
+  const txtDueno = document.getElementById('buscar_dueno');
+  const hiddenId  = document.getElementById('id_dueno_hidden');
+  const lista      = document.getElementById('autocomplete-list');
+
+  let debounceTimer;
+  let activeIndex  = -1;
+  let resultados   = [];
+
+  function abrirLista(items) {
+    lista.innerHTML = '';
+    activeIndex = -1;
+
+    if (items.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'no-results';
+      li.textContent = 'No se encontraron dueños con ese nombre o teléfono.';
+      lista.appendChild(li);
+    } else {
+      items.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.textContent = item.texto;
+        li.setAttribute('role', 'option');
+        li.setAttribute('data-id', item.id);
+        li.addEventListener('mousedown', function (e) {
+          e.preventDefault(); // evita que el input pierda foco antes de seleccionar
+          seleccionar(item);
+        });
+        lista.appendChild(li);
+      });
+    }
+    lista.classList.add('is-open');
+    resultados = items;
+  }
+
+  function cerrarLista() {
+    lista.classList.remove('is-open');
+    activeIndex = -1;
+  }
+
+  function seleccionar(item) {
+    txtDueno.value = item.texto;
+    hiddenId.value = item.id;
+    cerrarLista();
+    // Pequeña confirmación visual
+    txtDueno.style.borderColor = 'var(--success-border)';
+    txtDueno.style.boxShadow   = '0 0 0 3px rgba(34,197,94,.2)';
+    setTimeout(() => {
+      txtDueno.style.borderColor = '';
+      txtDueno.style.boxShadow   = '';
+    }, 1400);
+  }
+
+  function navegar(dir) {
+    const items = lista.querySelectorAll('li:not(.no-results)');
+    if (!items.length) return;
+    items[activeIndex]?.classList.remove('is-active');
+    activeIndex = (activeIndex + dir + items.length) % items.length;
+    items[activeIndex].classList.add('is-active');
+    items[activeIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  txtDueno.addEventListener('input', function () {
+    hiddenId.value = ''; // Limpiar selección anterior si el usuario retipea
+    txtDueno.style.borderColor = '';
+    txtDueno.style.boxShadow   = '';
+
+    const q = this.value.trim();
+    clearTimeout(debounceTimer);
+
+    if (q.length < 2) { cerrarLista(); return; }
+
+    debounceTimer = setTimeout(() => {
+      fetch(`{% url 'autocomplete_duenos' %}?q=${encodeURIComponent(q)}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(r => r.json())
+        .then(data => abrirLista(data.resultados))
+        .catch(() => cerrarLista());
+    }, 200);
+  });
+
+  txtDueno.addEventListener('keydown', function (e) {
+    if (!lista.classList.contains('is-open')) return;
+    if (e.key === 'ArrowDown')  { e.preventDefault(); navegar(1); }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); navegar(-1); }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const items = lista.querySelectorAll('li:not(.no-results)');
+      if (activeIndex >= 0 && items[activeIndex]) {
+        const id   = items[activeIndex].getAttribute('data-id');
+        const texto = items[activeIndex].textContent;
+        seleccionar({ id, texto });
+      }
+    }
+    if (e.key === 'Escape') { cerrarLista(); }
+  });
+
+  // Cerrar al hacer clic fuera
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('#autocomplete-wrap')) cerrarLista();
+  });
+
+  /* ── Validación en submit ────────────────────────────────────── */
+  document.getElementById('form-mascota').addEventListener('submit', function (e) {
+    if (!hiddenId.value) {
+      e.preventDefault();
+      txtDueno.style.borderColor = 'var(--error-border)';
+      txtDueno.style.boxShadow   = '0 0 0 3px rgba(161,59,92,.25)';
+      txtDueno.focus();
+      txtDueno.placeholder = '⚠ Selecciona un dueño de la lista antes de guardar';
+      return;
+    }
+    // Animación de código al guardar
+    stopShuffle('····');
+    document.getElementById('btn-guardar').disabled = true;
+    document.getElementById('btn-guardar').textContent = 'Guardando…';
+  });
+
+})();
+</script>
+</div>
+{% endblock %}

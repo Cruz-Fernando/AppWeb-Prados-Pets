@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Agendar Cita · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Agendar Cita</span>
+      </div>
+    </header>
+
+    <main class="pp-form-main">
+      <div class="pp-form-card">
+
+        <div class="pp-form-card__header">
+          <div class="pp-form-card__icon">📅</div>
+          <div>
+            <h2 class="pp-form-card__title">Agendar Cita Médica</h2>
+            <p class="pp-form-card__sub">Asigna fecha, hora y veterinario para la consulta</p>
+          </div>
+        </div>
+
+        {% if messages %}
+        <ul class="pp-alert-list">
+          {% for message in messages %}
+            <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if form.non_field_errors %}
+        <ul class="pp-alert-list">
+          {% for error in form.non_field_errors %}
+            <li class="pp-alert pp-alert--error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="POST" class="pp-form" novalidate>
+          {% csrf_token %}
+
+          <!-- Mascota -->
+          <div class="pp-field">
+            <label class="pp-label">Mascota <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap" style="position:relative;">
+              <span class="pp-input-ico">🐾</span>
+              {{ form.buscar_mascota }}
+              <div id="mascota-dropdown" class="pp-dropdown"></div>
+            </div>
+            {{ form.mascota }}
+            <div id="mascota-seleccionada" class="pp-pet-badge" style="display:none;"></div>
+            {% for e in form.mascota.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <!-- Veterinario -->
+          <div class="pp-field">
+            <label for="{{ form.veterinario.id_for_label }}" class="pp-label">Veterinario <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">🩺</span>
+              <div class="pp-select-wrap">{{ form.veterinario }}</div>
+            </div>
+            {% for e in form.veterinario.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <!-- Tipo de servicio -->
+          <div class="pp-field">
+            <label for="{{ form.tipo_servicio.id_for_label }}" class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">🏥</span>
+              <div class="pp-select-wrap">{{ form.tipo_servicio }}</div>
+            </div>
+            {% for e in form.tipo_servicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <!-- Fecha y hora -->
+          <div class="pp-row-2">
+            <div class="pp-field">
+              <label for="{{ form.fecha.id_for_label }}" class="pp-label">Fecha <span class="pp-req">*</span></label>
+              <div class="pp-input-wrap">
+                <span class="pp-input-ico">📆</span>
+                {{ form.fecha }}
+              </div>
+              {% for e in form.fecha.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+            </div>
+            <div class="pp-field">
+              <label for="{{ form.hora_inicio.id_for_label }}" class="pp-label">Hora inicio <span class="pp-req">*</span></label>
+              <div class="pp-input-wrap">
+                <span class="pp-input-ico">🕐</span>
+                {{ form.hora_inicio }}
+              </div>
+              {% for e in form.hora_inicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label for="{{ form.hora_fin.id_for_label }}" class="pp-label">Hora fin</label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">🕔</span>
+              {{ form.hora_fin }}
+            </div>
+            {% for e in form.hora_fin.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div class="pp-form__actions">
+            <a href="{% url 'usuarios:dashboard' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
+            <button type="submit" class="pp-btn pp-btn--primary">
+              <span class="pp-btn__txt">Guardar Cita</span>
+              <span class="pp-btn__arrow">→</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<style>
+.pp-pet-badge {
+  margin-top: 8px; padding: 10px 14px;
+  background: rgba(124,58,237,.12);
+  border: 1px solid rgba(124,58,237,.3);
+  border-radius: 10px;
+  font-size: 13px; color: #a78bfa;
+  display: flex; align-items: center; justify-content: space-between;
+  animation: ppFadeUp .25s ease;
+}
+.pp-pet-badge__clear {
+  cursor: pointer; font-size: 16px;
+  color: #64748b; background: none; border: none; padding: 0 4px;
+  transition: color .15s;
+}
+.pp-pet-badge__clear:hover { color: #f87171; }
+</style>
+
+<script>
+(function () {
+  const input    = document.getElementById('buscar_mascota_input');
+  const hidden   = document.getElementById('id_mascota_hidden');
+  const dropdown = document.getElementById('mascota-dropdown');
+  const badge    = document.getElementById('mascota-seleccionada');
+  const AJAX_URL = "{% url 'agendamiento:buscar_mascotas_ajax' %}";
+  let timer = null;
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { cerrar(); return; }
+    timer = setTimeout(() => buscar(q), 260);
+  });
+
+  function buscar(q) {
+    fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
+      .then(r => r.json()).then(data => render(data.resultados));
+  }
+
+  function render(items) {
+    dropdown.innerHTML = '';
+    if (!items.length) {
+      dropdown.innerHTML = '<div class="pp-dropdown-empty">Sin resultados…</div>';
+      dropdown.style.display = 'block'; return;
+    }
+    items.forEach(m => {
+      const d = document.createElement('div');
+      d.className = 'pp-dropdown-item';
+      d.innerHTML = `<div class="pp-dropdown-item__name">🐾 ${m.nombre_mascota} <small>[${m.codigo}]</small></div>
+        <div class="pp-dropdown-item__sub">${m.especie} · ${m.raza} | Dueño: ${m.dueno} · ${m.telefono}</div>`;
+      d.addEventListener('click', () => seleccionar(m));
+      dropdown.appendChild(d);
+    });
+    dropdown.style.display = 'block';
+  }
+
+  function seleccionar(m) {
+    hidden.value = m.id;
+    input.value  = m.label;
+    cerrar();
+    badge.style.display = 'flex';
+    badge.innerHTML = `<span>✔ <strong>${m.nombre_mascota}</strong> [${m.codigo}] — ${m.dueno} · ${m.telefono}</span>
+      <button type="button" class="pp-pet-badge__clear" title="Cambiar">✕</button>`;
+    badge.querySelector('.pp-pet-badge__clear').addEventListener('click', limpiar);
+  }
+
+  function limpiar() {
+    hidden.value = ''; input.value = '';
+    badge.style.display = 'none'; badge.innerHTML = '';
+    input.focus();
+  }
+
+  function cerrar() { dropdown.style.display = 'none'; }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.pp-input-wrap')) cerrar();
+  });
+
+  const fechaInput = document.getElementById('id_fecha');
+  if (fechaInput) {
+    const hoy = new Date().toISOString().split('T')[0];
+    fechaInput.setAttribute('min', hoy);
+  }
+}());
+</script>
+{% endblock %}

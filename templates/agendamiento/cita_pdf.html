@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cita #{{ cita.pk }} · Prados Pets</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 36px 48px; }
+
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #2e7d32; padding-bottom: 16px; margin-bottom: 24px; }
+    .header__logo { font-size: 22px; font-weight: 700; color: #2e7d32; }
+    .header__logo span { display: block; font-size: 12px; font-weight: 400; color: #555; margin-top: 2px; }
+    .header__meta { text-align: right; font-size: 12px; color: #555; line-height: 1.7; }
+    .header__meta strong { color: #1a1a1a; font-size: 16px; display: block; margin-bottom: 4px; }
+
+    .section { margin-bottom: 22px; }
+    .section__title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #2e7d32; border-bottom: 1px solid #c8e6c9; padding-bottom: 4px; margin-bottom: 10px; }
+
+    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+    .data-item { display: flex; flex-direction: column; gap: 1px; }
+    .data-item__label { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: .04em; }
+    .data-item__value { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+
+    .estado-chip { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .estado-programada { background: #e3f2fd; color: #1565c0; }
+    .estado-atendida   { background: #e8f5e9; color: #2e7d32; }
+    .estado-cancelada  { background: #ffebee; color: #c62828; }
+
+    .firma-wrap { margin-top: 48px; display: flex; justify-content: flex-end; }
+    .firma-box { text-align: center; width: 200px; }
+    .firma-box__linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; }
+    .firma-box__nombre { font-weight: 600; font-size: 12px; }
+    .firma-box__rol { font-size: 11px; color: #777; }
+
+    .footer { margin-top: 36px; border-top: 1px solid #e0e0e0; padding-top: 10px; font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
+
+    .print-btn { display: block; margin: 0 auto 24px; padding: 10px 28px; background: #2e7d32; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+    @media print { .print-btn { display: none; } body { padding: 0; } }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+
+  <div class="header">
+    <div class="header__logo">🐾 Prados Pets<span>Clínica Veterinaria</span></div>
+    <div class="header__meta">
+      <strong>Comprobante de Cita</strong>
+      N.° {{ cita.pk|stringformat:"05d" }}<br>
+      Generado: {{ fecha_generacion|date:"d/m/Y H:i" }}
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="estado-chip estado-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+  </div>
+
+  <div class="section">
+    <div class="section__title">Datos de la Cita</div>
+    <div class="data-grid">
+      <div class="data-item"><span class="data-item__label">Tipo de Servicio</span><span class="data-item__value">{{ tipo_servicio_display }}</span></div>
+      <div class="data-item"><span class="data-item__label">Fecha</span><span class="data-item__value">{{ cita.fecha|date:"d/m/Y" }}</span></div>
+      <div class="data-item"><span class="data-item__label">Hora Inicio</span><span class="data-item__value">{{ cita.hora_inicio|time:"H:i" }}</span></div>
+      <div class="data-item"><span class="data-item__label">Hora Fin</span><span class="data-item__value">{% if cita.hora_fin %}{{ cita.hora_fin|time:"H:i" }}{% else %}—{% endif %}</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section__title">Veterinario Responsable</div>
+    <div class="data-grid">
+      <div class="data-item"><span class="data-item__label">Nombre</span><span class="data-item__value">{{ veterinario.get_full_name|default:veterinario.username }}</span></div>
+      <div class="data-item"><span class="data-item__label">Usuario</span><span class="data-item__value">{{ veterinario.username }}</span></div>
+      {% if veterinario.email %}<div class="data-item"><span class="data-item__label">Correo</span><span class="data-item__value">{{ veterinario.email }}</span></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section__title">Dueño / Cliente</div>
+    <div class="data-grid">
+      <div class="data-item"><span class="data-item__label">Nombre Completo</span><span class="data-item__value">{{ dueno.nombre_completo }}</span></div>
+      <div class="data-item"><span class="data-item__label">Teléfono</span><span class="data-item__value">{{ dueno.telefono }}</span></div>
+      {% if dueno.correo %}<div class="data-item"><span class="data-item__label">Correo</span><span class="data-item__value">{{ dueno.correo }}</span></div>{% endif %}
+      <div class="data-item"><span class="data-item__label">Dirección</span><span class="data-item__value">{{ dueno.direccion }}</span></div>
+      <div class="data-item"><span class="data-item__label">Cliente Recurrente</span><span class="data-item__value">{% if dueno.es_recurrente %}✔ Sí{% else %}No{% endif %}</span></div>
+      <div class="data-item"><span class="data-item__label">N.° Visitas</span><span class="data-item__value">{{ dueno.numero_visitas }}</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section__title">Mascota</div>
+    <div class="data-grid">
+      <div class="data-item"><span class="data-item__label">Nombre</span><span class="data-item__value">{{ mascota.nombre }}</span></div>
+      <div class="data-item"><span class="data-item__label">Código</span><span class="data-item__value">{{ mascota.codigo_mascota }}</span></div>
+      <div class="data-item"><span class="data-item__label">Especie</span><span class="data-item__value">{{ mascota.get_especie_display }}</span></div>
+      <div class="data-item"><span class="data-item__label">Raza</span><span class="data-item__value">{{ mascota.raza|default:"—" }}</span></div>
+      <div class="data-item"><span class="data-item__label">Tamaño</span><span class="data-item__value">{{ mascota.get_tamano_display|default:"—" }}</span></div>
+      <div class="data-item"><span class="data-item__label">Sexo</span><span class="data-item__value">{{ mascota.get_sexo_display|default:"—" }}</span></div>
+      <div class="data-item"><span class="data-item__label">Color</span><span class="data-item__value">{{ mascota.color|default:"—" }}</span></div>
+      {% if mascota.fecha_nacimiento %}<div class="data-item"><span class="data-item__label">Fecha de Nacimiento</span><span class="data-item__value">{{ mascota.fecha_nacimiento|date:"d/m/Y" }}</span></div>{% endif %}
+      {% if mascota.condicion_pelaje %}<div class="data-item"><span class="data-item__label">Condición del Pelaje</span><span class="data-item__value">{{ mascota.condicion_pelaje }}</span></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="firma-wrap">
+    <div class="firma-box">
+      <div class="firma-box__linea"></div>
+      <div class="firma-box__nombre">{{ veterinario.get_full_name|default:veterinario.username }}</div>
+      <div class="firma-box__rol">Médico Veterinario Responsable</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Prados Pets · Clínica Veterinaria</span>
+    <span>Documento generado el {{ fecha_generacion|date:"d/m/Y" }} a las {{ fecha_generacion|time:"H:i" }}</span>
+  </div>
+
+</body>
+</html>

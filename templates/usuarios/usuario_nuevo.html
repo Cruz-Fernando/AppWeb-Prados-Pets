@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Nuevo usuario · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <a href="{% url 'usuarios:usuarios_lista' %}">Usuarios</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Nuevo usuario</span>
+      </div>
+    </header>
+    <main class="app-content app-content--narrow">
+    <h1>Nuevo usuario</h1>
+    <p class="app-content__subtitle">Registra a una persona del equipo y asígnale su rol desde el inicio.</p>
+
+    {% if form.errors %}
+      <p class="auth-form__error">Revisa los datos del formulario.</p>
+    {% endif %}
+
+    <form method="post" class="app-form">
+      {% csrf_token %}
+
+      <label for="{{ form.username.id_for_label }}">Usuario</label>
+      {{ form.username }}
+      {% if form.username.errors %}<p class="app-form__field-error">{{ form.username.errors|striptags }}</p>{% endif %}
+
+      <label for="{{ form.nombre_completo.id_for_label }}">Nombre completo</label>
+      {{ form.nombre_completo }}
+
+      <label for="{{ form.telefono.id_for_label }}">Teléfono</label>
+      {{ form.telefono }}
+
+      <label for="{{ form.id_rol.id_for_label }}">Rol</label>
+      {{ form.id_rol }}
+
+      <label for="{{ form.estado.id_for_label }}">Estado</label>
+      {{ form.estado }}
+
+      <label for="{{ form.password1.id_for_label }}">Contraseña</label>
+      {{ form.password1 }}
+      {% if form.password1.errors %}<p class="app-form__field-error">{{ form.password1.errors|striptags }}</p>{% endif %}
+      <p class="app-form__hint">{{ form.password1.help_text|safe }}</p>
+
+      <label for="{{ form.password2.id_for_label }}">Confirmar contraseña</label>
+      {{ form.password2 }}
+      {% if form.password2.errors %}<p class="app-form__field-error">{{ form.password2.errors|striptags }}</p>{% endif %}
+
+      <div class="app-form__actions">
+        <a href="{% url 'usuarios:usuarios_lista' %}" class="btn btn--ghost">Cancelar</a>
+        <button type="submit" class="btn btn--primary">Registrar</button>
+      </div>
+    </form>
+    </main>
+  </div>
+</div>
+{% endblock %}

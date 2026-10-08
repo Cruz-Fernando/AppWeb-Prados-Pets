@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Panel · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <!-- Topbar superior -->
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <span class="app-topbar__current">Dashboard</span>
+      </div>
+      <div class="app-topbar__actions">
+        {% if messages %}
+        <!-- mensajes flash aparecen abajo -->
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="app-content">
+      {% if messages %}
+      <ul class="app-messages">
+        {% for message in messages %}
+          <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <!-- Hero -->
+      <section class="app-hero">
+        <div class="app-hero__content">
+          <span class="app-hero__badge">Sistema Veterinario</span>
+          <h1 class="app-hero__title">¡Hola, {{ user.nombre_completo|default:user.username }}!</h1>
+          <p class="app-hero__description">
+            Bienvenido al panel principal de <strong>Prados Pets</strong>.<br>
+            Gestiona pacientes, propietarios y los servicios de la peluquería.
+          </p>
+          <div class="app-hero__actions">
+            <a href="/directorio/registrar-dueno/" class="btn btn--primary" id="btn-hero-dueno">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              Registrar Dueño
+            </a>
+            <a href="/directorio/mascotas/registrar/" class="btn btn--primary" id="btn-hero-mascota">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/><path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5"/><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/></svg>
+              Registrar Mascota
+            </a>
+            <a href="/directorio/buscar/" class="btn btn--ghost" id="btn-hero-buscar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Buscar
+            </a>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <a href="/directorio/registrar-dueno/" class="btn btn--primary" style="font-size: 0.85rem; padding: 6px 12px; text-align: center; flex: 1;">Dueño</a>
+          <a href="/directorio/mascotas/registrar/" class="btn btn--primary" style="font-size: 0.85rem; padding: 6px 12px; text-align: center; flex: 1;">Mascota</a>
+          <a href="/directorio/buscar/" class="btn btn--ghost" style="font-size: 0.85rem; padding: 6px 12px; text-align: center; flex: 1;">Buscar</a>
+        </div>
+      </section>
+
+      <!-- Módulos -->
+      <div class="app-section-header">
+        <div>
+          <h2>Módulos del Sistema</h2>
+          <p>Estado actual de cada área operativa</p>
+        </div>
+      </div>
+
+      <div class="app-modules-grid">
+
+        <!-- Directorio (activo) -->
+        <div class="app-module-card app-module-card--available" style="grid-column: span 1;">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Directorio</div>
+            <div class="app-module-card__desc">Propietarios, mascotas y búsqueda unificada.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
+            <a href="/directorio/buscar/" class="btn btn--ghost btn--sm" id="btn-mod-buscar">Ir al directorio →</a>
+          </div>
+        </div>
+
+        <!-- Citas -->
+        <div class="app-module-card">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Citas</div>
+            <div class="app-module-card__desc">Agendamiento y gestión de citas médicas.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
+            <a href="/agendamiento/agendar/" class="btn btn--ghost btn--sm">Ir a Citas →</a>
+          </div>
+        </div>
+
+        <!-- Consulta y Hospitalización -->
+        <div class="app-module-card app-module-card--disabled">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Consulta y Hospitalización</div>
+            <div class="app-module-card__desc">Historia clínica, diagnósticos y hospitalizados.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
+          </div>
+        </div>
+
+        <!-- Peluquería (ACTIVADO) -->
+        <div class="app-module-card app-module-card--available">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Peluquería</div>
+            <div class="app-module-card__desc">Servicios de baño, corte y estética canina.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
+            <a href="{% url 'peluqueria:agendar' %}" class="btn btn--ghost btn--sm">Ir a Peluquería →</a>
+          </div>
+        </div>
+
+        <!-- Facturación -->
+        <div class="app-module-card app-module-card--disabled">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Facturación</div>
+            <div class="app-module-card__desc">Presupuestos, cobros y reportes de facturación.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
+          </div>
+        </div>
+
+        <!-- Inventario -->
+        <div class="app-module-card app-module-card--disabled">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Inventario</div>
+            <div class="app-module-card__desc">Control de stock de productos y medicamentos.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
+          </div>
+        </div>
+
+        <!-- Reportes -->
+        <div class="app-module-card app-module-card--disabled">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Reportes</div>
+            <div class="app-module-card__desc">Estadísticas y análisis del negocio.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
+          </div>
+        </div>
+
+        {% if es_administrador %}
+        <!-- Usuarios y Roles (admin) -->
+        <a href="{% url 'usuarios:usuarios_lista' %}" class="app-module-card app-module-card--available" id="mod-usuarios" style="text-decoration:none;color:inherit;">
+          <div class="app-module-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="app-module-card__body">
+            <div class="app-module-card__title">Usuarios y Roles</div>
+            <div class="app-module-card__desc">Personal de la clínica y sus permisos de acceso.</div>
+          </div>
+          <div class="app-module-card__footer">
+            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
+          </div>
+        </a>
+        {% endif %}
+
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

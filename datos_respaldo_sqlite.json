@@ -1,0 +1,203 @@
+[
+{
+  "model": "sessions.session",
+  "pk": "4biphs931vfzbnxxoq2zakazess5kjry",
+  "fields": {
+    "session_data": ".eJxVjDEOwjAMAP_iGUVxExLakZ03RHbskAJqpaadEH9HlTrAene6NyTa1pq2pksaBQZAOP0ypvzUaRfyoOk-mzxP6zKy2RNz2GZus-jrerR_g0qtwgC2cOyCj9Hn3obCZ0R2mlGtcuhL6RRVrZQgUYicz-J6TxijuBD4gvD5AvGeOF8:1x5WsH:4B-XusO8-R8xGA9BjD5pAnTJRN1jVw7ibS2EH2GEQPk",
+    "expire_date": "2026-09-26T23:11:09.901Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "6t1vbxlw85azf5i5ctn93oc2kfhipd9m",
+  "fields": {
+    "session_data": ".eJxVjDEOwjAMAP_iGUVxExLakZ03RHbskAJqpaadEH9HlTrAene6NyTa1pq2pksaBQZAOP0ypvzUaRfyoOk-mzxP6zKy2RNz2GZus-jrerR_g0qtwgC2cOyCj9Hn3obCZ0R2mlGtcuhL6RRVrZQgUYicz-J6TxijuBD4gvD5AvGeOF8:1x583S:8Bes9hawVFCEI1nJWnMh3EvAz0SKO_qRNX4XmBXRzuQ",
+    "expire_date": "2026-09-25T20:41:02.908Z"
+  }
+},
+{
+  "model": "directorio.dueno",
+  "pk": 1,
+  "fields": {
+    "nombre_completo": "Jhojan",
+    "telefono": "3507073945",
+    "direccion": "Calle 5n bario Firme por la patria",
+    "correo": "",
+    "fecha_registro": "2026-09-12",
+    "es_recurrente": false,
+    "numero_visitas": 0
+  }
+},
+{
+  "model": "usuarios.rol",
+  "pk": 1,
+  "fields": {
+    "nombre_rol": "administrador",
+    "descripcion": "Acceso total al sistema, incluida la gestión de usuarios y roles."
+  }
+},
+{
+  "model": "usuarios.rol",
+  "pk": 2,
+  "fields": {
+    "nombre_rol": "veterinario",
+    "descripcion": "Atiende consultas médicas y hospitalizaciones."
+  }
+},
+{
+  "model": "usuarios.rol",
+  "pk": 3,
+  "fields": {
+    "nombre_rol": "auxiliar",
+    "descripcion": "Apoya en la atención al cliente y el registro de hospitalización."
+  }
+},
+{
+  "model": "usuarios.rol",
+  "pk": 4,
+  "fields": {
+    "nombre_rol": "groomer",
+    "descripcion": "Presta el servicio de peluquería y estética."
+  }
+},
+{
+  "model": "usuarios.rol",
+  "pk": 5,
+  "fields": {
+    "nombre_rol": "domiciliario",
+    "descripcion": "Realiza las recogidas y entregas a domicilio."
+  }
+},
+{
+  "model": "usuarios.usuario",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$1AQ9f3p5GqAyLXoZg9Jmuh$mnIhPjzevvH3YO6aXfjA0MLKIfsdt1nUKmk4PMuS/D4=",
+    "last_login": "2026-09-12T23:11:09.891Z",
+    "is_superuser": true,
+    "username": "fernando",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-09-11T02:54:31.159Z",
+    "id_rol": 1,
+    "nombre_completo": "",
+    "telefono": "",
+    "estado": "activo",
+    "fecha_creacion": "2026-09-10",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "usuarios.usuario",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$Wo9qbPMOImOW2MTHYxjnGz$MpwBR72XqRM/rawM3utgLiCFjMPGr0mXJED4pALYjog=",
+    "last_login": "2026-09-11T03:33:39.795Z",
+    "is_superuser": true,
+    "username": "administrador",
+    "first_name": "",
+    "last_name": "",
+    "email": "administrador@pradospets.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-09-11T03:19:47.583Z",
+    "id_rol": 1,
+    "nombre_completo": "Administrador General",
+    "telefono": "",
+    "estado": "activo",
+    "fecha_creacion": "2026-09-10",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "usuarios.usuario",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$bcsGAMKEPOn6RWAwCWknv4$sG7cpQNEfV5dEhUMZIRBrQ7nmqVKMdQ80ioYjkwhC0g=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "veterinario",
+    "first_name": "",
+    "last_name": "",
+    "email": "veterinario@pradospets.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-11T03:19:48.173Z",
+    "id_rol": 2,
+    "nombre_completo": "Veterinario General",
+    "telefono": "",
+    "estado": "activo",
+    "fecha_creacion": "2026-09-10",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "usuarios.usuario",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$xHZoVfqkOfBCTGS5X72isv$pX37M7bAmCc2KVEjC1lgcDk9HXzwvPseGj52oIEzz4U=",
+    "last_login": "2026-09-11T03:34:46.062Z",
+    "is_superuser": false,
+    "username": "auxiliar",
+    "first_name": "",
+    "last_name": "",
+    "email": "auxiliar@pradospets.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-11T03:19:48.750Z",
+    "id_rol": 3,
+    "nombre_completo": "Auxiliar General",
+    "telefono": "",
+    "estado": "activo",
+    "fecha_creacion": "2026-09-10",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "usuarios.usuario",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$s0ouQth9xDZyvslSaFthvB$MIcCWIsqug162d6olu88acGsg8r6F+wRKEHbE+9Ee9k=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "groomer",
+    "first_name": "",
+    "last_name": "",
+    "email": "groomer@pradospets.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-11T03:19:49.350Z",
+    "id_rol": 4,
+    "nombre_completo": "Groomer General",
+    "telefono": "",
+    "estado": "activo",
+    "fecha_creacion": "2026-09-10",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "usuarios.usuario",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$5TH4fWdkEeFXWAonxNK60s$f3ea2+/tYaQOJayZ5eY1/bRCarHDdSOpxS0ejKexnFI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "domiciliario",
+    "first_name": "",
+    "last_name": "",
+    "email": "domiciliario@pradospets.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-11T03:19:49.926Z",
+    "id_rol": 5,
+    "nombre_completo": "Domiciliario General",
+    "telefono": "",
+    "estado": "activo",
+    "fecha_creacion": "2026-09-10",
+    "groups": [],
+    "user_permissions": []
+  }
+}
+]

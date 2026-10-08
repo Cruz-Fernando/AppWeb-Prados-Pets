@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Buscar · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Directorio</a>
+        <span class="app-topbar__sep">/</span>
+        <span class="app-topbar__current">Buscar</span>
+      </div>
+    </header>
+
+    <main class="app-content">
+    <h1>Buscar dueño o mascota</h1>
+    <p class="app-content__subtitle">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
+
+    {% if messages %}
+    <ul class="app-messages">
+      {% for message in messages %}
+        <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form method="get" class="app-search" id="form-buscar">
+      <input
+        type="text"
+        name="q"
+        id="input-buscar"
+        class="app-input"
+        placeholder="Nombre, mascota o teléfono..."
+        value="{{ q }}"
+        autocomplete="off"
+        autofocus
+      >
+      <button type="submit" class="btn btn--ghost">Buscar</button>
+    </form>
+
+    <div id="resultados-buscar">
+      {% include "directorio/_resultados_busqueda.html" %}
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  var input = document.getElementById('input-buscar');
+  var resultados = document.getElementById('resultados-buscar');
+  var form = document.getElementById('form-buscar');
+  var temporizador = null;
+
+  // Evita el recargo de página cuando hay JS disponible; sin JS,
+  // el formulario sigue funcionando normal (GET con ?q=...).
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    buscar(input.value.trim());
+  });
+
+  input.addEventListener('input', function () {
+    clearTimeout(temporizador);
+    var q = input.value.trim();
+    temporizador = setTimeout(function () {
+      buscar(q);
+    }, 300);
+  });
+
+  function buscar(q) {
+    var url = '{% url "buscar_directorio" %}?q=' + encodeURIComponent(q);
+    history.replaceState(null, '', url);
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (resp) { return resp.json(); })
+      .then(function (data) { renderizar(q, data); })
+      .catch(function () { /* si falla el fetch, el usuario aún puede darle Enter/click en Buscar */ });
+  }
+
+  function renderizar(q, data) {
+    var html = '';
+
+    if (!q) {
+      resultados.innerHTML = '';
+      return;
+    }
+
+    if (!data.duenos.length && !data.mascotas.length) {
+      html = '<p class="app-content__subtitle">No se encontraron resultados para "' + escapeHtml(q) + '".</p>';
+    }
+
+    if (data.duenos.length) {
+      html += '<h2 class="app-search__section-title">Dueños</h2>';
+      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th></tr></thead><tbody>';
+      data.duenos.forEach(function (d) {
+        html += '<tr><td>' + escapeHtml(d.nombre_completo) + '</td><td>' + escapeHtml(d.telefono) + '</td><td>' + escapeHtml(d.direccion) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+
+    if (data.mascotas.length) {
+      html += '<h2 class="app-search__section-title">Mascotas</h2>';
+      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th></tr></thead><tbody>';
+      data.mascotas.forEach(function (m) {
+        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+
+    resultados.innerHTML = html;
+  }
+
+  function escapeHtml(texto) {
+    var div = document.createElement('div');
+    div.textContent = texto == null ? '' : texto;
+    return div.innerHTML;
+  }
+})();
+</script>
+  </main>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Iniciar sesión · Prados Pets{% endblock %}
+{% block body %}
+<div class="auth-screen--dark">
+  <div class="auth-glow" aria-hidden="true"></div>
+  <div class="auth-card">
+    <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" class="auth-card__logo">
+    <h1 class="auth-card__title">Prados Pets</h1>
+    <p class="auth-card__subtitle">Ingresa con tu usuario para continuar.</p>
+
+    {% if form.errors %}
+      <p class="auth-card__error">Usuario o contraseña incorrectos. Intenta de nuevo.</p>
+    {% endif %}
+
+    <form method="post" class="auth-card__form">
+      {% csrf_token %}
+
+      <label for="id_username">Usuario</label>
+      <input type="text" name="username" id="id_username" autofocus required>
+
+      <label for="id_password">Contraseña</label>
+      <input type="password" name="password" id="id_password" required>
+
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <div class="auth-card__forgot">
+        {# Solo interfaz por ahora — la funcionalidad de recuperar contraseña todavía no está implementada. #}
+        <a href="#" class="auth-card__forgot-link" onclick="return false;" title="Próximamente">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      <button type="submit" class="auth-card__submit">Iniciar sesión</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
