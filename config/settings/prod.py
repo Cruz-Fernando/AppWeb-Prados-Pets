@@ -26,7 +26,6 @@ DATABASES = {
 }
 
 # Whitenoise sirve los archivos estáticos sin necesitar Nginx
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Railway maneja SSL en su proxy externo — no forzar redirección desde Django
 # para evitar redirect loop (ERR_TOO_MANY_REDIRECTS).
@@ -34,3 +33,10 @@ SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
