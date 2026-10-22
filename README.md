@@ -199,13 +199,12 @@ Cada PR debe incluir `Closes #N` para cerrar el issue correspondiente.
 | Nombre | Rol |
 |---|---|
 | Jhojan Cruz Bulla | Director de Proyecto / Scrum Master / Fullstack |
-| David Torres Ovallos | Líder Tecnológico / Backend |
 | Oscar Enrique Arias Cardile | Líder Documental / Fullstack |
-| Daniel Alejandro Pacheco Villamizar | Frontend |
+| Daniel Alejandro Pacheco Villamizar | Líder Tecnológico / Fullstack |
 | Abel Stiven Ayala Llanes | Fullstack |
-| Jeiner Duván Carvajal Araque | Frontend / QA |
+| Jeiner Duván Carvajal Araque | Fullstack / QA |
 
-> Samuel Alexander García Sandoval y Juan Camilo Guarín Solano se retiraron del equipo en octubre de 2026.
+> Samuel Alexander García Sandoval, David Torres Ovallos y Juan Camilo Guarín Solano se retiraron del equipo en octubre de 2026.
 
 ---
 
