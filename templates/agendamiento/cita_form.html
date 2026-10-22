@@ -1,13 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Agendar Cita · Prados Pets{% endblock %}
+
 {% block body %}
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
     <header class="app-topbar">
       <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
       </button>
       <div class="app-topbar__breadcrumb">
         <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
@@ -16,78 +19,82 @@
       </div>
     </header>
 
-    <main class="pp-form-main">
-      <div class="pp-form-card">
-
-        <div class="pp-form-card__header">
-          <div class="pp-form-card__icon">📅</div>
+    <main class="pp-layout-split">
+      <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+      <div class="pp-card pp-card--form">
+        <div class="pp-card__header">
+          <div class="pp-card__icon">📅</div>
           <div>
-            <h2 class="pp-form-card__title">Agendar Cita Médica</h2>
-            <p class="pp-form-card__sub">Asigna fecha, hora y veterinario para la consulta</p>
+            <h2 class="pp-card__title">Agendar Cita <span class="pp-title-highlight">Médica</span></h2>
+            <p class="pp-card__sub">Asigna fecha, hora y veterinario para la consulta</p>
           </div>
         </div>
 
         {% if messages %}
-        <ul class="pp-alert-list">
-          {% for message in messages %}
-            <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
-          {% endfor %}
-        </ul>
+          <ul class="pp-alerts">
+            {% for message in messages %}
+              <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
         {% endif %}
         {% if form.non_field_errors %}
-        <ul class="pp-alert-list">
-          {% for error in form.non_field_errors %}
-            <li class="pp-alert pp-alert--error">{{ error }}</li>
-          {% endfor %}
-        </ul>
+          <ul class="pp-alerts">
+            {% for error in form.non_field_errors %}
+              <li class="pp-alert pp-alert--error">{{ error }}</li>
+            {% endfor %}
+          </ul>
         {% endif %}
 
-        <form method="POST" class="pp-form" novalidate>
+        <form method="POST" class="pp-form" id="form-cita-medica" novalidate>
           {% csrf_token %}
 
-          <!-- Mascota -->
+          <!-- MASCOTA -->
           <div class="pp-field">
             <label class="pp-label">Mascota <span class="pp-req">*</span></label>
-            <div class="pp-input-wrap" style="position:relative;">
-              <span class="pp-input-ico">🐾</span>
-              {{ form.buscar_mascota }}
+            <div class="pp-search-wrap">
+              <span class="pp-search-ico">🔍</span>
+              <input type="text" name="buscar_mascota" id="buscar_mascota_input" class="pp-input pp-input--search"
+                     placeholder="Escribe nombre de la mascota o teléfono del dueño…" autocomplete="off">
               <div id="mascota-dropdown" class="pp-dropdown"></div>
             </div>
-            {{ form.mascota }}
+            <input type="hidden" name="mascota" id="id_mascota_hidden">
             <div id="mascota-seleccionada" class="pp-pet-badge" style="display:none;"></div>
             {% for e in form.mascota.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
           </div>
 
-          <!-- Veterinario -->
-          <div class="pp-field">
-            <label for="{{ form.veterinario.id_for_label }}" class="pp-label">Veterinario <span class="pp-req">*</span></label>
-            <div class="pp-input-wrap">
-              <span class="pp-input-ico">🩺</span>
-              <div class="pp-select-wrap">{{ form.veterinario }}</div>
-            </div>
-            {% for e in form.veterinario.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-          </div>
-
-          <!-- Tipo de servicio -->
-          <div class="pp-field">
-            <label for="{{ form.tipo_servicio.id_for_label }}" class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
-            <div class="pp-input-wrap">
-              <span class="pp-input-ico">🏥</span>
-              <div class="pp-select-wrap">{{ form.tipo_servicio }}</div>
-            </div>
-            {% for e in form.tipo_servicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-          </div>
-
-          <!-- Fecha y hora -->
-          <div class="pp-row-2">
+          <!-- VETERINARIO Y TIPO DE SERVICIO -->
+          <div class="pp-grid-2">
             <div class="pp-field">
-              <label for="{{ form.fecha.id_for_label }}" class="pp-label">Fecha <span class="pp-req">*</span></label>
+              <label for="{{ form.veterinario.id_for_label }}" class="pp-label">Veterinario <span class="pp-req">*</span></label>
               <div class="pp-input-wrap">
-                <span class="pp-input-ico">📆</span>
-                {{ form.fecha }}
+                <span class="pp-input-ico">🩺</span>
+                <div class="pp-select-wrap">{{ form.veterinario }}</div>
               </div>
-              {% for e in form.fecha.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+              {% for e in form.veterinario.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
             </div>
+
+            <div class="pp-field">
+              <label for="{{ form.tipo_servicio.id_for_label }}" class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
+              <div class="pp-input-wrap">
+                <span class="pp-input-ico">🏥</span>
+                <div class="pp-select-wrap">{{ form.tipo_servicio }}</div>
+              </div>
+              {% for e in form.tipo_servicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+            </div>
+          </div>
+
+          <!-- FECHA -->
+          <div class="pp-field">
+            <label for="{{ form.fecha.id_for_label }}" class="pp-label">Fecha <span class="pp-req">*</span></label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">📅</span>
+              {{ form.fecha }}
+            </div>
+            {% for e in form.fecha.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <!-- HORA INICIO Y HORA FIN -->
+          <div class="pp-grid-2">
             <div class="pp-field">
               <label for="{{ form.hora_inicio.id_for_label }}" class="pp-label">Hora inicio <span class="pp-req">*</span></label>
               <div class="pp-input-wrap">
@@ -96,46 +103,218 @@
               </div>
               {% for e in form.hora_inicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
             </div>
-          </div>
 
-          <div class="pp-field">
-            <label for="{{ form.hora_fin.id_for_label }}" class="pp-label">Hora fin</label>
-            <div class="pp-input-wrap">
-              <span class="pp-input-ico">🕔</span>
-              {{ form.hora_fin }}
+            <div class="pp-field">
+              <label for="{{ form.hora_fin.id_for_label }}" class="pp-label">Hora fin</label>
+              <div class="pp-input-wrap">
+                <span class="pp-input-ico">🕔</span>
+                {{ form.hora_fin }}
+              </div>
+              {% for e in form.hora_fin.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
             </div>
-            {% for e in form.hora_fin.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-          </div>
-
-          <div class="pp-form__actions">
-            <a href="{% url 'usuarios:dashboard' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
-            <button type="submit" class="pp-btn pp-btn--primary">
-              <span class="pp-btn__txt">Guardar Cita</span>
-              <span class="pp-btn__arrow">→</span>
-            </button>
           </div>
         </form>
+      </div>
+
+      <!-- COLUMNA DERECHA: RESUMEN DE LA CITA -->
+      <div class="pp-card pp-card--summary">
+        <div class="pp-summary__header">
+          <span class="pp-summary__title">RESUMEN DE LA CITA</span>
+          <span class="pp-summary__status">● Lista para guardar</span>
+        </div>
+
+        <div class="pp-summary__pet-box">
+          <div class="pp-summary__pet-avatar" id="sum_avatar">🐾</div>
+          <div>
+            <h3 class="pp-summary__pet-name" id="sum_mascota">Selecciona una mascota</h3>
+            <p class="pp-summary__pet-sub" id="sum_dueno_info">Dueño · Teléfono</p>
+          </div>
+        </div>
+
+        <div class="pp-summary__details">
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Veterinario</span>
+            <span class="pp-summary__val" id="sum_veterinario">Por asignar</span>
+          </div>
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Servicio</span>
+            <span class="pp-summary__val" id="sum_servicio">Por definir</span>
+          </div>
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Fecha</span>
+            <span class="pp-summary__val" id="sum_fecha">Por definir</span>
+          </div>
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Horario</span>
+            <span class="pp-summary__val" id="sum_horario">--:--</span>
+          </div>
+        </div>
+
+        <div class="pp-summary__actions">
+          <button type="submit" form="form-cita-medica" class="pp-btn pp-btn--submit">
+            <span>Guardar Cita</span>
+            <span class="pp-btn__arrow">→</span>
+          </button>
+          <a href="{% url 'usuarios:dashboard' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
+        </div>
       </div>
     </main>
   </div>
 </div>
 
 <style>
+/* Layout Principal Dividido */
+.pp-layout-split {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+@media (max-width: 900px) {
+  .pp-layout-split { grid-template-columns: 1fr; }
+}
+
+.pp-card {
+  background: #111122;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 18px;
+  padding: 2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.pp-card__header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.pp-card__icon { font-size: 1.8rem; background: rgba(124, 58, 237, 0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #a78bfa; }
+.pp-card__title { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin: 0; }
+.pp-title-highlight { color: #a78bfa; }
+.pp-card__sub { font-size: .85rem; color: #818cf8; margin: .2rem 0 0; }
+
+.pp-alerts { list-style: none; padding: 0; margin: 0 0 1rem; }
+.pp-alert { padding: .7rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: .85rem; margin-bottom: .4rem; }
+
+.pp-form { display: flex; flex-direction: column; gap: 1.2rem; }
+.pp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.pp-field { display: flex; flex-direction: column; gap: .4rem; }
+.pp-label { font-size: .82rem; font-weight: 600; color: #cbd5e1; }
+.pp-req { color: #f43f5e; }
+.pp-field-error { font-size: .78rem; color: #f87171; margin: .2rem 0 0; }
+
+.pp-input-wrap { position: relative; width: 100%; }
+.pp-input-ico { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); font-size: .9rem; z-index: 1; pointer-events: none; opacity: .7; }
+
+/* Estilos de inputs unificados */
+.pp-input,
+.pp-input-wrap input,
+.pp-input-wrap select,
+.pp-select-wrap select {
+  width: 100% !important;
+  padding: .75rem 1rem .75rem 2.5rem !important;
+  background: rgba(22, 22, 42, 0.9) !important;
+  border: 1px solid rgba(124, 58, 237, 0.3) !important;
+  border-radius: 12px !important;
+  color: #f8fafc !important;
+  font-size: .9rem !important;
+  outline: none;
+  box-sizing: border-box !important;
+  transition: all .2s;
+}
+
+.pp-input:focus,
+.pp-input-wrap input:focus,
+.pp-input-wrap select:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25) !important;
+}
+
+select option { background: #111122; color: #f8fafc; }
+input[type="date"], input[type="time"] { color-scheme: dark; }
+
+.pp-search-wrap { position: relative; width: 100%; }
+.pp-search-ico { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); font-size: .9rem; opacity: .6; pointer-events: none; z-index: 2; }
+.pp-input--search { padding-left: 2.5rem !important; }
+
+.pp-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #18182c; border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 12px; z-index: 200; max-height: 220px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+.pp-dropdown-item { padding: .75rem 1rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.05); }
+.pp-dropdown-item:hover { background: rgba(124, 58, 237, 0.2); }
+.pp-dropdown-item__name { font-weight: 600; color: #a78bfa; }
+.pp-dropdown-item__sub { font-size: .78rem; color: #94a3b8; }
+.pp-dropdown-empty { padding: .9rem 1rem; color: #64748b; font-size: .85rem; }
+
+/* Badge Mascota Seleccionada */
 .pp-pet-badge {
-  margin-top: 8px; padding: 10px 14px;
+  margin-top: 8px;
+  padding: 10px 14px;
   background: rgba(124,58,237,.12);
   border: 1px solid rgba(124,58,237,.3);
-  border-radius: 10px;
-  font-size: 13px; color: #a78bfa;
-  display: flex; align-items: center; justify-content: space-between;
-  animation: ppFadeUp .25s ease;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #a78bfa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .pp-pet-badge__clear {
-  cursor: pointer; font-size: 16px;
-  color: #64748b; background: none; border: none; padding: 0 4px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #64748b;
+  background: none;
+  border: none;
+  padding: 0 4px;
   transition: color .15s;
 }
 .pp-pet-badge__clear:hover { color: #f87171; }
+
+/* Tarjeta Lateral Resumen */
+.pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
+.pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
+.pp-summary__status { font-size: .75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 3px 10px; border-radius: 12px; }
+
+.pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
+.pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.pp-summary__pet-name { margin: 0; font-size: 1.05rem; color: #ffffff; font-weight: 700; }
+.pp-summary__pet-sub { margin: 2px 0 0; font-size: .8rem; color: #94a3b8; }
+
+.pp-summary__details { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 2rem; }
+.pp-summary__row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; }
+.pp-summary__lbl { color: #94a3b8; }
+.pp-summary__val { color: #f8fafc; font-weight: 600; text-align: right; }
+
+.pp-summary__actions { display: flex; flex-direction: column; gap: .6rem; }
+.pp-btn--submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  font-size: .95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+  transition: all .2s;
+}
+.pp-btn--submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6); }
+
+.pp-btn--ghost {
+  display: block;
+  text-align: center;
+  padding: .75rem;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: .9rem;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: background .15s;
+}
+.pp-btn--ghost:hover { background: rgba(255, 255, 255, 0.05); color: #f8fafc; }
 </style>
 
 <script>
@@ -144,15 +323,33 @@
   const hidden   = document.getElementById('id_mascota_hidden');
   const dropdown = document.getElementById('mascota-dropdown');
   const badge    = document.getElementById('mascota-seleccionada');
+
+  // Resumen Lateral
+  const sumMascota    = document.getElementById('sum_mascota');
+  const sumDuenoInfo  = document.getElementById('sum_dueno_info');
+  const sumVet        = document.getElementById('sum_veterinario');
+  const sumServ       = document.getElementById('sum_servicio');
+  const sumFecha      = document.getElementById('sum_fecha');
+  const sumHorario    = document.getElementById('sum_horario');
+
+  const inVet    = document.getElementById('id_veterinario');
+  const inServ   = document.getElementById('id_tipo_servicio');
+  const inFecha  = document.getElementById('id_fecha');
+  const inHoraIn = document.getElementById('id_hora_inicio');
+  const inHoraFn = document.getElementById('id_hora_fin');
+
   const AJAX_URL = "{% url 'agendamiento:buscar_mascotas_ajax' %}";
   let timer = null;
 
-  input.addEventListener('input', function () {
-    clearTimeout(timer);
-    const q = this.value.trim();
-    if (q.length < 2) { cerrar(); return; }
-    timer = setTimeout(() => buscar(q), 260);
-  });
+  // Búsqueda AJAX
+  if (input) {
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      const q = this.value.trim();
+      if (q.length < 2) { cerrar(); return; }
+      timer = setTimeout(() => buscar(q), 260);
+    });
+  }
 
   function buscar(q) {
     fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
@@ -184,25 +381,72 @@
     badge.innerHTML = `<span>✔ <strong>${m.nombre_mascota}</strong> [${m.codigo}] — ${m.dueno} · ${m.telefono}</span>
       <button type="button" class="pp-pet-badge__clear" title="Cambiar">✕</button>`;
     badge.querySelector('.pp-pet-badge__clear').addEventListener('click', limpiar);
+
+    // Actualizar Panel Lateral
+    sumMascota.textContent   = `${m.nombre_mascota} [${m.codigo}]`;
+    sumDuenoInfo.textContent = `${m.dueno} · ${m.telefono}`;
   }
 
   function limpiar() {
     hidden.value = ''; input.value = '';
     badge.style.display = 'none'; badge.innerHTML = '';
+    sumMascota.textContent = 'Selecciona una mascota';
+    sumDuenoInfo.textContent = 'Dueño · Teléfono';
     input.focus();
   }
 
   function cerrar() { dropdown.style.display = 'none'; }
 
+  // OCULTA DROPDOWN AL HACER CLIC EN CUALQUIER OTRO LADO O CASILLA
   document.addEventListener('click', e => {
-    if (!e.target.closest('.pp-input-wrap')) cerrar();
+    if (!e.target.closest('.pp-search-wrap')) cerrar();
   });
 
-  const fechaInput = document.getElementById('id_fecha');
-  if (fechaInput) {
-    const hoy = new Date().toISOString().split('T')[0];
-    fechaInput.setAttribute('min', hoy);
+  // Escuchar tecla Esc
+  if (input) {
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') cerrar();
+    });
   }
+
+  // Actualizadores en tiempo real para el panel de Resumen
+  if (inVet) {
+    inVet.addEventListener('change', function() {
+      sumVet.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
+    });
+  }
+
+  if (inServ) {
+    inServ.addEventListener('change', function() {
+      sumServ.textContent = this.value ? this.options[this.selectedIndex].text : 'Por definir';
+    });
+  }
+
+  if (inFecha) {
+    const hoy = new Date().toISOString().split('T')[0];
+    inFecha.setAttribute('min', hoy);
+
+    inFecha.addEventListener('change', function() {
+      if (!this.value) { sumFecha.textContent = 'Por definir'; return; }
+      const [yyyy, mm, dd] = this.value.split('-');
+      sumFecha.textContent = `${dd}/${mm}/${yyyy}`;
+    });
+  }
+
+  function actualizarHorario() {
+    const hIn = inHoraIn && inHoraIn.value ? inHoraIn.value : '';
+    const hFn = inHoraFn && inHoraFn.value ? inHoraFn.value : '';
+    if (hIn && hFn) {
+      sumHorario.textContent = `${hIn} - ${hFn}`;
+    } else if (hIn) {
+      sumHorario.textContent = hIn;
+    } else {
+      sumHorario.textContent = '--:--';
+    }
+  }
+
+  if (inHoraIn) inHoraIn.addEventListener('change', actualizarHorario);
+  if (inHoraFn) inHoraFn.addEventListener('change', actualizarHorario);
 }());
 </script>
 {% endblock %}
