@@ -9,7 +9,7 @@
     <header class="app-topbar">
       <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="12" x2="21" y2="21"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
@@ -19,14 +19,14 @@
       </div>
     </header>
 
-    <main class="pp-main">
-      <div class="pp-card" id="pp-card">
-
+    <main class="pp-layout-split">
+      <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+      <div class="pp-card pp-card--form">
         <div class="pp-card__header">
           <div class="pp-card__icon">✂️</div>
           <div>
             <h2 class="pp-card__title">Peluquería &amp; Spa</h2>
-            <p class="pp-card__sub">Agendar Cita de Peluquería en Prados Pets</p>
+            <p class="pp-card__sub">Agendar cita de peluquería · Prados Pets</p>
           </div>
         </div>
 
@@ -38,7 +38,7 @@
           </ul>
         {% endif %}
 
-        <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="pp-form">
+        <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="pp-form" id="form-peluqueria">
           {% csrf_token %}
 
           <!-- MASCOTA -->
@@ -53,124 +53,245 @@
             <input type="hidden" name="mascota_id" id="id_mascota_hidden">
           </div>
 
-          <!-- INFO MASCOTA -->
+          <!-- TARJETA SELECCIÓN MASCOTA -->
           <div id="info-mascota-box" class="pp-pet-card" style="display:none">
             <div class="pp-pet-card__avatar" id="lbl_avatar">🐾</div>
             <div class="pp-pet-card__data">
-              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Tipo</span><span class="pp-pet-card__val" id="lbl_especie"></span></div>
-              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Raza</span><span class="pp-pet-card__val" id="lbl_raza"></span></div>
-              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Tamaño</span><span class="pp-pet-card__val" id="lbl_tamano_texto"></span></div>
-              <div class="pp-pet-card__row"><span class="pp-pet-card__lbl">Dueño</span><span class="pp-pet-card__val" id="lbl_dueno"></span></div>
+              <div class="pp-pet-card__title-row">
+                <strong id="lbl_pet_name" class="pp-pet-card__name"></strong>
+                <span id="lbl_tamano_texto" class="pp-badge"></span>
+              </div>
+              <div class="pp-pet-card__sub" id="lbl_pet_sub"></div>
             </div>
+            <button type="button" id="btn_clear_pet" class="pp-btn-clear">🔍 Cambiar</button>
           </div>
 
           <input type="hidden" name="raza"   id="id_raza">
           <input type="hidden" name="tamano" id="id_tamano">
 
-          <!-- SERVICIO + DURACIÓN -->
-          <div class="pp-row-2">
-            <div class="pp-field">
-              <label class="pp-label">Tipo de Servicio <span class="pp-req">*</span></label>
-              <select name="servicio" required class="pp-input">
-                <option value="BANO">🛁 Solamente Baño</option>
-                <option value="CORTE">✂️ Corte Despuntado (Solo tijera)</option>
-                <option value="COMPLETO">💈 Corte Total (Máquina y tijera)</option>
-              </select>
-            </div>
-            <div class="pp-field">
-              <label class="pp-label">Duración Estimada</label>
-              <input type="text" id="id_duracion" readonly placeholder="Se calcula por tamaño"
-                     class="pp-input pp-input--readonly">
-            </div>
+          <!-- SERVICIO -->
+          <div class="pp-field">
+            <label class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
+            <select name="servicio" id="id_servicio" required class="pp-input">
+              <option value="BANO">🛁 Solamente Baño</option>
+              <option value="CORTE">✂️ Corte Despuntado (Solo tijera)</option>
+              <option value="COMPLETO">💈 Corte Total (Máquina y tijera)</option>
+            </select>
           </div>
 
           <!-- GROOMER -->
           <div class="pp-field">
-            <label class="pp-label">Groomer Responsable <span class="pp-req">*</span></label>
-            <select name="groomer_id" required class="pp-input">
+            <label class="pp-label">Groomer responsable <span class="pp-req">*</span></label>
+            <select name="groomer_id" id="id_groomer_id" required class="pp-input">
               <option value="">— Selecciona un groomer —</option>
               {% for g in groomers %}
                 <option value="{{ g.pk }}">{{ g.nombre_completo }}</option>
               {% empty %}
-                <option disabled>No hay groomers registrados en el sistema</option>
+                <option disabled>No hay groomers registrados</option>
               {% endfor %}
             </select>
           </div>
 
-          <!-- FECHA + PRECIO -->
-          <div class="pp-row-2">
+          <!-- FECHA Y HORA -->
+          <div class="pp-grid-2">
             <div class="pp-field">
               <label class="pp-label">Fecha y Hora <span class="pp-req">*</span></label>
-              <input type="datetime-local" name="fecha_hora" required class="pp-input">
+              <input type="datetime-local" name="fecha_hora" id="id_fecha_hora" required class="pp-input">
             </div>
+
             <div class="pp-field">
-              <label class="pp-label">Precio ($) <span class="pp-req">*</span></label>
-              <input type="text" name="precio" id="id_precio" value="$" required class="pp-input"
-                     inputmode="numeric" autocomplete="off">
+              <label class="pp-label">Duración estimada</label>
+              <input type="text" id="id_duracion" placeholder="Ej: 1 hora y 30 min" class="pp-input">
             </div>
+          </div>
+
+          <!-- PRECIO -->
+          <div class="pp-field">
+            <label class="pp-label">Precio <span class="pp-req">*</span></label>
+            <input type="text" name="precio" id="id_precio" value="$" required class="pp-input"
+                   inputmode="numeric" autocomplete="off">
           </div>
 
           <!-- OBSERVACIONES -->
           <div class="pp-field">
             <label class="pp-label">Observaciones</label>
-            <textarea name="observaciones" rows="3" class="pp-input pp-textarea"
-                      placeholder="Alergias, indicaciones especiales, etc."></textarea>
+            <textarea name="observaciones" id="id_observaciones" rows="3" class="pp-input pp-textarea"
+                      placeholder="Alergias, piel sensible, comportamiento, indicaciones especiales..."></textarea>
           </div>
-
-          <!-- SUBMIT -->
-          <button type="submit" class="pp-btn" id="pp-submit">
-            <span class="pp-btn__ico">📄</span>
-            <span class="pp-btn__txt">Agendar Servicio y Generar PDF</span>
-            <span class="pp-btn__arrow">→</span>
-          </button>
         </form>
+      </div>
+
+      <!-- COLUMNA DERECHA: RESUMEN DE LA CITA -->
+      <div class="pp-card pp-card--summary">
+        <div class="pp-summary__header">
+          <span class="pp-summary__title">RESUMEN DE LA CITA</span>
+          <span class="pp-summary__status">● Borrador</span>
+        </div>
+
+        <div class="pp-summary__pet-box">
+          <div class="pp-summary__pet-avatar" id="sum_avatar">🐾</div>
+          <div>
+            <h3 class="pp-summary__pet-name" id="sum_mascota">Selecciona una mascota</h3>
+            <p class="pp-summary__pet-sub" id="sum_raza_tamano">Especie · Raza · Tamaño</p>
+          </div>
+        </div>
+
+        <div class="pp-summary__details">
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Servicio</span>
+            <span class="pp-summary__val" id="sum_servicio">Solamente baño</span>
+          </div>
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Groomer</span>
+            <span class="pp-summary__val" id="sum_groomer">Por asignar</span>
+          </div>
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Fecha</span>
+            <span class="pp-summary__val" id="sum_fecha">Por definir</span>
+          </div>
+          <div class="pp-summary__row">
+            <span class="pp-summary__lbl">Duración</span>
+            <span class="pp-summary__val" id="sum_duracion">Por definir</span>
+          </div>
+        </div>
+
+        <div class="pp-summary__divider"></div>
+
+        <div class="pp-summary__total-row">
+          <span class="pp-summary__total-lbl">Total</span>
+          <span class="pp-summary__total-val" id="sum_total">$0 COP</span>
+        </div>
+
+        <button type="submit" form="form-peluqueria" class="pp-btn pp-btn--submit">
+          <span class="pp-btn__ico">📄</span>
+          <span>Agendar y generar PDF</span>
+          <span class="pp-btn__arrow">→</span>
+        </button>
+
+        <p class="pp-summary__footer-note">Revisa los datos antes de confirmar la cita.</p>
       </div>
     </main>
   </div>
 </div>
 
 <style>
-.pp-main { display:flex; align-items:center; justify-content:center; padding:2rem; min-height:calc(100vh - 70px); }
-.pp-card { width:100%; max-width:660px; background:linear-gradient(160deg,#1a1a2e 0%,#16162a 100%); border:1px solid rgba(167,139,250,.25); border-radius:16px; padding:2.2rem 2.4rem; box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 0 1px rgba(167,139,250,.08); animation:ppFadeUp .45s cubic-bezier(.22,1,.36,1) both; }
-@keyframes ppFadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-.pp-card__header { display:flex; align-items:center; gap:1rem; margin-bottom:1.6rem; }
-.pp-card__icon { font-size:2rem; background:rgba(124,58,237,.25); width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.pp-card__title { font-size:1.35rem; font-weight:700; color:#a78bfa; margin:0; }
-.pp-card__sub   { font-size:.8rem; color:#64748b; margin:.2rem 0 0; }
-.pp-alerts { list-style:none; padding:0; margin:0 0 1rem; }
-.pp-alert  { padding:.7rem 1rem; border-radius:8px; background:rgba(239,68,68,.15); color:#fca5a5; font-size:.85rem; margin-bottom:.4rem; }
-.pp-form   { display:flex; flex-direction:column; gap:1.1rem; }
-.pp-row-2  { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-@media(max-width:520px){ .pp-row-2 { grid-template-columns:1fr; } }
-.pp-field  { display:flex; flex-direction:column; gap:.3rem; }
-.pp-label  { font-size:.8rem; font-weight:600; color:#94a3b8; letter-spacing:.3px; }
-.pp-req    { color:#f472b6; }
-.pp-input  { width:100%; padding:.72rem 1rem; background:rgba(15,15,30,.7); border:1px solid rgba(99,102,241,.25); border-radius:10px; color:#e2e8f0; font-size:.9rem; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .2s,box-shadow .2s; }
-.pp-input:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.2); }
-.pp-input--readonly { color:#a78bfa; font-weight:600; cursor:default; }
-.pp-input--search   { padding-left:2.4rem; }
-.pp-textarea { resize:vertical; min-height:80px; }
-select.pp-input option { background:#1a1a2e; }
-input[type="datetime-local"].pp-input { color-scheme:dark; }
-.pp-search-wrap { position:relative; }
-.pp-search-ico  { position:absolute; left:.75rem; top:50%; transform:translateY(-50%); font-size:.95rem; pointer-events:none; z-index:1; }
-.pp-dropdown { display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:#1e1e35; border:1px solid rgba(99,102,241,.3); border-radius:10px; z-index:200; max-height:210px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,.4); }
-.pp-dropdown-item { padding:.7rem 1rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.05); font-size:.85rem; color:#e2e8f0; transition:background .15s; }
-.pp-dropdown-item:last-child { border-bottom:none; }
-.pp-dropdown-item:hover { background:rgba(124,58,237,.15); }
-.pp-dropdown-item__name { font-weight:600; color:#a78bfa; }
-.pp-dropdown-item__sub  { font-size:.78rem; color:#64748b; margin-top:.15rem; }
-.pp-dropdown-empty { padding:.9rem 1rem; color:#64748b; font-size:.85rem; }
-.pp-pet-card { display:flex; align-items:center; gap:1rem; background:rgba(124,58,237,.08); border:1px solid rgba(124,58,237,.3); border-radius:12px; padding:1rem 1.2rem; animation:ppFadeUp .3s ease both; }
-.pp-pet-card__avatar { font-size:2rem; background:rgba(124,58,237,.2); width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.pp-pet-card__data { display:grid; grid-template-columns:1fr 1fr; gap:.3rem .8rem; flex:1; }
-.pp-pet-card__row  { display:flex; flex-direction:column; }
-.pp-pet-card__lbl  { font-size:.7rem; color:#64748b; text-transform:uppercase; letter-spacing:.5px; }
-.pp-pet-card__val  { font-size:.88rem; font-weight:600; color:#e2e8f0; }
-.pp-btn { display:flex; align-items:center; justify-content:center; gap:.6rem; padding:.9rem 1.5rem; margin-top:.3rem; background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; font-size:.95rem; font-weight:700; border:none; border-radius:12px; cursor:pointer; box-shadow:0 4px 20px rgba(124,58,237,.4); transition:transform .18s,box-shadow .18s; }
-.pp-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(124,58,237,.55); }
-.pp-btn__arrow { transition:transform .2s; }
-.pp-btn:hover .pp-btn__arrow { transform:translateX(4px); }
+/* Layout principal en 2 columnas */
+.pp-layout-split {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+@media (max-width: 900px) {
+  .pp-layout-split { grid-template-columns: 1fr; }
+}
+
+.pp-card {
+  background: #111122;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 18px;
+  padding: 2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.pp-card__header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.pp-card__icon { font-size: 1.8rem; background: rgba(124, 58, 237, 0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #a78bfa; }
+.pp-card__title { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin: 0; }
+.pp-card__sub { font-size: .85rem; color: #818cf8; margin: .2rem 0 0; }
+
+.pp-alerts { list-style: none; padding: 0; margin: 0 0 1rem; }
+.pp-alert { padding: .7rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: .85rem; margin-bottom: .4rem; }
+
+.pp-form { display: flex; flex-direction: column; gap: 1.2rem; }
+.pp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.pp-field { display: flex; flex-direction: column; gap: .4rem; }
+.pp-label { font-size: .82rem; font-weight: 600; color: #cbd5e1; }
+.pp-req { color: #f43f5e; }
+
+.pp-input {
+  width: 100%;
+  padding: .75rem 1rem;
+  background: rgba(22, 22, 42, 0.9);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  color: #f8fafc;
+  font-size: .9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: all .2s;
+}
+.pp-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25); }
+.pp-input--search { padding-left: 2.5rem; }
+.pp-textarea { resize: vertical; min-height: 80px; }
+select.pp-input option { background: #111122; color: #f8fafc; }
+
+.pp-search-wrap { position: relative; }
+.pp-search-ico { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); font-size: .9rem; opacity: .6; pointer-events: none; }
+
+.pp-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #18182c; border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 12px; z-index: 200; max-height: 220px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+.pp-dropdown-item { padding: .75rem 1rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.05); }
+.pp-dropdown-item:hover { background: rgba(124, 58, 237, 0.2); }
+.pp-dropdown-item__name { font-weight: 600; color: #a78bfa; }
+.pp-dropdown-item__sub { font-size: .78rem; color: #94a3b8; }
+.pp-dropdown-empty { padding: .9rem 1rem; color: #64748b; font-size: .85rem; }
+
+/* Tarjeta Mascota Seleccionada */
+.pp-pet-card { display: flex; align-items: center; justify-content: space-between; background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(124, 58, 237, 0.35); border-radius: 12px; padding: .85rem 1rem; }
+.pp-pet-card__avatar { font-size: 1.6rem; background: rgba(124, 58, 237, 0.25); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.pp-pet-card__data { flex: 1; margin: 0 1rem; }
+.pp-pet-card__title-row { display: flex; align-items: center; gap: .5rem; }
+.pp-pet-card__name { color: #f8fafc; font-size: .95rem; }
+.pp-badge { background: rgba(124, 58, 237, 0.3); color: #c4b5fd; font-size: .72rem; padding: 2px 8px; border-radius: 6px; text-transform: capitalize; }
+.pp-pet-card__sub { font-size: .8rem; color: #94a3b8; margin-top: 2px; }
+.pp-btn-clear { background: none; border: none; color: #a78bfa; font-size: .8rem; cursor: pointer; font-weight: 600; }
+.pp-btn-clear:hover { color: #f43f5e; }
+
+/* Tarjeta Lateral de Resumen */
+.pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
+.pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
+.pp-summary__status { font-size: .75rem; background: rgba(124, 58, 237, 0.2); color: #c4b5fd; padding: 3px 10px; border-radius: 12px; }
+
+.pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
+.pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.pp-summary__pet-name { margin: 0; font-size: 1.05rem; color: #ffffff; font-weight: 700; }
+.pp-summary__pet-sub { margin: 2px 0 0; font-size: .8rem; color: #94a3b8; }
+
+.pp-summary__details { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.5rem; }
+.pp-summary__row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; }
+.pp-summary__lbl { color: #94a3b8; }
+.pp-summary__val { color: #f8fafc; font-weight: 600; text-align: right; }
+
+.pp-summary__divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin-bottom: 1.5rem; }
+
+.pp-summary__total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem; }
+.pp-summary__total-lbl { color: #cbd5e1; font-weight: 600; font-size: .95rem; }
+.pp-summary__total-val { color: #ffffff; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+
+.pp-btn--submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  font-size: .95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+  transition: all .2s;
+}
+.pp-btn--submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6); }
+
+.pp-summary__footer-note { text-align: center; font-size: .75rem; color: #64748b; margin-top: .8rem; }
 </style>
 
 <script>
@@ -179,19 +300,37 @@ input[type="datetime-local"].pp-input { color-scheme:dark; }
   const hiddenId = document.getElementById('id_mascota_hidden');
   const dropdown = document.getElementById('mascota-dropdown');
   const boxInfo  = document.getElementById('info-mascota-box');
-  const avatar   = document.getElementById('lbl_avatar');
-  const lblEsp   = document.getElementById('lbl_especie');
-  const lblDueno = document.getElementById('lbl_dueno');
-  const lblRaza  = document.getElementById('lbl_raza');
-  const lblTam   = document.getElementById('lbl_tamano_texto');
+  const btnClear = document.getElementById('btn_clear_pet');
+  
+  const lblAvatar  = document.getElementById('lbl_avatar');
+  const lblPetName = document.getElementById('lbl_pet_name');
+  const lblTamTxt  = document.getElementById('lbl_tamano_texto');
+  const lblPetSub  = document.getElementById('lbl_pet_sub');
+
   const inRaza   = document.getElementById('id_raza');
   const inTam    = document.getElementById('id_tamano');
   const inDur    = document.getElementById('id_duracion');
   const inPrecio = document.getElementById('id_precio');
+
+  // Resumen Lateral
+  const sumAvatar  = document.getElementById('sum_avatar');
+  const sumMascota = document.getElementById('sum_mascota');
+  const sumRazaTam = document.getElementById('sum_raza_tamano');
+  const sumServ    = document.getElementById('sum_servicio');
+  const sumGroomer = document.getElementById('sum_groomer');
+  const sumFecha   = document.getElementById('sum_fecha');
+  const sumDur     = document.getElementById('sum_duracion');
+  const sumTotal   = document.getElementById('sum_total');
+
+  const inServicio  = document.getElementById('id_servicio');
+  const inGroomer   = document.getElementById('id_groomer_id');
+  const inFechaHora = document.getElementById('id_fecha_hora');
+
   const AJAX_URL = "{% url 'peluqueria:buscar_mascota' %}";
   let timer = null;
   const EMOJIS = { perro:'🐕', gato:'🐈', ave:'🦜', roedor:'🐹', conejo:'🐇', otro:'🐾' };
 
+  // Búsqueda AJAX
   input.addEventListener('input', function(){
     clearTimeout(timer);
     const q = this.value.trim();
@@ -205,7 +344,7 @@ input[type="datetime-local"].pp-input { color-scheme:dark; }
   function renderDropdown(items){
     dropdown.innerHTML = '';
     if(!items.length){
-      dropdown.innerHTML = '<div class="pp-dropdown-empty">Sin resultados para esa búsqueda.</div>';
+      dropdown.innerHTML = '<div class="pp-dropdown-empty">Sin resultados.</div>';
       dropdown.style.display = 'block'; return;
     }
     items.forEach(m=>{
@@ -227,69 +366,82 @@ input[type="datetime-local"].pp-input { color-scheme:dark; }
     hiddenId.value = m.id;
     inRaza.value   = m.raza || '';
     inTam.value    = m.tamano || 'pequeno';
+    
     const emoji = EMOJIS[m.especie] || '🐾';
-    avatar.textContent   = emoji;
-    lblEsp.textContent   = m.especie_display || m.especie || '–';
-    lblRaza.textContent  = m.raza || 'No especificada';
-    lblTam.textContent   = m.tamano_display || m.tamano || '–';
-    lblDueno.textContent = m.dueno;
+    lblAvatar.textContent = emoji;
+    lblPetName.textContent = m.nombre;
+    lblTamTxt.textContent = m.tamano_display || m.tamano || 'Pequeño';
+    lblPetSub.textContent = `${m.raza || 'Sin raza'} · ${m.dueno} · ${m.telefono || ''}`;
+
     boxInfo.style.display = 'flex';
     dropdown.style.display = 'none';
-    const t = (m.tamano||'').toUpperCase();
-    inDur.value = t === 'GRANDE' ? '2 horas' : t === 'MEDIANO' ? '1 hora y media' : '1 hora';
+
+    sumAvatar.textContent = emoji;
+    sumMascota.textContent = m.nombre;
+    sumRazaTam.textContent = `${m.raza || 'Mascota'} · ${m.tamano_display || m.tamano || 'Pequeño'}`;
   }
 
-  document.addEventListener('click', e=>{
-    if(!e.target.closest('.pp-search-wrap')) dropdown.style.display='none';
+  if (btnClear) {
+    btnClear.addEventListener('click', function(){
+      hiddenId.value = '';
+      input.value = '';
+      boxInfo.style.display = 'none';
+      dropdown.style.display = 'none';
+      sumAvatar.textContent = '🐾';
+      sumMascota.textContent = 'Selecciona una mascota';
+      sumRazaTam.textContent = 'Especie · Raza · Tamaño';
+      input.focus();
+    });
+  }
+
+  // Cierra el menú al presionar la tecla Esc
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') dropdown.style.display = 'none';
   });
 
-  // ── PRECIO: punto de miles automático (123.456) + sufijo COP ──
-  const SUFIJO = ' COP';
+  // OCULTA EL DROPDOWN AL HACER CLIC FUERA DE LA BÚSQUEDA
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.pp-search-wrap')) {
+      dropdown.style.display = 'none';
+    }
+  });
 
+  // Actualizador en tiempo real de Duración para la tarjeta lateral
+  inDur.addEventListener('input', function(){
+    sumDur.textContent = this.value.trim() || 'Por definir';
+  });
+
+  // Actualizadores de Resumen Lateral
+  inServicio.addEventListener('change', function(){
+    sumServ.textContent = this.options[this.selectedIndex].text.replace(/^[^\s]+\s/, '');
+  });
+
+  inGroomer.addEventListener('change', function(){
+    sumGroomer.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
+  });
+
+  inFechaHora.addEventListener('change', function(){
+    if(!this.value){ sumFecha.textContent = 'Por definir'; return; }
+    const dt = new Date(this.value);
+    sumFecha.textContent = dt.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+  });
+
+  // Formateo de precio
+  const SUFIJO = ' COP';
   function formatearPrecio(){
-    const raw     = inPrecio.value;
-    const caret   = inPrecio.selectionStart || 0;
-    const antes   = raw.slice(0, caret).replace(/\D/g, '').length;   // dígitos a la izquierda del cursor
-    const digitos = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');  // solo números, sin ceros a la izquierda
-    if(!digitos){ inPrecio.value = '$'; return; }
+    const raw = inPrecio.value;
+    const digitos = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    if(!digitos){ 
+      inPrecio.value = '$'; 
+      sumTotal.textContent = '$0 COP';
+      return; 
+    }
     const num = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     inPrecio.value = '$' + num + SUFIJO;
-    // Devuelve el cursor a la misma posición lógica dentro del número
-    const limite = Math.min(antes, digitos.length);
-    let vistos = 0, i = 0;
-    while(i < num.length && vistos < limite){ if(num[i] !== '.') vistos++; i++; }
-    inPrecio.setSelectionRange(1 + i, 1 + i);
-  }
-
-  // Evita que el cursor quede dentro del sufijo " COP"
-  function fijarCursor(){
-    const v = inPrecio.value;
-    if(!v.endsWith(SUFIJO)) return;
-    const limite = v.length - SUFIJO.length;
-    if(inPrecio.selectionStart === inPrecio.selectionEnd && inPrecio.selectionStart > limite){
-      inPrecio.setSelectionRange(limite, limite);
-    }
+    sumTotal.textContent = '$' + num + ' COP';
   }
 
   inPrecio.addEventListener('input', formatearPrecio);
-  inPrecio.addEventListener('click', fijarCursor);
-  inPrecio.addEventListener('focus', ()=> setTimeout(fijarCursor, 0));
-  inPrecio.addEventListener('keyup', function(e){
-    if(e.key === 'ArrowRight' || e.key === 'End') fijarCursor();
-  });
-  inPrecio.addEventListener('keydown', function(e){
-    fijarCursor();
-    const colapsado = this.selectionStart === this.selectionEnd;
-    const pos = this.selectionStart;
-    if(e.key === 'Backspace' && colapsado){
-      if(pos <= 1){ e.preventDefault(); return; }               // no borrar el "$"
-      if(this.value[pos - 1] === '.') this.setSelectionRange(pos - 1, pos - 1); // saltar el punto
-    }
-    if(e.key === 'Delete' && colapsado){
-      if(pos < 1){ e.preventDefault(); return; }
-      if(this.value[pos] === '.') this.setSelectionRange(pos + 1, pos + 1);
-    }
-  });
 }());
 </script>
 {% endblock %}
