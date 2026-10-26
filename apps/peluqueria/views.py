@@ -51,10 +51,19 @@ def buscar_mascota(request):
 
 def guardar_cita(request):
     if request.method == 'POST':
-        mascota_id     = request.POST.get('mascota_id')
+        mascota_id     = (request.POST.get('mascota_id') or '').strip()
         servicio       = request.POST.get('servicio')
         fecha_hora_str = request.POST.get('fecha_hora')
         groomer_id     = request.POST.get('groomer_id') or None
+
+        # La mascota debe elegirse del desplegable del buscador (llena mascota_id).
+        # Si el campo llega vacío o no es numérico, se avisa en lugar de romper.
+        if not mascota_id.isdigit():
+            messages.error(
+                request,
+                'Debe buscar y seleccionar una mascota de la lista desplegable antes de agendar.',
+            )
+            return redirect('peluqueria:panel_peluqueria')
 
         fecha_hora = None
         if fecha_hora_str:
@@ -69,7 +78,7 @@ def guardar_cita(request):
         precio     = precio_raw.strip()
 
         try:
-            mascota = Mascota.objects.select_related('id_dueno').get(id_mascota=mascota_id)
+            mascota = Mascota.objects.select_related('id_dueno').get(id_mascota=int(mascota_id))
         except Mascota.DoesNotExist:
             messages.error(request, 'Debe seleccionar una mascota válida del sistema.')
             return redirect('peluqueria:panel_peluqueria')
@@ -81,7 +90,7 @@ def guardar_cita(request):
         if groomer_id:
             try:
                 groomer = Usuario.objects.get(pk=groomer_id)
-            except Usuario.DoesNotExist:
+            except (Usuario.DoesNotExist, ValueError):
                 pass
 
         cita = CitaPeluqueria.objects.create(
