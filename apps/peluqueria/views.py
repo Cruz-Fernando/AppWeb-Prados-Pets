@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -15,6 +16,7 @@ from .models import CitaPeluqueria
 Usuario = get_user_model()
 
 
+@login_required
 def panel_peluqueria(request):
     # Pasa los groomers activos al template para el select
     groomers = Usuario.objects.filter(
@@ -23,6 +25,7 @@ def panel_peluqueria(request):
     return render(request, 'peluqueria/agendar_peluqueria.html', {'groomers': groomers})
 
 
+@login_required
 def buscar_mascota(request):
     """AJAX: busca mascotas y devuelve especie/tipo."""
     q = request.GET.get('q', '').strip()
@@ -49,6 +52,7 @@ def buscar_mascota(request):
     return JsonResponse(resultados, safe=False)
 
 
+@login_required
 def guardar_cita(request):
     if request.method == 'POST':
         mascota_id     = (request.POST.get('mascota_id') or '').strip()
