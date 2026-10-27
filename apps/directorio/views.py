@@ -4,8 +4,10 @@ from django.contrib import messages
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 
-from apps.directorio.forms import MascotaForm
+from apps.directorio.forms import MascotaForm, VacunacionForm
 from .models import Dueno, Mascota
 
 
@@ -58,6 +60,45 @@ def registrar_mascota(request):
 
 
 @login_required
+def editar_mascota(request, mascota_id):
+    mascota = get_object_or_404(
+        Mascota.objects.select_related('id_dueno'),
+        id_mascota=mascota_id,
+    )
+    form = MascotaForm(instance=mascota)
+    vacunacion_form = VacunacionForm()
+
+    if request.method == 'POST' and 'guardar_vacunacion' in request.POST:
+        vacunacion_form = VacunacionForm(request.POST)
+        if vacunacion_form.is_valid():
+            antecedente = vacunacion_form.save(commit=False)
+            antecedente.mascota = mascota
+            antecedente.save()
+            messages.success(request, 'Antecedente de vacunación registrado.')
+            return redirect('editar_mascota', mascota_id=mascota.id_mascota)
+    elif request.method == 'POST':
+        form = MascotaForm(request.POST, instance=mascota)
+        if form.is_valid():
+            try:
+                form.save()
+            except IntegrityError:
+                form.add_error(
+                    None,
+                    'No se pudo actualizar la mascota por un conflicto con los datos. Intenta nuevamente.',
+                )
+            else:
+                messages.success(request, '¡Mascota actualizada con éxito!')
+                return redirect('editar_mascota', mascota_id=mascota.id_mascota)
+
+    return render(request, 'directorio/mascota_form.html', {
+        'form': form,
+        'mascota': mascota,
+        'vacunacion_form': vacunacion_form,
+        'antecedentes_vacunacion': mascota.antecedentes_vacunacion.all(),
+    })
+
+
+@login_required
 def buscar_directorio(request):
     """
     HU05 — "Como recepcionista, quiero buscar un dueño o mascota,
@@ -100,6 +141,7 @@ def buscar_directorio(request):
                     'especie': m.get_especie_display(),
                     'dueno_nombre': m.id_dueno.nombre_completo,
                     'dueno_telefono': m.id_dueno.telefono,
+                    'url_edicion': reverse('editar_mascota', args=[m.id_mascota]),
                 }
                 for m in mascotas
             ],
@@ -123,4 +165,3 @@ def autocomplete_duenos(request):
                 'texto': texto,
             })
     return JsonResponse({'resultados': resultados})
-
