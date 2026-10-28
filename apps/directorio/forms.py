@@ -1,5 +1,5 @@
 from django import forms
-from .models import Mascota
+from .models import Mascota, Vacunacion
 
 
 class MascotaForm(forms.ModelForm):
@@ -19,7 +19,7 @@ class MascotaForm(forms.ModelForm):
         model = Mascota
         fields = [
             'id_dueno', 'nombre', 'especie', 'raza',
-            'tamano', 'sexo', 'color', 'fecha_nacimiento',
+            'tamano', 'sexo', 'color', 'fecha_nacimiento', 'peso',
         ]
         widgets = {
             'id_dueno': forms.HiddenInput(attrs={'id': 'id_dueno_hidden'}),
@@ -30,7 +30,22 @@ class MascotaForm(forms.ModelForm):
             'sexo': forms.Select(attrs={'class': 'form-control', 'id': 'id_sexo'}),
             'color': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_color', 'placeholder': 'Ej: marrón, negro con blanco…'}),
             'fecha_nacimiento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'id_fecha_nacimiento'}),
+            'peso': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'id': 'id_peso',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': 'Ej: 8.50',
+            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['buscar_dueno'].initial = (
+                f"{self.instance.id_dueno.nombre_completo} "
+                f"({self.instance.id_dueno.telefono})"
+            )
 
     def clean(self):
         cleaned = super().clean()
@@ -38,3 +53,24 @@ class MascotaForm(forms.ModelForm):
         if not cleaned.get('id_dueno'):
             self.add_error('buscar_dueno', 'Debes seleccionar un dueño de la lista de sugerencias.')
         return cleaned
+
+
+class VacunacionForm(forms.ModelForm):
+    class Meta:
+        model = Vacunacion
+        fields = ['vacuna', 'fecha', 'observaciones']
+        widgets = {
+            'vacuna': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Rabia',
+            }),
+            'fecha': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control',
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Lote, veterinario u otra información relevante',
+            }),
+        }

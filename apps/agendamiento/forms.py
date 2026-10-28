@@ -55,12 +55,21 @@ class CitaForm(forms.ModelForm):
         veterinario = cleaned.get("veterinario")
         fecha = cleaned.get("fecha")
         hora_inicio = cleaned.get("hora_inicio")
+        hora_fin = cleaned.get("hora_fin")
 
-        if veterinario and fecha and hora_inicio:
+        # 1. Validar que hora_fin sea estrictamente mayor a hora_inicio
+        if hora_inicio and hora_fin and hora_fin <= hora_inicio:
+            raise ValidationError(
+                "La hora de finalización debe ser mayor que la hora de inicio."
+            )
+
+        # 2. Validaciones de traslape por intervalo (PC-07)
+        if veterinario and fecha and hora_inicio and hora_fin:
             conflicto = Cita.objects.filter(
                 veterinario=veterinario,
                 fecha=fecha,
-                hora_inicio=hora_inicio,
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio,
             ).exclude(estado="cancelada")
 
             if self.instance.pk:
@@ -68,7 +77,7 @@ class CitaForm(forms.ModelForm):
 
             if conflicto.exists():
                 raise ValidationError(
-                    f"El veterinario {veterinario} ya tiene una cita agendada "
-                    f"el {fecha} a las {hora_inicio}. Elige otra hora u otro veterinario."
+                    f"El veterinario {veterinario} ya tiene una cita agendada en ese rango horario "
+                    f"el {fecha}. Elige otro rango de horas u otro veterinario."
                 )
         return cleaned
