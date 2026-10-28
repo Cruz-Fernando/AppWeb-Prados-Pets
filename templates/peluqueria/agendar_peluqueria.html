@@ -9,7 +9,7 @@
     <header class="app-topbar">
       <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="12" x2="21" y2="21"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
@@ -38,7 +38,7 @@
           </ul>
         {% endif %}
 
-        <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="pp-form" id="form-peluqueria">
+        <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="pp-form" id="form-peluqueria"{% if descargar_url %} data-descargar="{{ descargar_url }}"{% endif %}>
           {% csrf_token %}
 
           <!-- MASCOTA -->
@@ -65,9 +65,6 @@
             </div>
             <button type="button" id="btn_clear_pet" class="pp-btn-clear">🔍 Cambiar</button>
           </div>
-
-          <input type="hidden" name="raza"   id="id_raza">
-          <input type="hidden" name="tamano" id="id_tamano">
 
           <!-- SERVICIO -->
           <div class="pp-field">
@@ -96,12 +93,12 @@
           <div class="pp-grid-2">
             <div class="pp-field">
               <label class="pp-label">Fecha y Hora <span class="pp-req">*</span></label>
-              <input type="datetime-local" name="fecha_hora" id="id_fecha_hora" required class="pp-input">
+              <input type="datetime-local" name="fecha_hora" id="id_fecha_hora" required class="pp-input" min="{{ ahora_min }}">
             </div>
 
             <div class="pp-field">
               <label class="pp-label">Duración estimada</label>
-              <input type="text" id="id_duracion" placeholder="Ej: 1 hora y 30 min" class="pp-input">
+              <input type="text" id="id_duracion" placeholder="Se calcula según el tamaño" class="pp-input" readonly tabindex="-1">
             </div>
           </div>
 
@@ -294,6 +291,7 @@ select.pp-input option { background: #111122; color: #f8fafc; }
 .pp-summary__footer-note { text-align: center; font-size: .75rem; color: #64748b; margin-top: .8rem; }
 </style>
 
+{% if borrador %}{{ borrador|json_script:"borrador-datos" }}{% endif %}
 <script>
 (function(){
   const input    = document.getElementById('buscar_mascota_input');
@@ -307,8 +305,6 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   const lblTamTxt  = document.getElementById('lbl_tamano_texto');
   const lblPetSub  = document.getElementById('lbl_pet_sub');
 
-  const inRaza   = document.getElementById('id_raza');
-  const inTam    = document.getElementById('id_tamano');
   const inDur    = document.getElementById('id_duracion');
   const inPrecio = document.getElementById('id_precio');
 
@@ -325,9 +321,13 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   const inServicio  = document.getElementById('id_servicio');
   const inGroomer   = document.getElementById('id_groomer_id');
   const inFechaHora = document.getElementById('id_fecha_hora');
+  const inObs       = document.getElementById('id_observaciones');
+  const formPelu    = document.getElementById('form-peluqueria');
+  const btnSubmit   = document.querySelector('button[form="form-peluqueria"]');
 
   const AJAX_URL = "{% url 'peluqueria:buscar_mascota' %}";
   let timer = null;
+  const DURACION_MIN = { pequeno: 60, mediano: 90, grande: 120 };
   const EMOJIS = { perro:'🐕', gato:'🐈', ave:'🦜', roedor:'🐹', conejo:'🐇', otro:'🐾' };
 
   // Búsqueda AJAX
@@ -337,7 +337,12 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     if(q.length < 2){ dropdown.style.display='none'; return; }
     timer = setTimeout(()=>{
       fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
-        .then(r=>r.json()).then(renderDropdown);
+        .then(r=>{
+          if(r.status === 401){ window.location.href = "{% url 'usuarios:login' %}"; throw new Error('sesion'); }
+          return r.json();
+        })
+        .then(renderDropdown)
+        .catch(()=>{ dropdown.style.display = 'none'; });
     }, 250);
   });
 
@@ -351,10 +356,14 @@ select.pp-input option { background: #111122; color: #f8fafc; }
       const d = document.createElement('div');
       d.className = 'pp-dropdown-item';
       const emoji = EMOJIS[m.especie] || '🐾';
-      d.innerHTML = `
-        <div class="pp-dropdown-item__name">${emoji} ${m.nombre}</div>
-        <div class="pp-dropdown-item__sub">${m.especie_display||m.especie} · ${m.raza||'Sin raza'} · Dueño: ${m.dueno}</div>
-      `;
+      const nombre = document.createElement('div');
+      nombre.className = 'pp-dropdown-item__name';
+      nombre.textContent = `${emoji} ${m.nombre}`;
+      const sub = document.createElement('div');
+      sub.className = 'pp-dropdown-item__sub';
+      sub.textContent = `${m.especie_display||m.especie} · ${m.raza||'Sin raza'} · Dueño: ${m.dueno}`;
+      d.appendChild(nombre);
+      d.appendChild(sub);
       d.addEventListener('click', ()=> seleccionar(m));
       dropdown.appendChild(d);
     });
@@ -364,9 +373,11 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   function seleccionar(m){
     input.value    = m.nombre;
     hiddenId.value = m.id;
-    inRaza.value   = m.raza || '';
-    inTam.value    = m.tamano || 'pequeno';
-    
+    const mins = DURACION_MIN[(m.tamano || 'pequeno').toLowerCase()] || 60;
+    const durTxt = mins >= 120 ? '2 horas' : (mins === 60 ? '1 hora' : `${mins} minutos`);
+    inDur.value = durTxt;
+    sumDur.textContent = durTxt;
+
     const emoji = EMOJIS[m.especie] || '🐾';
     lblAvatar.textContent = emoji;
     lblPetName.textContent = m.nombre;
@@ -390,6 +401,8 @@ select.pp-input option { background: #111122; color: #f8fafc; }
       sumAvatar.textContent = '🐾';
       sumMascota.textContent = 'Selecciona una mascota';
       sumRazaTam.textContent = 'Especie · Raza · Tamaño';
+      inDur.value = '';
+      sumDur.textContent = 'Por definir';
       input.focus();
     });
   }
@@ -404,11 +417,6 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     if (!e.target.closest('.pp-search-wrap')) {
       dropdown.style.display = 'none';
     }
-  });
-
-  // Actualizador en tiempo real de Duración para la tarjeta lateral
-  inDur.addEventListener('input', function(){
-    sumDur.textContent = this.value.trim() || 'Por definir';
   });
 
   // Actualizadores de Resumen Lateral
@@ -441,7 +449,43 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     sumTotal.textContent = '$' + num + ' COP';
   }
 
-  inPrecio.addEventListener('input', formatearPrecio);
+  inPrecio.addEventListener('input', function(){
+    formatearPrecio();
+    this.setCustomValidity(/\d/.test(this.value) ? '' : 'Ingresa el precio del servicio.');
+  });
+  inPrecio.setCustomValidity('Ingresa el precio del servicio.');
+
+  // Evita enviar dos veces el formulario (doble clic) y crear citas duplicadas
+  formPelu.addEventListener('submit', function(e){
+    if(!hiddenId.value){
+      e.preventDefault();
+      input.focus();
+      alert('Busca y selecciona una mascota de la lista antes de agendar.');
+      return;
+    }
+    if(btnSubmit){ btnSubmit.disabled = true; btnSubmit.style.opacity = '.6'; }
+  });
+  // Si el usuario vuelve con el botón "atrás", el botón debe poder usarse otra vez
+  window.addEventListener('pageshow', function(){
+    if(btnSubmit){ btnSubmit.disabled = false; btnSubmit.style.opacity = ''; }
+  });
+
+  // Restaura lo escrito cuando el servidor devolvió errores de validación
+  const borradorEl = document.getElementById('borrador-datos');
+  if(borradorEl){
+    const b = JSON.parse(borradorEl.textContent);
+    if(b.mascota){ seleccionar(b.mascota); }
+    if(b.servicio){ inServicio.value = b.servicio; inServicio.dispatchEvent(new Event('change')); }
+    if(b.groomer_id){ inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
+    if(b.fecha_hora){ inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
+    if(b.precio){ inPrecio.value = String(b.precio); inPrecio.dispatchEvent(new Event('input')); }
+    if(b.observaciones){ inObs.value = b.observaciones; }
+  }
+
+  // Tras agendar con éxito: descarga automática del comprobante PDF
+  if(formPelu.dataset.descargar){
+    window.location.href = formPelu.dataset.descargar;
+  }
 }());
 </script>
 {% endblock %}

@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from apps.directorio.models import Mascota
+
 
 class CitaPeluqueria(models.Model):
     TAMANO_CHOICES = [
@@ -15,12 +17,22 @@ class CitaPeluqueria(models.Model):
         ('COMPLETO', 'Corte Total (Máquina y tijera)'),
     ]
 
+    # Vínculo con la mascota del directorio (null para citas antiguas, que
+    # solo guardaban el nombre como texto).
+    mascota             = models.ForeignKey(
+        Mascota,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='citas_peluqueria',
+    )
     nombre_mascota      = models.CharField(max_length=100)
     raza                = models.CharField(max_length=100)
     tamano              = models.CharField(max_length=10, choices=TAMANO_CHOICES, default='MEDIANO')
     servicio            = models.CharField(max_length=20, choices=SERVICIO_CHOICES, default='BANO')
     fecha_hora          = models.DateTimeField()
     duracion_estimada_min = models.IntegerField(default=60)
+    # Precio del servicio en pesos colombianos (COP), sin decimales.
+    precio              = models.PositiveIntegerField(default=0)
     observaciones       = models.TextField(blank=True, null=True)
     # HU21-fix: groomer responsable de la cita
     groomer             = models.ForeignKey(
