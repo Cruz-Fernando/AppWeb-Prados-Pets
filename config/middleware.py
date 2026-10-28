@@ -6,11 +6,25 @@ ruta del sitio (presente o futura), salvo la pantalla de login, los archivos
 estáticos y el admin de Django (que tiene su propio login). Así nadie puede
 saltarse la seguridad escribiendo una URL a mano, aunque a una vista se le
 olvide el decorador @login_required.
+
+Para peticiones hechas con fetch()/AJAX responde 401 en JSON en vez de
+redirigir al HTML del login (que rompería el .json() del navegador).
 """
 
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
+from django.http import JsonResponse
 from django.shortcuts import resolve_url
+
+
+def _es_peticion_ajax(request):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return True
+    if "application/json" in request.headers.get("Accept", ""):
+        return True
+    # Los navegadores marcan las navegaciones normales como "navigate";
+    # un fetch() llega como "cors"/"same-origin".
+    return request.headers.get("Sec-Fetch-Mode", "navigate") in ("cors", "same-origin")
 
 
 class LoginRequeridoMiddleware:
@@ -31,5 +45,11 @@ class LoginRequeridoMiddleware:
         )
         if ruta.startswith(rutas_libres):
             return self.get_response(request)
+
+        if _es_peticion_ajax(request):
+            return JsonResponse(
+                {"error": "Sesión expirada. Inicia sesión de nuevo.", "login": login_url},
+                status=401,
+            )
 
         return redirect_to_login(request.get_full_path(), login_url)

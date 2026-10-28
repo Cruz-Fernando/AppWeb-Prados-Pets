@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
@@ -13,6 +14,13 @@ USUARIOS_GLOBALES = [
 
 
 def seed_usuarios(apps, schema_editor):
+    # SEGURIDAD: estas cuentas tienen contraseñas públicas (están en el README y
+    # en este archivo), así que solo se siembran en desarrollo (DEBUG=True).
+    # En producción (DEBUG=False) esta migración no crea nada; los usuarios
+    # reales se crean con `createsuperuser` o desde "Usuarios y Roles".
+    if not settings.DEBUG:
+        return
+
     Usuario = apps.get_model("usuarios", "Usuario")
     Rol = apps.get_model("usuarios", "Rol")
 
