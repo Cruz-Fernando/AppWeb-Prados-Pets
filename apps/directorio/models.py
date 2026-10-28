@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 
 
 class Dueno(models.Model):
@@ -55,6 +56,14 @@ class Mascota(models.Model):
     sexo = models.CharField(max_length=10, choices=SEXO_CHOICES, blank=True)
     color = models.CharField(max_length=80, blank=True, verbose_name="Color")
     fecha_nacimiento = models.DateField(null=True, blank=True)
+    peso = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.01)],
+        verbose_name="Peso (kg)",
+    )
     condicion_pelaje = models.CharField(max_length=100, blank=True)
     fecha_registro = models.DateField(auto_now_add=True)
 
@@ -81,3 +90,22 @@ class Mascota(models.Model):
         if not self.codigo_mascota:
             self.codigo_mascota = self._generar_codigo()
         super().save(*args, **kwargs)
+
+
+class Vacunacion(models.Model):
+    mascota = models.ForeignKey(
+        Mascota,
+        on_delete=models.CASCADE,
+        related_name="antecedentes_vacunacion",
+    )
+    vacuna = models.CharField(max_length=120, verbose_name="Vacuna")
+    fecha = models.DateField(verbose_name="Fecha de aplicación")
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-fecha", "-pk"]
+        verbose_name = "Antecedente de vacunación"
+        verbose_name_plural = "Antecedentes de vacunación"
+
+    def __str__(self):
+        return f"{self.vacuna} — {self.mascota.nombre} ({self.fecha})"
