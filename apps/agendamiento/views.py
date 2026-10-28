@@ -19,29 +19,14 @@ from .models import Cita
 
 @login_required
 def agendar_cita(request):
-    """HU06 / PB-08: Agendar consultas médicas con validación de horario de veterinario."""
+    """HU06 / PB-08 / PC-07: Agendar consultas médicas con validación en Formulario."""
     if request.method == "POST":
         form = CitaForm(request.POST)
         if form.is_valid():
-            # PB-08: Validación preventiva explícita de colisión de citas para el mismo veterinario
-            veterinario = form.cleaned_data.get("veterinario")
-            fecha = form.cleaned_data.get("fecha")
-            hora = form.cleaned_data.get("hora")
-
-            cruce_existente = Cita.objects.filter(
-                veterinario=veterinario,
-                fecha=fecha,
-                hora=hora
-            ).exists()
-
-            if cruce_existente:
-                form.add_error(None, "El veterinario ya tiene una cita agendada a esta misma fecha y hora.")
-                return render(request, "agendamiento/cita_form.html", {"form": form})
-
             try:
                 cita = form.save()
             except IntegrityError:
-                form.add_error(None, "Ya existe una cita para ese veterinario en esa fecha y hora.")
+                form.add_error(None, "Error de integridad: Ya existe una cita similar.")
             else:
                 messages.success(request, "¡Cita agendada con éxito!")
                 return redirect("agendamiento:cita_pdf", pk=cita.pk)
