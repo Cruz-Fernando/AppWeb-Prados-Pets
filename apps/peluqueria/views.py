@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -18,7 +18,7 @@ Usuario = get_user_model()
 
 @login_required
 def panel_peluqueria(request):
-    # Pasa los groomers activos al template para el select
+    
     groomers = Usuario.objects.filter(
         id_rol__nombre_rol='groomer'
     ).order_by('nombre_completo')
@@ -60,8 +60,7 @@ def guardar_cita(request):
         fecha_hora_str = request.POST.get('fecha_hora')
         groomer_id     = request.POST.get('groomer_id') or None
 
-        # La mascota debe elegirse del desplegable del buscador (llena mascota_id).
-        # Si el campo llega vacío o no es numérico, se avisa en lugar de romper.
+        
         if not mascota_id.isdigit():
             messages.error(
                 request,
@@ -96,6 +95,39 @@ def guardar_cita(request):
                 groomer = Usuario.objects.get(pk=groomer_id)
             except (Usuario.DoesNotExist, ValueError):
                 pass
+
+       
+        if not fecha_hora or not groomer:
+            messages.error(request, 'Debe seleccionar un groomer y una fecha/hora válida para agendar.')
+            return redirect('peluqueria:panel_peluqueria')
+
+        # 2. Rechazar fechas pasadas
+        if fecha_hora < datetime.now():
+            messages.error(request, 'No se puede agendar una cita de peluquería en una fecha u hora pasada.')
+            return redirect('peluqueria:panel_peluqueria')
+
+        
+        fecha_hora_fin = fecha_hora + timedelta(minutes=duracion_min)
+        
+        citas_existentes_dia = CitaPeluqueria.objects.filter(
+            groomer=groomer,
+            fecha_hora__date=fecha_hora.date()
+        ).exclude(estado='cancelada')
+
+        for cita_ext in citas_existentes_dia:
+            inicio_ext = cita_ext.fecha_hora
+            fin_ext = inicio_ext + timedelta(minutes=cita_ext.duracion_estimada_min)
+            
+            
+            if fecha_hora < fin_ext and fecha_hora_fin > inicio_ext:
+                hora_ini_txt = inicio_ext.strftime("%I:%M %p")
+                hora_fin_txt = fin_ext.strftime("%I:%M %p")
+                messages.error(
+                    request, 
+                    f'El groomer ya tiene una cita ocupada en ese horario (de {hora_ini_txt} a {hora_fin_txt}).'
+                )
+                return redirect('peluqueria:panel_peluqueria')
+       
 
         cita = CitaPeluqueria.objects.create(
             nombre_mascota=mascota.nombre,
