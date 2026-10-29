@@ -4,7 +4,7 @@
 {% block title %}Calendario · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=3">
 
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -46,6 +46,14 @@
           </a>
         </div>
       </section>
+
+      {% if messages %}
+      <ul class="pp-alerts cal-alerts" role="status">
+        {% for message in messages %}
+        <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
 
       <!-- ── Tarjetas de resumen ──────────────────── -->
       <section class="cal-stats">
@@ -149,7 +157,10 @@
                  data-horario="{{ e.inicio|time:'g:i a' }} – {{ e.fin|time:'g:i a' }}"
                  data-fecha="{{ dia.nombre }} {{ dia.fecha.day }}"
                  data-duracion="{{ e.duracion_min }}"
-                 data-estado="{{ e.estado_display }}">
+                 data-estado="{{ e.estado_display }}"
+                 {% if e.id_cita %}data-cancelar-url="{% url 'agendamiento:cancelar_cita' e.id_cita %}"{% endif %}
+                 data-cancelable="{% if e.cancelable %}1{% else %}0{% endif %}"
+                 data-motivo="{{ e.motivo_cancelacion }}">
               <span class="cal-event__head">
                 <span class="cal-event__time">{{ e.inicio|time:"g:i a" }}</span>
                 <span class="cal-event__title">{{ e.titulo }}</span>
@@ -195,9 +206,27 @@
       <div><dt>Duración</dt><dd id="cal-modal-duracion"></dd></div>
       <div><dt>Estado</dt><dd id="cal-modal-estado"></dd></div>
       <div class="cal-modal__full"><dt id="cal-modal-resp-label">Responsable</dt><dd id="cal-modal-resp"></dd></div>
+      <div class="cal-modal__full" id="cal-modal-motivo-box" hidden><dt>Motivo de cancelación</dt><dd id="cal-modal-motivo"></dd></div>
     </dl>
+        <!-- RF05: cancelación de la cita (solo consultas programadas) -->
+    <div class="cal-cancel" id="cal-cancel" hidden>
+      <button type="button" class="cal-cancel__toggle" id="cal-cancel-toggle" aria-expanded="false" aria-controls="cal-cancel-form">
+        Cancelar cita
+      </button>
+      <form method="post" class="cal-cancel__form" id="cal-cancel-form" hidden>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label for="cal-cancel-motivo">Motivo de la cancelación</label>
+        <textarea id="cal-cancel-motivo" name="motivo_cancelacion" rows="3" maxlength="255" required
+                  placeholder="Ej.: el propietario no puede asistir"></textarea>
+        <div class="cal-cancel__actions">
+          <button type="button" class="cal-cancel__back" id="cal-cancel-back">Volver</button>
+          <button type="submit" class="cal-cancel__confirm">Confirmar cancelación</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
-<script src="{% static 'js/calendario.js' %}?v=2" defer></script>
+<script src="{% static 'js/calendario.js' %}?v=3" defer></script>
 {% endblock %}
