@@ -42,6 +42,9 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Exige login en todas las rutas (excepto login, estáticos y admin).
+    # Debe ir DESPUÉS de AuthenticationMiddleware.
+    "config.middleware.LoginRequeridoMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 

@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -15,14 +16,16 @@ from .models import CitaPeluqueria
 Usuario = get_user_model()
 
 
+@login_required
 def panel_peluqueria(request):
-    # Pasa los groomers activos al template para el select
+    
     groomers = Usuario.objects.filter(
         id_rol__nombre_rol='groomer'
     ).order_by('nombre_completo')
     return render(request, 'peluqueria/agendar_peluqueria.html', {'groomers': groomers})
 
 
+@login_required
 def buscar_mascota(request):
     """AJAX: busca mascotas y devuelve especie/tipo."""
     q = request.GET.get('q', '').strip()
@@ -49,12 +52,21 @@ def buscar_mascota(request):
     return JsonResponse(resultados, safe=False)
 
 
+@login_required
 def guardar_cita(request):
     if request.method == 'POST':
-        mascota_id     = request.POST.get('mascota_id')
+        mascota_id     = (request.POST.get('mascota_id') or '').strip()
         servicio       = request.POST.get('servicio')
         fecha_hora_str = request.POST.get('fecha_hora')
         groomer_id     = request.POST.get('groomer_id') or None
+
+        
+        if not mascota_id.isdigit():
+            messages.error(
+                request,
+                'Debe buscar y seleccionar una mascota de la lista desplegable antes de agendar.',
+            )
+            return redirect('peluqueria:panel_peluqueria')
 
         fecha_hora = None
         if fecha_hora_str:
@@ -69,7 +81,7 @@ def guardar_cita(request):
         precio     = precio_raw.strip()
 
         try:
-            mascota = Mascota.objects.select_related('id_dueno').get(id_mascota=mascota_id)
+            mascota = Mascota.objects.select_related('id_dueno').get(id_mascota=int(mascota_id))
         except Mascota.DoesNotExist:
             messages.error(request, 'Debe seleccionar una mascota válida del sistema.')
             return redirect('peluqueria:panel_peluqueria')
@@ -81,8 +93,41 @@ def guardar_cita(request):
         if groomer_id:
             try:
                 groomer = Usuario.objects.get(pk=groomer_id)
-            except Usuario.DoesNotExist:
+            except (Usuario.DoesNotExist, ValueError):
                 pass
+
+       
+        if not fecha_hora or not groomer:
+            messages.error(request, 'Debe seleccionar un groomer y una fecha/hora válida para agendar.')
+            return redirect('peluqueria:panel_peluqueria')
+
+        # 2. Rechazar fechas pasadas
+        if fecha_hora < datetime.now():
+            messages.error(request, 'No se puede agendar una cita de peluquería en una fecha u hora pasada.')
+            return redirect('peluqueria:panel_peluqueria')
+
+        
+        fecha_hora_fin = fecha_hora + timedelta(minutes=duracion_min)
+        
+        citas_existentes_dia = CitaPeluqueria.objects.filter(
+            groomer=groomer,
+            fecha_hora__date=fecha_hora.date()
+        ).exclude(estado='cancelada')
+
+        for cita_ext in citas_existentes_dia:
+            inicio_ext = cita_ext.fecha_hora
+            fin_ext = inicio_ext + timedelta(minutes=cita_ext.duracion_estimada_min)
+            
+            
+            if fecha_hora < fin_ext and fecha_hora_fin > inicio_ext:
+                hora_ini_txt = inicio_ext.strftime("%I:%M %p")
+                hora_fin_txt = fin_ext.strftime("%I:%M %p")
+                messages.error(
+                    request, 
+                    f'El groomer ya tiene una cita ocupada en ese horario (de {hora_ini_txt} a {hora_fin_txt}).'
+                )
+                return redirect('peluqueria:panel_peluqueria')
+       
 
         cita = CitaPeluqueria.objects.create(
             nombre_mascota=mascota.nombre,

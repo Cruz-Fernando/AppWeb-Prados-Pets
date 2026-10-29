@@ -120,7 +120,7 @@
       <div class="pp-card pp-card--summary">
         <div class="pp-summary__header">
           <span class="pp-summary__title">RESUMEN DE LA CITA</span>
-          <span class="pp-summary__status">● Lista para guardar</span>
+          <span class="pp-summary__status pp-summary__status--pendiente" id="sum_estado">● Faltan datos</span>
         </div>
 
         <div class="pp-summary__pet-box">
@@ -271,7 +271,9 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
 .pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
 .pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
-.pp-summary__status { font-size: .75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 3px 10px; border-radius: 12px; }
+.pp-summary__status { font-size: .75rem; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+.pp-summary__status--pendiente { background: rgba(250, 204, 21, 0.14); color: #facc15; }
+.pp-summary__status--listo     { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 
 .pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
 .pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
@@ -351,6 +353,28 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     });
   }
 
+  function esc(v) {
+    return String(v ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  const sumEstado = document.getElementById('sum_estado');
+
+  function actualizarEstado() {
+    if (!sumEstado) return;
+    const faltan = [];
+    if (!hidden || !hidden.value.trim()) faltan.push('mascota');
+    if (!inVet || !inVet.value.trim()) faltan.push('veterinario');
+    if (!inFecha || !inFecha.value.trim()) faltan.push('fecha');
+    if (!inHoraIn || !inHoraIn.value.trim()) faltan.push('hora de inicio');
+
+    const listo = faltan.length === 0;
+    sumEstado.textContent = listo ? '● Lista para guardar' : `● Faltan ${faltan.length} dato(s)`;
+    sumEstado.classList.toggle('pp-summary__status--listo', listo);
+    sumEstado.classList.toggle('pp-summary__status--pendiente', !listo);
+  }
+
   function buscar(q) {
     fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
       .then(r => r.json()).then(data => render(data.resultados));
@@ -365,8 +389,8 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     items.forEach(m => {
       const d = document.createElement('div');
       d.className = 'pp-dropdown-item';
-      d.innerHTML = `<div class="pp-dropdown-item__name">🐾 ${m.nombre_mascota} <small>[${m.codigo}]</small></div>
-        <div class="pp-dropdown-item__sub">${m.especie} · ${m.raza} | Dueño: ${m.dueno} · ${m.telefono}</div>`;
+      d.innerHTML = `<div class="pp-dropdown-item__name">🐾 ${esc(m.nombre_mascota)} <small>[${esc(m.codigo)}]</small></div>
+        <div class="pp-dropdown-item__sub">${esc(m.especie)} · ${esc(m.raza)} | Dueño: ${esc(m.dueno)} · ${esc(m.telefono)}</div>`;
       d.addEventListener('click', () => seleccionar(m));
       dropdown.appendChild(d);
     });
@@ -378,13 +402,14 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     input.value  = m.label;
     cerrar();
     badge.style.display = 'flex';
-    badge.innerHTML = `<span>✔ <strong>${m.nombre_mascota}</strong> [${m.codigo}] — ${m.dueno} · ${m.telefono}</span>
+    badge.innerHTML = `<span>✔ <strong>${esc(m.nombre_mascota)}</strong> [${esc(m.codigo)}] — ${esc(m.dueno)} · ${esc(m.telefono)}</span>
       <button type="button" class="pp-pet-badge__clear" title="Cambiar">✕</button>`;
     badge.querySelector('.pp-pet-badge__clear').addEventListener('click', limpiar);
 
     // Actualizar Panel Lateral
     sumMascota.textContent   = `${m.nombre_mascota} [${m.codigo}]`;
     sumDuenoInfo.textContent = `${m.dueno} · ${m.telefono}`;
+    actualizarEstado();
   }
 
   function limpiar() {
@@ -393,6 +418,7 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     sumMascota.textContent = 'Selecciona una mascota';
     sumDuenoInfo.textContent = 'Dueño · Teléfono';
     input.focus();
+    actualizarEstado();
   }
 
   function cerrar() { dropdown.style.display = 'none'; }
@@ -413,12 +439,14 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   if (inVet) {
     inVet.addEventListener('change', function() {
       sumVet.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
+      actualizarEstado();
     });
   }
 
   if (inServ) {
     inServ.addEventListener('change', function() {
       sumServ.textContent = this.value ? this.options[this.selectedIndex].text : 'Por definir';
+      actualizarEstado();
     });
   }
 
@@ -427,9 +455,12 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     inFecha.setAttribute('min', hoy);
 
     inFecha.addEventListener('change', function() {
-      if (!this.value) { sumFecha.textContent = 'Por definir'; return; }
-      const [yyyy, mm, dd] = this.value.split('-');
-      sumFecha.textContent = `${dd}/${mm}/${yyyy}`;
+      if (!this.value) { sumFecha.textContent = 'Por definir'; }
+      else {
+        const [yyyy, mm, dd] = this.value.split('-');
+        sumFecha.textContent = `${dd}/${mm}/${yyyy}`;
+      }
+      actualizarEstado();
     });
   }
 
@@ -443,10 +474,18 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     } else {
       sumHorario.textContent = '--:--';
     }
+    actualizarEstado();
   }
 
   if (inHoraIn) inHoraIn.addEventListener('change', actualizarHorario);
   if (inHoraFn) inHoraFn.addEventListener('change', actualizarHorario);
+
+  const formCita = document.getElementById('form-cita-medica');
+  if (formCita) {
+    formCita.addEventListener('input', actualizarEstado);
+    formCita.addEventListener('change', actualizarEstado);
+  }
+  actualizarEstado();
 }());
 </script>
 {% endblock %}
