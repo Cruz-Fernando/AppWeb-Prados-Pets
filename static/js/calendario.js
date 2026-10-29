@@ -111,6 +111,26 @@
     set("cal-modal-resp-label", esRaza ? "Raza" : "Veterinario(a)");
     set("cal-modal-resp", esRaza ? d.responsable.replace("Raza: ", "") : d.responsable);
 
+        // RF05: motivo de cancelación y formulario para cancelar
+    var motivo = d.motivo || "";
+    document.getElementById("cal-modal-motivo-box").hidden = !(cat === "cancelada" && motivo);
+    set("cal-modal-motivo", motivo);
+    var cancelBox = document.getElementById("cal-cancel");
+    var cancelForm = document.getElementById("cal-cancel-form");
+    var cancelToggle = document.getElementById("cal-cancel-toggle");
+    cancelForm.hidden = true;
+    cancelToggle.hidden = false;
+    cancelToggle.setAttribute("aria-expanded", "false");
+    cancelForm.reset();
+    if (d.cancelable === "1" && d.cancelarUrl) {
+      cancelForm.action = d.cancelarUrl;
+      cancelBox.hidden = false;
+    } else {
+      cancelForm.removeAttribute("action");
+      cancelBox.hidden = true;
+    }
+
+
     lastFocus = ev;
     modal.classList.remove("is-closing");
     modal.hidden = false;
@@ -129,6 +149,24 @@
       if (lastFocus) lastFocus.focus();
     }, 240);
   }
+
+  document.getElementById("cal-cancel-toggle").addEventListener("click", function () {
+    this.hidden = true;
+    this.setAttribute("aria-expanded", "true");
+    var f = document.getElementById("cal-cancel-form");
+    f.hidden = false;
+    document.getElementById("cal-cancel-motivo").focus();
+  });
+  document.getElementById("cal-cancel-back").addEventListener("click", function () {
+    var f = document.getElementById("cal-cancel-form");
+    f.hidden = true;
+    f.reset();
+    var t = document.getElementById("cal-cancel-toggle");
+    t.hidden = false;
+    t.setAttribute("aria-expanded", "false");
+    t.focus();
+  });
+
 
   cal.addEventListener("click", function (e) {
     var ev = e.target.closest(".cal-event");

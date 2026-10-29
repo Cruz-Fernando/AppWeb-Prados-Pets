@@ -5,6 +5,7 @@ Reúne las citas de consulta médica (agendamiento.Cita) y las de peluquería
 (peluqueria.CitaPeluqueria) en una sola estructura para pintarlas en un
 calendario diario o semanal, diferenciadas por color según el servicio.
 """
+from xhtml2pdf.w3c import cssDOMElementInterface
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
@@ -36,6 +37,8 @@ class Evento:
     categoria: str
     estado: str = "programada"
     responsable: str = ""     # "Dra. X" (consulta) o "Raza: Y" (peluquería)
+    id_cita: int = None       # solo citas de consulta (RF05: cancelación)
+    motivo_cancelacion: str = ""
     # Calculados al distribuir en la grilla
     top: float = 0.0
     alto: float = 0.0
@@ -61,6 +64,11 @@ class Evento:
     @property
     def cancelada(self):
         return self.estado == "cancelada"
+
+    @property
+    def cancelable(self):
+        """RF05: solo las citas de consulta aún programadas se pueden cancelar."""
+        return self.id_cita is not None and self.estado == "programada"
 
     @property
     def estado_display(self):
@@ -123,6 +131,8 @@ def eventos_desde_citas(citas):
             categoria=categoria_de(c.tipo_servicio),
             estado=c.estado,
             responsable=nombre_vet,
+            id_cita=c.pk,
+            motivo_cancelacion=c.motivo_cancelacion,
         ))
     return eventos
 

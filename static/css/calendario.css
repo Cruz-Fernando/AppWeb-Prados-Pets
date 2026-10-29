@@ -447,3 +447,142 @@
     linear-gradient(135deg, color-mix(in srgb, var(--ev) 32%, transparent), color-mix(in srgb, var(--ev2) 16%, transparent)),
     rgba(18, 14, 28, .85);
 }
+
+/* ============================================================
+   RF05: Estilos del módulo de cancelación en el Modal (Tema Oscuro)
+   ============================================================ */
+.cal-modal .cal-cancel {
+  margin-top: 1.25rem !important;
+  padding-top: 1rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Botón desplegable 'Cancelar cita' */
+.cal-modal .cal-cancel__toggle {
+  width: 100% !important;
+  padding: 0.75rem 1rem !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  border-radius: 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.cal-modal .cal-cancel__toggle:hover {
+  background: rgba(239, 68, 68, 0.28) !important;
+  border-color: #f87171 !important;
+  color: #ffffff !important;
+}
+
+.cal-modal .cal-cancel__toggle svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: currentColor !important;
+}
+
+/* Formulario de cancelación */
+.cal-modal .cal-cancel__form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+  margin-top: 0.75rem !important;
+  width: 100% !important;
+}
+
+.cal-modal .cal-cancel__form label {
+  font-size: 0.825rem !important;
+  font-weight: 600 !important;
+  color: #e2e8f0 !important;
+  display: block !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.cal-modal .cal-cancel__form textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 10px !important;
+  padding: 0.75rem !important;
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+  resize: vertical !important;
+  min-height: 85px !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.cal-modal .cal-cancel__form textarea::placeholder {
+  color: #64748b !important;
+}
+
+.cal-modal .cal-cancel__form textarea:focus {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Acciones: Botones Volver y Confirmar */
+.cal-modal .cal-cancel__actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.75rem !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  margin-top: 0.5rem !important;
+  width: 100% !important;
+}
+
+.cal-modal .cal-cancel__back {
+  padding: 0.6rem 1.1rem !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.cal-modal .cal-cancel__back:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.cal-modal .cal-cancel__confirm {
+  padding: 0.6rem 1.25rem !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background 0.2s ease, transform 0.1s ease !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+}
+
+.cal-modal .cal-cancel__confirm:hover {
+  background: #b91c1c !important;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.45) !important;
+}
+
+.cal-modal .cal-cancel__confirm:active {
+  transform: scale(0.97) !important;
+}

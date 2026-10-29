@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from apps.directorio.models import Mascota
 from apps.peluqueria.models import CitaPeluqueria
@@ -94,6 +96,50 @@ def cita_pdf(request, pk):
         return response
     except ImportError:
         return HttpResponse(html_str)
+
+
+MOTIVO_CANCELACION_MAX = 255
+@login_required
+@require_POST
+def cancelar_cita(request, pk):
+    """
+    RF05 / PB-11: Cancelación de citas de consulta (solo POST).
+
+    La cita pasa a estado «cancelada» y conserva el motivo. Al quedar fuera
+    de la restricción de unicidad y de las validaciones de cruce de horario,
+    su franja queda libre para volver a agendarse.
+    """
+    cita = get_object_or_404(Cita, pk=pk)
+    destino = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        destino = f"{reverse('agendamiento:calendario')}?fecha={cita.fecha.isoformat()}"
+
+    motivo = request.POST.get("motivo_cancelacion", "").strip()
+
+    if cita.estado == "cancelada":
+        messages.info(request, "Esta cita ya estaba cancelada.")
+    elif cita.estado == "atendida":
+        messages.error(request, "No se puede cancelar una cita que ya fue atendida.")
+    elif not motivo:
+        messages.error(request, "Debes indicar el motivo de la cancelación.")
+    elif len(motivo) > MOTIVO_CANCELACION_MAX:
+        messages.error(
+            request,
+            f"El motivo no puede superar los {MOTIVO_CANCELACION_MAX} caracteres.",
+        )
+    else:
+        cita.estado = "cancelada"
+        cita.motivo_cancelacion = motivo
+        cita.save(update_fields=["estado", "motivo_cancelacion"])
+        messages.success(
+            request,
+            f"Cita de {cita.mascota.nombre} cancelada. El horario quedó disponible.",
+        )
+    return redirect(destino)
+
+
 
 
 @login_required
