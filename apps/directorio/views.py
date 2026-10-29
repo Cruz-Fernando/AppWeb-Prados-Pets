@@ -8,10 +8,12 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
 from apps.directorio.forms import MascotaForm, VacunacionForm
+from apps.usuarios.permissions import rol_requerido
 from .models import Dueno, Mascota
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def registrar_dueno(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
@@ -42,6 +44,7 @@ def registrar_dueno(request):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def registrar_mascota(request):
     if request.method == 'POST':
         form = MascotaForm(request.POST)
@@ -60,6 +63,7 @@ def registrar_mascota(request):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def editar_mascota(request, mascota_id):
     mascota = get_object_or_404(
         Mascota.objects.select_related('id_dueno'),
@@ -99,6 +103,7 @@ def editar_mascota(request, mascota_id):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def buscar_directorio(request):
     """
     HU05 — "Como recepcionista, quiero buscar un dueño o mascota,
@@ -151,6 +156,7 @@ def buscar_directorio(request):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def autocomplete_duenos(request):
     q = request.GET.get('q', '').strip()
     resultados = []

@@ -1,132 +1,60 @@
-# AppWeb Prados Pets
-## Product Backlog y Cronograma de Ejecución — Entregable E1
+# Product Backlog – AppWeb Prados Pets (Entregable E1)
 
-> **Actualización:** 08 de octubre de 2026.  
-> Samuel García y Juan Camilo Guarín se retiraron del equipo. El equipo pasa de 4 parejas a **3 parejas**. El alcance se ajusta al Charter v2.0: **3 Historias de Usuario (HU-01 a HU-03)** y **12 Requerimientos Funcionales (RF04–RF15)**. El cronograma se organiza en **6 sprints de ≈10 días** con fecha límite **9 de noviembre de 2026**.
+Este documento contiene el Product Backlog vigente del proyecto **AppWeb Prados Pets**, correspondiente al Entregable E1. La planificación está distribuida en **6 Sprints** de dos semanas organizados en **2 Iteraciones** (Sprints 1-3 y Sprints 4-6), abarcando del **14 de septiembre de 2026 al 3 de diciembre de 2026**.
 
 ---
 
-## 1. Metodología
+## Resumen por Sprint
 
-Scrum con sprints de **≈10 días laborales** (lunes a viernes, 2 semanas).
+| Sprint | Iteración | RF del Sprint | Ventana (Inicio - Fin) | Construcción (Inicio - Fin) | Pruebas y Aprobación | Total Horas (Te) |
+|:---:|:---:|:---|:---:|:---:|:---:|:---:|
+| **1** | 1 | RF16, RF17 | 14/09/2026 - 25/09/2026 | 14/09/2026 - 18/09/2026 | 16/09/2026 - 22/09/2026 | 194.25 h |
+| **2** | 1 | RF04 | 28/09/2026 - 09/10/2026 | 28/09/2026 - 01/10/2026 | 30/09/2026 - 06/10/2026 | 173.25 h |
+| **3** | 1 | RF05 | 13/10/2026 - 23/10/2026 | 13/10/2026 - 19/10/2026 | 16/10/2026 - 22/10/2026 | 224.25 h |
+| **4** | 2 | RF06, RF09, RF12 | 26/10/2026 - 06/11/2026 | 26/10/2026 - 05/11/2026 | 28/10/2026 - 06/11/2026 | 313.75 h |
+| **5** | 2 | RF07, RF08, RF10, RF15 | 09/11/2026 - 20/11/2026 | 09/11/2026 - 19/11/2026 | 11/11/2026 - 20/11/2026 | 320.75 h |
+| **6** | 2 | RF13, RF14, RF11 | 23/11/2026 - 03/12/2026 | 23/11/2026 - 01/12/2026 | 01/12/2026 - 03/12/2026 | 288.00 h |
 
-- Sprint review / retro al cierre de cada sprint.
-- **3 parejas fijas** avanzan HU en paralelo. Sprints de alta carga llevan 4 HU para compensar la reducción de equipo.
-- Sprint 1 ya está completado (trabajo previo al cronograma).
-- Sprint 6 (02–09 nov) es el sprint de cierre: QA, documentación y demo final.
-
----
-
-## 2. Equipo de trabajo
-
-| Grupo | Integrantes |
-|---|---|
-| **Grupo 1** | David Torres Ovallos / Jhojan Cruz Bulla |
-| **Grupo 2** | Abel Ayala Llanes / Jeiner Duván Carvajal |
-| **Grupo 3** | Oscar Arias Cardile / Daniel Pacheco Villamizar |
-
-> Samuel Alexander García Sandoval y Juan Camilo Guarín Solano se retiraron del equipo en octubre de 2026.
+- **Total horas estimadas de construcción (Backlog):** 1,134 h
+- **Total horas proyecto con verificación y pruebas (Te):** 1,514.25 h
 
 ---
 
-## 3. Alcance (Charter v2.0 — octubre 2026)
+## Tabla del Product Backlog (PB-01 a PB-21)
 
-| HU | Actor | Descripción |
-|---|---|---|
-| **HU-01** | Administrador / Recepción | Directorio digital, agendamiento visual, inventario, facturación y reportes |
-| **HU-02** | Médico Veterinario | Atención médica, historial clínico, récipe y hospitalización derivada |
-| **HU-03** | Estilista / Groomer | Agenda peluquería, observaciones recepción/entrega, reporte de comisiones |
-
-**RF04–RF15:** autenticación, directorio, buscador, agendamiento, consulta médica, récipe, hospitalización derivada, inventario automático, alertas stock/vencimiento, observaciones peluquería, facturación consolidada, reportes estadísticos.
-
----
-
-## 4. Cronograma — 6 Sprints (21 sep – 9 nov 2026)
-
-| Sprint | Fechas | Días hábiles aprox. |
-|---|---|---|
-| Sprint 1 | Completado (antes 21/sep) | — |
-| Sprint 2 | 21/sep – 01/oct | 9 |
-| Sprint 3 | 02/oct – 12/oct | 9 |
-| Sprint 4 | 13/oct – 22/oct | 8 |
-| Sprint 5 | 23/oct – 01/nov | 8 |
-| Sprint 6 | 02/nov – 09/nov | 6 (cierre) |
-
----
-
-### ✅ Sprint 1 — Completado (antes del 21/sep/2026)
-
-| HU | Título | Pareja | Módulo |
-|---|---|---|---|
-| HU01 | Autenticación y Control de Sesión | G1 — David / Jhojan | Usuarios y Roles |
-| HU02 | Gestión de Roles y Permisos | G3 — Oscar / Daniel | Usuarios y Roles |
-| HU03 | Registro y Gestión de Dueños / Clientes | G2 — Abel / Duván | Directorio |
+| ID | It. | Sp. | RF | Elemento del Backlog | HU | RN | Prioridad | Est. (h) | Responsables | Inicio | Fin | Criterios de Aceptación |
+|:---|:---:|:---:|:---|:---|:---|:---:|:---:|:---:|:---|:---:|:---:|:---|
+| PB-01 | 1 | 1 | RF16 | Control de acceso del personal de la clínica a sus módulos según su rol (inicio y cierre de sesión con usuario y contraseña) | HU-01, HU-02, HU-03 | R2 | Alta | 67 | Abel Stiven Ayala Llanes, Jhojan Fernando Cruz Bulla | 2026-09-14 | 2026-09-18 | Cada miembro del personal (administrador, veterinario o groomer) entra con su usuario y contraseña y accede solo a los módulos de su rol; al cerrar sesión no puede volver sin autenticarse. |
+| PB-02 | 1 | 1 | RF17 | Gestión del personal de la clínica como usuarios del sistema con su rol, función exclusiva del administrador | HU-01 | R2 | Alta | 57 | Daniel Alejandro Pacheco Villamizar, Oscar Enrique Arias Cardile, Jeiner Duvan Carvajal Araque | 2026-09-14 | 2026-09-16 | Solo el administrador registra a cada empleado como usuario con su rol; usuarios y roles quedan guardados en la base de datos relacional. |
+| PB-03 | 1 | 2 | RF04 | Registro de propietarios | HU-01, HU-02, HU-03 | R2, R5 | Alta | 14 | Jeiner Duvan Carvajal Araque | 2026-09-28 | 2026-09-29 | Se registra un propietario con sus datos; la información queda en la base de datos en la nube. |
+| PB-04 | 1 | 2 | RF04 | Registro de mascotas (especie, raza, edad, peso y antecedentes de vacunación) asociadas a su propietario, con un código que incluye el año y el mes de registro (Acta 2) | HU-01, HU-02, HU-03 | R5 | Alta | 28 | Daniel Alejandro Pacheco Villamizar, Abel Stiven Ayala Llanes | 2026-09-28 | 2026-09-29 | Cada mascota queda asociada a un propietario, con especie, raza, edad, peso, antecedentes de vacunación y un código con el año y el mes de registro. |
+| PB-05 | 1 | 2 | RF04 | Búsqueda en tiempo real de propietarios y mascotas | HU-01, HU-02, HU-03 | R5 | Alta | 33 | Oscar Enrique Arias Cardile, Jhojan Fernando Cruz Bulla | 2026-09-28 | 2026-09-29 | La búsqueda muestra resultados mientras se escribe (tiempo real, RNF04). |
+| PB-06 | 1 | 2 | RF04 | Edición de propietarios y de mascotas | HU-01, HU-02, HU-03 | R2, R5 | Alta | 28 | Jeiner Duvan Carvajal Araque, Abel Stiven Ayala Llanes | 2026-09-29 | 2026-10-01 | Se editan los datos de un propietario o de una mascota y el cambio queda en la base de datos en la nube. |
+| PB-07 | 1 | 3 | RF05 | Calendario dinámico con agenda diaria y semanal, consultada por el veterinario y el groomer | HU-01, HU-02, HU-03 | R6 | Alta | 57 | Oscar Enrique Arias Cardile, Jhojan Fernando Cruz Bulla | 2026-10-13 | 2026-10-16 | El calendario muestra la agenda diaria y semanal de consulta y peluquería; el veterinario y el groomer consultan su agenda. |
+| PB-08 | 1 | 3 | RF05 | Programación de citas de consulta médica (mascota, servicio, fecha y hora) | HU-01, HU-02 | R6 | Alta | 24 | Daniel Alejandro Pacheco Villamizar, Abel Stiven Ayala Llanes, Jeiner Duvan Carvajal Araque | 2026-10-13 | 2026-10-13 | Una cita de consulta registra la mascota, el servicio, la fecha y la hora. |
+| PB-09 | 1 | 3 | RF05 | Programación de citas de peluquería con el groomer (mascota, servicio, fecha, hora y duración) | HU-01, HU-03 | R6 | Alta | 28 | Jeiner Duvan Carvajal Araque, Abel Stiven Ayala Llanes | 2026-10-14 | 2026-10-15 | Una cita de peluquería registra la mascota, el servicio, el groomer, la fecha, la hora y la duración. |
+| PB-10 | 1 | 3 | RF05 | Validación de cruces: no se permiten dos citas a la misma hora del veterinario ni del groomer | HU-01, HU-02, HU-03 | R6 | Alta | 14 | Daniel Alejandro Pacheco Villamizar, Abel Stiven Ayala Llanes | 2026-10-15 | 2026-10-16 | El sistema rechaza una cita en un horario ya ocupado por el veterinario o por el groomer. |
+| PB-11 | 1 | 3 | RF05 | Cancelación de citas de consulta y de peluquería, y liberación del horario | HU-01, HU-02, HU-03 | R6 | Alta | 28 | Jhojan Fernando Cruz Bulla, Abel Stiven Ayala Llanes, Daniel Alejandro Pacheco Villamizar | 2026-10-16 | 2026-10-19 | Una cita cancelada queda con su motivo y libera el horario para una nueva cita. |
+| PB-12 | 2 | 4 | RF06 | Registro de la consulta médica (anamnesis, constantes vitales y examen por sistemas) e historial clínico | HU-02 | R2 | Alta | 101 | Oscar Enrique Arias Cardile, Abel Stiven Ayala Llanes, Jeiner Duvan Carvajal Araque | 2026-10-28 | 2026-11-05 | Cada consulta queda guardada en el historial clínico de la mascota. |
+| PB-13 | 2 | 4 | RF09 | Carga masiva del catálogo de medicamentos, servicios y productos con la plantilla de Excel | HU-01 | R7 | Alta | 93 | Daniel Alejandro Pacheco Villamizar, Jhojan Fernando Cruz Bulla | 2026-10-26 | 2026-11-04 | El catálogo se carga desde la plantilla y el sistema informa las filas con error. |
+| PB-14 | 2 | 4 | RF12 | Recordatorios automáticos de vacunación y baño por mascota, según la periodicidad del patrocinador | HU-01, HU-02, HU-03 | R1, R3, R6 | Alta | 68 | Jeiner Duvan Carvajal Araque, Abel Stiven Ayala Llanes, Oscar Enrique Arias Cardile | 2026-10-26 | 2026-11-03 | Los recordatorios muestran la mascota, el propietario y el servicio pendiente según la periodicidad definida. |
+| PB-15 | 2 | 5 | RF07 | Emisión del récipe médico desde la consulta, con los medicamentos del catálogo | HU-02 | R2 | Alta | 92 | Oscar Enrique Arias Cardile, Daniel Alejandro Pacheco Villamizar, Jeiner Duvan Carvajal Araque | 2026-11-12 | 2026-11-18 | El récipe incluye los medicamentos y las indicaciones y queda asociado a su consulta. |
+| PB-16 | 2 | 5 | RF08 | Registro y cobro de los servicios de baño y peluquería según raza, tamaño y condición del pelaje, con la comisión del 40 % del groomer (Acta 2) | HU-03 | R3, R8 | Media | 67 | Jeiner Duvan Carvajal Araque, Abel Stiven Ayala Llanes, Oscar Enrique Arias Cardile | 2026-11-09 | 2026-11-11 | El servicio queda registrado con la mascota, la raza, el tamaño, la condición del pelaje, el tipo de corte y el groomer, se cobra según la tarifa y calcula la comisión del 40 % del groomer. |
+| PB-17 | 2 | 5 | RF10 | Descuento automático del stock por consulta y peluquería | HU-02, HU-03 | R7 | Alta | 75 | Abel Stiven Ayala Llanes, Jhojan Fernando Cruz Bulla | 2026-11-11 | 2026-11-19 | El stock se descuenta al registrar cada consulta o servicio. |
+| PB-18 | 2 | 5 | RF15 | Clasificación por colores de los clientes recurrentes según los criterios del patrocinador | HU-01 | R8 | Media | 29 | Jhojan Fernando Cruz Bulla, Daniel Alejandro Pacheco Villamizar | 2026-11-09 | 2026-11-10 | Los clientes recurrentes quedan identificados visualmente según los criterios del patrocinador. |
+| PB-19 | 2 | 6 | RF13 | Factura consolidada con consulta, peluquería y productos, y registro de entradas y salidas de dinero, incluidos gastos como el arriendo (Acta 2) | HU-01 | R3, R8 | Alta | 109 | Oscar Enrique Arias Cardile, Daniel Alejandro Pacheco Villamizar, Jhojan Fernando Cruz Bulla | 2026-11-24 | 2026-12-01 | Una sola factura suma todo lo cobrado en la atención; las entradas y salidas de dinero (incluidos los gastos) quedan registradas. |
+| PB-20 | 2 | 6 | RF14 | Reportes operativos y estadísticos diarios, semanales y mensuales, con rotación de productos, vencimientos, comisiones semanales por groomer y balance de ganancias o pérdidas (Acta 2) | HU-01 | R7 | Media | 84 | Jeiner Duvan Carvajal Araque, Abel Stiven Ayala Llanes | 2026-11-24 | 2026-12-01 | Los reportes se generan por día, semana y mes, e incluyen rotación de productos, vencimientos, las comisiones semanales de cada groomer y el balance de ganancias o pérdidas. |
+| PB-21 | 2 | 6 | RF11 | Alertas en pantalla de stock bajo (menos de 2 o 5 unidades) y de vencimiento con fecha y lote | HU-01 | R7 | Media | 38 | Jeiner Duvan Carvajal Araque, Abel Stiven Ayala Llanes, Oscar Enrique Arias Cardile | 2026-11-23 | 2026-11-24 | La alerta aparece en pantalla cuando se cumple la condición de stock bajo o de vencimiento. |
 
 ---
 
-### ✅ Sprint 2 — 21/09/2026 – 01/10/2026
+## Convenciones y Definiciones
 
-| HU | Título | Pareja | Módulo |
-|---|---|---|---|
-| HU04 | Registro Detallado de Mascotas | G1 — David / Jhojan | Directorio |
-| HU05 | Buscador Unificado en Tiempo Real (RF06) | G2 — Abel / Duván | Directorio |
-| HU06 | Agendamiento de Consultas Médicas (RF07) | G3 — Oscar / Daniel | Agendamiento |
-
----
-
-### 🔄 Sprint 3 — 02/10/2026 – 12/10/2026
-
-| HU | Título | Pareja | Módulo |
-|---|---|---|---|
-| HU07 | Agendamiento de Peluquería y Spa | G1 — David / Jhojan | Agendamiento |
-| HU08 | Calendario Visual Semanal y Diario | G2 — Abel / Duván | Agendamiento |
-| HU09 | Consulta Médica e Inspección por Sistemas (RF08) | G3 — Oscar / Daniel | Atención Médica |
-| HU10 | Récipe Médico y Orden de Medicamentos (RF09) | G1 — David / Jhojan | Atención Médica |
-
----
-
-### 🔹 Sprint 4 — 13/10/2026 – 22/10/2026
-
-| HU | Título | Pareja | Módulo |
-|---|---|---|---|
-| HU11 | Registro de Hospitalización Derivada (RF10) | G2 — Abel / Duván | Atención Médica |
-| HU12 | Control de Inventario con Descuento Automático (RF11) | G3 — Oscar / Daniel | Inventario |
-| HU13 | Alertas de Stock Mínimo y Vencimiento (RF12) | G1 — David / Jhojan | Inventario |
-| HU14 | Registro de Servicio Groomer / Peluquería (RF13) | G2 — Abel / Duván | Peluquería |
-
----
-
-### 🔹 Sprint 5 — 23/10/2026 – 01/11/2026
-
-| HU | Título | Pareja | Módulo |
-|---|---|---|---|
-| HU15 | Facturación Consolidada de Servicios (RF14) | G3 — Oscar / Daniel | Facturación |
-| HU16 | Historial Clínico Cronológico | G1 — David / Jhojan | Atención Médica |
-| HU17 | Reporte de Productos Más Vendidos (RF15) | G2 — Abel / Duván | Reportes |
-| HU18 | Reporte de Clientes Nuevos vs. Recurrentes (RF15) | G3 — Oscar / Daniel | Reportes |
-
----
-
-### 🏁 Sprint 6 — 02/11/2026 – 09/11/2026 *(Sprint de cierre)*
-
-| HU | Título | Pareja | Módulo |
-|---|---|---|---|
-| HU19 | Indicadores Visuales de Fidelidad | G1 — David / Jhojan | Reportes |
-| HU20 | Pruebas Integrales de Calidad (QA) | G2 — Abel / Duván | QA / Integración |
-| HU21 | Consolidación Documental y Preparación Demo | G3 — Oscar / Daniel | Documentación |
-
----
-
-## 5. Resumen de carga por pareja
-
-| Grupo | HUs asignadas (total) | Sprints |
-|---|---|---|
-| G1 — David / Jhojan | HU01, HU04, HU07, HU10, HU13, HU16, HU19 | 7 HU en S1–S6 |
-| G2 — Abel / Duván | HU03, HU05, HU08, HU11, HU14, HU17, HU20 | 7 HU en S1–S6 |
-| G3 — Oscar / Daniel | HU02, HU06, HU09, HU12, HU15, HU18, HU21 | 7 HU en S1–S6 |
-
-**Total:** 21 HU en 6 sprints — fecha límite 9 de noviembre de 2026.
-
----
-
-*Este documento refleja el estado actualizado del tablero de GitHub Issues (labels: sprint:N, pareja:grupo-N, modulo:*).*
+- **Historias de Usuario (HU):**
+  - `HU-01`: Administrador
+  - `HU-02`: Veterinario
+  - `HU-03`: Groomer
+- **Prioridad:**
+  - **Alta:** Indispensable para operar la clínica o retener clientes.
+  - **Media:** Mejora la operación y depende de elementos de prioridad alta.
+- **Requisitos de Negocio (RN):** R1 a R9 según la Sección 2 del PGP.

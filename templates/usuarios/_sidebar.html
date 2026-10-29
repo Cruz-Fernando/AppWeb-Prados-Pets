@@ -20,7 +20,7 @@
   <!-- Navigation -->
   <nav class="sidebar__nav">
 
-    <!-- Dashboard -->
+    <!-- Dashboard (Todos los usuarios autenticados) -->
     <a href="{% url 'usuarios:dashboard' %}"
        class="sidebar__item {% if request.resolver_match.url_name == 'dashboard' %}sidebar__item--active{% endif %}"
        id="nav-dashboard">
@@ -33,7 +33,8 @@
       <span class="sidebar__label">Dashboard</span>
     </a>
 
-    <!-- DIRECTORIO group -->
+    <!-- DIRECTORIO group (Administrador, Veterinario, Recepcionista) -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,veterinario,recepcionista' %}
     <div class="sidebar__group-label">Directorio</div>
 
     <a href="/directorio/registrar-dueno/"
@@ -74,11 +75,13 @@
       </span>
       <span class="sidebar__label">Buscar</span>
     </a>
+    {% endif %}
 
     <!-- GESTIÓN group -->
     <div class="sidebar__group-label">Gestión</div>
 
-    <!-- Calendario (HU08) -->
+    <!-- Calendario (Administrador, Veterinario, Groomer, Recepcionista) -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,veterinario,groomer,recepcionista' %}
     <a href="{% url 'agendamiento:calendario' %}"
        class="sidebar__item {% if request.resolver_match.url_name == 'calendario' %}sidebar__item--active{% endif %}"
        id="nav-calendario">
@@ -91,8 +94,10 @@
       </span>
       <span class="sidebar__label">Calendario</span>
     </a>
+    {% endif %}
 
-    <!-- Consultas / Citas Médicas (HU06) -->
+    <!-- Consultas / Citas Médicas (Administrador, Veterinario, Recepcionista) -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,veterinario,recepcionista' %}
     <a href="{% url 'agendamiento:agendar_cita' %}"
        class="sidebar__item {% if request.resolver_match.url_name == 'agendar_cita' %}sidebar__item--active{% endif %}"
        id="nav-citas">
@@ -104,7 +109,7 @@
       <span class="sidebar__label">Agendar Cita</span>
     </a>
 
-    <!-- Hospitalización (HU13) -->
+    <!-- Hospitalización (Administrador, Veterinario, Recepcionista) -->
     <a href="/clinico/hospitalizacion/"
        class="sidebar__item {% if 'hospitalizacion' in request.path %}sidebar__item--active{% endif %}"
        id="nav-hospitalizacion">
@@ -118,8 +123,10 @@
       </span>
       <span class="sidebar__label">Hospitalización</span>
     </a>
+    {% endif %}
 
-    <!-- Peluquería (HU21) -->
+    <!-- Peluquería (Administrador, Groomer, Recepcionista) -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,groomer,recepcionista' %}
     <a href="{% url 'peluqueria:agendar' %}"
        class="sidebar__item {% if request.resolver_match.app_name == 'peluqueria' %}sidebar__item--active{% endif %}"
        id="nav-peluqueria">
@@ -133,6 +140,7 @@
       </span>
       <span class="sidebar__label">Peluquería</span>
     </a>
+    {% endif %}
 
     <!-- ADMINISTRACIÓN group -->
     <div class="sidebar__group-label">Administración</div>
@@ -148,7 +156,11 @@
       <span class="sidebar__badge-soon">Pronto</span>
     </div>
 
-    <div class="sidebar__item sidebar__item--soon" title="Próximamente">
+    <!-- Inventario (Carga Masiva / Catálogo) -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,veterinario,recepcionista' %}
+    <a href="{% url 'inventario:cargar_excel' %}"
+       class="sidebar__item {% if request.resolver_match.app_name == 'inventario' %}sidebar__item--active{% endif %}"
+       id="nav-inventario">
       <span class="sidebar__icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -157,8 +169,8 @@
         </svg>
       </span>
       <span class="sidebar__label">Inventario</span>
-      <span class="sidebar__badge-soon">Pronto</span>
-    </div>
+    </a>
+    {% endif %}
 
     <div class="sidebar__item sidebar__item--soon" title="Próximamente">
       <span class="sidebar__icon">
@@ -172,8 +184,8 @@
       <span class="sidebar__badge-soon">Pronto</span>
     </div>
 
-    {% if user.es_administrador %}
-    <!-- SISTEMA group (solo admin) -->
+    <!-- SISTEMA group (solo Administrador) -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower == 'administrador' %}
     <div class="sidebar__group-label">Sistema</div>
     <a href="{% url 'usuarios:usuarios_lista' %}"
        class="sidebar__item {% if 'usuarios' in request.resolver_match.url_name %}sidebar__item--active{% endif %}"
