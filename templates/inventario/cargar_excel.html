@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Carga Masiva de Catálogo · Prados Pets{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Carga Masiva de Catálogo</span>
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide">
+      <div class="card" style="max-width: 800px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px;">
+        <h2 style="color: #fff; margin-bottom: 8px;">Carga masiva de catálogo (Excel)</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+          Sube la plantilla de Excel (.xlsx) con la lista de productos, medicamentos y servicios.
+        </p>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="pp-alert pp-alert--{{ message.tags }}" style="margin-bottom: 16px;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 16px;">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="{{ form.archivo_excel.id_for_label }}" style="color: #e2e8f0; font-weight: 600; display: block; margin-bottom: 8px;">
+              {{ form.archivo_excel.label }}
+            </label>
+            {{ form.archivo_excel }}
+            {% if form.archivo_excel.errors %}
+              <span style="color: #f87171; font-size: 0.85rem; margin-top: 4px; display: block;">
+                {{ form.archivo_excel.errors.0 }}
+              </span>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="cal-btn cal-btn--consulta" style="align-self: flex-start; padding: 10px 24px; border: none; cursor: pointer;">
+            Procesar y Cargar Catálogo
+          </button>
+        </form>
+
+        {% if errores %}
+          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="color: #fca5a5; font-size: 1.1rem; margin-bottom: 12px;">
+              ⚠️ Errores encontrados durante la importación ({{ errores|length }})
+            </h3>
+            <div style="max-height: 250px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 12px;">
+              <table style="width: 100%; border-collapse: collapse; color: #f3f4f6; font-size: 0.875rem;">
+                <thead>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+                    <th style="padding: 8px; width: 80px;">Fila</th>
+                    <th style="padding: 8px;">Mensaje de Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in errores %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px; font-weight: 700; color: #f87171;">Fila {{ item.fila }}</td>
+                      <td style="padding: 8px; color: #e2e8f0;">{{ item.error }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
