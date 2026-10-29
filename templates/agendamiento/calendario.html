@@ -134,7 +134,7 @@
           {% endfor %}
 
           <!-- Columna de horas -->
-          <div class="cal-hours" style="height: {{ alto_grilla }}px;">
+          <div class="cal-hours" style="--alto-grilla: {{ alto_grilla }}px; height: var(--alto-grilla);">
             <span class="cal-hours__now" id="cal-now-label" hidden></span>
             {% for h in horas %}
             <div class="cal-hours__label">{% if h == 0 %}12 a. m.{% elif h < 12 %}{{ h }} a. m.{% elif h == 12 %}12 p. m.{% else %}{{ h|add:"-12" }} p. m.{% endif %}</div>
@@ -143,18 +143,18 @@
 
           <!-- Columnas de días -->
           {% for dia in dias %}
-          <div class="cal-col {% if dia.es_hoy %}is-today{% endif %}" style="height: {{ alto_grilla }}px;">
+          <div class="cal-col {% if dia.es_hoy %}is-today{% endif %}" style="--alto-grilla: {{ alto_grilla }}px; height: var(--alto-grilla);">
             {% if dia.es_hoy %}<div class="cal-now" id="cal-now" hidden></div>{% endif %}
             {% localize off %}
             {% for e in dia.eventos %}
             <button type="button"
                  class="cal-event cal-event--{{ e.categoria }}{% if e.cancelada %} cal-event--cancelada{% endif %}{% if e.alto < 6 %} cal-event--corta{% endif %}"
-                 style="top: {{ e.top }}%; height: {{ e.alto }}%; left: calc({{ e.izquierda }}% + 3px); width: calc({{ e.ancho }}% - 6px); --d: {{ forloop.counter0 }};"
+                 style="--ev-top: {{ e.top }}%; --ev-alto: {{ e.alto }}%; --ev-left: {{ e.izquierda }}%; --ev-ancho: {{ e.ancho }}%; --d: {{ forloop.counter0 }}; top: var(--ev-top); height: var(--ev-alto); left: calc(var(--ev-left) + 3px); width: calc(var(--ev-ancho) - 6px);"
                  data-categoria="{% if e.cancelada %}cancelada{% else %}{{ e.categoria }}{% endif %}"
                  data-titulo="{{ e.titulo }}"
                  data-servicio="{{ e.servicio }}"
                  data-responsable="{{ e.responsable }}"
-                 data-horario="{{ e.inicio|time:'g:i a' }} – {{ e.fin|time:'g:i a' }}"
+                 data-horario="{{ e.inicio|time:'g:i a' }} - {{ e.fin|time:'g:i a' }}"
                  data-fecha="{{ dia.nombre }} {{ dia.fecha.day }}"
                  data-duracion="{{ e.duracion_min }}"
                  data-estado="{{ e.estado_display }}"
@@ -208,7 +208,7 @@
       <div class="cal-modal__full"><dt id="cal-modal-resp-label">Responsable</dt><dd id="cal-modal-resp"></dd></div>
       <div class="cal-modal__full" id="cal-modal-motivo-box" hidden><dt>Motivo de cancelación</dt><dd id="cal-modal-motivo"></dd></div>
     </dl>
-        <!-- RF05: cancelación de la cita (solo consultas programadas) -->
+    <!-- RF05: cancelación de la cita (solo consultas programadas) -->
     <div class="cal-cancel" id="cal-cancel" hidden>
       <button type="button" class="cal-cancel__toggle" id="cal-cancel-toggle" aria-expanded="false" aria-controls="cal-cancel-form">
         Cancelar cita

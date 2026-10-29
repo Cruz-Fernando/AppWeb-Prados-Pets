@@ -96,9 +96,9 @@ def cita_pdf(request, pk):
         return response
     except ImportError:
         return HttpResponse(html_str)
-    MOTIVO_CANCELACION_MAX = 255
 
 
+MOTIVO_CANCELACION_MAX = 255
 @login_required
 @require_POST
 def cancelar_cita(request, pk):
