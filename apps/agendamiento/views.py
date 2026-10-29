@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 
 from apps.directorio.models import Mascota
 from apps.peluqueria.models import CitaPeluqueria
+from apps.usuarios.permissions import rol_requerido
 
 from . import calendario as cal
 from .forms import CitaForm
@@ -21,6 +22,7 @@ from .models import Cita
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def agendar_cita(request):
     """HU06 / PB-08: Agendar consultas médicas con validación de horario de veterinario."""
     if request.method == "POST":
@@ -46,6 +48,7 @@ def agendar_cita(request):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def buscar_mascotas_ajax(request):
     q = request.GET.get("q", "").strip()
     resultados = []
@@ -71,6 +74,7 @@ def buscar_mascotas_ajax(request):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def cita_pdf(request, pk):
     cita = get_object_or_404(Cita, pk=pk)
     contexto = {
@@ -99,7 +103,10 @@ def cita_pdf(request, pk):
 
 
 MOTIVO_CANCELACION_MAX = 255
+
+
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 @require_POST
 def cancelar_cita(request, pk):
     """
@@ -140,9 +147,8 @@ def cancelar_cita(request, pk):
     return redirect(destino)
 
 
-
-
 @login_required
+@rol_requerido('administrador', 'veterinario', 'groomer', 'recepcionista')
 def calendario(request):
     """HU08: Calendario visual diario y semanal."""
     vista = request.GET.get("vista", "semana")
