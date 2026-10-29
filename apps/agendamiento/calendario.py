@@ -35,6 +35,7 @@ class Evento:
     servicio: str
     categoria: str
     estado: str = "programada"
+    motivo_cancelacion: str = ""
     responsable: str = ""     # "Dra. X" (consulta) o "Raza: Y" (peluquería)
     # Calculados al distribuir en la grilla
     top: float = 0.0
@@ -145,6 +146,8 @@ def eventos_desde_peluqueria(citas):
             detalle=f"{c.get_servicio_display()} · {c.raza}",
             servicio=c.get_servicio_display(),
             categoria=CATEGORIA_PELUQUERIA,
+            estado=c.estado,
+            motivo_cancelacion=c.motivo_cancelacion,
             responsable=f"Raza: {c.raza}",
         ))
     return eventos

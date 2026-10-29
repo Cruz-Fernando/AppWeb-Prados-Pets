@@ -15,6 +15,12 @@ class CitaPeluqueria(models.Model):
         ('COMPLETO', 'Corte Total (Máquina y tijera)'),
     ]
 
+    ESTADO_CHOICES = [
+        ('Programada', 'Programada'),
+        ('Realizada', 'Realizada'),
+        ('Cancelada', 'Cancelada'),
+    ]
+
     nombre_mascota      = models.CharField(max_length=100)
     raza                = models.CharField(max_length=100)
     tamano              = models.CharField(max_length=10, choices=TAMANO_CHOICES, default='MEDIANO')
@@ -33,6 +39,19 @@ class CitaPeluqueria(models.Model):
     )
     creado_en           = models.DateTimeField(auto_now_add=True)
 
+    estado = models.CharField(
+        max_length=20, 
+        choices=ESTADO_CHOICES, 
+        default='Programada',
+        verbose_name='Estado de la Cita'
+    )
+    motivo_cancelacion = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name='Motivo de Cancelación'
+    )
+
+
     class Meta:
         verbose_name        = 'Cita de Peluquería'
         verbose_name_plural = 'Citas de Peluquería'
@@ -41,3 +60,5 @@ class CitaPeluqueria(models.Model):
     def __str__(self):
         groomer_nombre = self.groomer.nombre_completo if self.groomer else 'Sin asignar'
         return f"Cita Peluquería: {self.nombre_mascota} — {self.get_servicio_display()} ({groomer_nombre})"
+
+

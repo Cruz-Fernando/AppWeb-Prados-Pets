@@ -8,6 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.template.loader import get_template
 from xhtml2pdf import pisa
+from django.shortcuts import redirect, render, get_object_or_404
 
 from apps.directorio.models import Mascota
 
@@ -112,7 +113,7 @@ def guardar_cita(request):
         citas_existentes_dia = CitaPeluqueria.objects.filter(
             groomer=groomer,
             fecha_hora__date=fecha_hora.date()
-        ).exclude(estado='cancelada')
+        ).exclude(estado='Cancelada')
 
         for cita_ext in citas_existentes_dia:
             inicio_ext = cita_ext.fecha_hora
@@ -151,4 +152,18 @@ def guardar_cita(request):
             return HttpResponse('Error al generar el PDF.', status=500)
         return response
 
+    return redirect('peluqueria:panel_peluqueria')
+
+@login_required
+def cancelar_cita_peluqueria(request, cita_id):
+    if request.method == 'POST':
+        cita = get_object_or_404(CitaPeluqueria, id=cita_id)
+        motivo = request.POST.get('motivo_cancelacion', '').strip()
+        
+        cita.estado = 'Cancelada'
+        cita.motivo_cancelacion = motivo
+        cita.save()
+        
+        messages.success(request, 'La cita de peluquería fue cancelada exitosamente.')
+        
     return redirect('peluqueria:panel_peluqueria')

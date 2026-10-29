@@ -8,4 +8,5 @@ urlpatterns = [
     path('agendar/', views.panel_peluqueria, name='agendar'),
     path('buscar-mascota/', views.buscar_mascota, name='buscar_mascota'),
     path('guardar-cita/', views.guardar_cita, name='guardar_cita'),
+    path('cancelar/<int:cita_id>/', views.cancelar_cita_peluqueria, name='cancelar_cita'),
 ]
