@@ -46,6 +46,15 @@ class MascotaForm(forms.ModelForm):
                 f"{self.instance.id_dueno.nombre_completo} "
                 f"({self.instance.id_dueno.telefono})"
             )
+        vacios = {
+            "especie": "— Selecciona la especie —",
+            "sexo": "— Sin especificar —",
+            "tamano": "— Sin especificar —",
+        }
+        for campo, texto in vacios.items():
+            if campo in self.fields:
+                opciones = [c for c in self.fields[campo].choices if c[0] != ""]
+                self.fields[campo].choices = [("", texto)] + opciones
 
     def clean(self):
         cleaned = super().clean()

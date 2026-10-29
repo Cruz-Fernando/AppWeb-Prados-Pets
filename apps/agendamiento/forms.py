@@ -39,8 +39,13 @@ class CitaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["fecha"].widget.attrs["min"] = timezone.now().date().isoformat()
+        self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
         self.fields["mascota"].required = True
+        if "veterinario" in self.fields:
+            self.fields["veterinario"].empty_label = "— Selecciona un veterinario —"
+            self.fields["veterinario"].label_from_instance = (
+                lambda u: u.nombre_completo or u.username
+            )
 
     def clean_fecha(self):
         fecha = self.cleaned_data.get("fecha")

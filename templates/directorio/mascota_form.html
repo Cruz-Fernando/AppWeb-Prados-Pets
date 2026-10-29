@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Registrar Mascota · Prados Pets{% endblock %}
+{% block title %}{% if mascota %}Editar {{ mascota.nombre }}{% else %}Registrar Mascota{% endif %} · Prados Pets{% endblock %}
 
 {% block body %}
 <div class="app-shell">
@@ -21,13 +21,16 @@
         <span class="app-topbar__sep">›</span>
         <span class="app-topbar__current">Directorio</span>
         <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Registrar Mascota</span>
+        <span class="app-topbar__current">{% if mascota %}Editar Mascota{% else %}Registrar Mascota{% endif %}</span>
       </div>
     </header>
     <main class="app-content app-content--narrow">
 
-    <h1>Registrar Nueva Mascota</h1>
-    <p class="app-content__subtitle">Completa los datos. El código de mascota se genera automáticamente.</p>
+    <h1>{% if mascota %}Editar a {{ mascota.nombre }}{% else %}Registrar Nueva Mascota{% endif %}</h1>
+    <p class="app-content__subtitle">
+      {% if mascota %}Actualiza los datos. El código no cambia.
+      {% else %}Completa los datos. El código de mascota se genera automáticamente.{% endif %}
+    </p>
 
     {% if messages %}
     <ul class="app-messages">
@@ -46,11 +49,17 @@
           Código de mascota
           <span class="badge badge--codigo">🔖 Identificador único</span>
         </label>
-        <div class="codigo-badge" id="id_codigo_preview" title="Este código se genera automáticamente al guardar">
-          <span class="codigo-badge__prefix">M-</span>
-          <span class="codigo-badge__chars" id="codigo-chars">????</span>
+        <div class="codigo-badge {% if mascota %}codigo-badge--fijo{% endif %}" id="id_codigo_preview" title="{% if mascota %}Código asignado{% else %}Este código se genera automáticamente al guardar{% endif %}">
+          {% if mascota %}
+            <span class="codigo-badge__chars">{{ mascota.codigo_mascota }}</span>
+          {% else %}
+            <span class="codigo-badge__prefix">M-</span>
+            <span class="codigo-badge__chars" id="codigo-chars">????</span>
+          {% endif %}
         </div>
-        <p class="app-form__hint">Generado al guardar. Sirve para diferenciar mascotas con el mismo nombre.</p>
+        <p class="app-form__hint">
+          {% if mascota %}Identificador único de esta mascota.{% else %}Generado al guardar. Sirve para diferenciar mascotas con el mismo nombre.{% endif %}
+        </p>
       </div>
 
       {# ── Propietario (autocomplete) ───────────────────────────────── #}
@@ -123,18 +132,87 @@
         {{ form.color }}
       </div>
 
-      {# ── Fecha de Nacimiento ─────────────────────────────────────── #}
-      <div class="form-field">
-        <label for="id_fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
-        {{ form.fecha_nacimiento }}
+      {# ── Fecha de Nacimiento y Peso ─────────────────────────────── #}
+      <div class="form-row-2">
+        <div class="form-field">
+          <label for="id_fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
+          {{ form.fecha_nacimiento }}
+          {% if form.fecha_nacimiento.errors %}
+            {% for e in form.fecha_nacimiento.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          {% endif %}
+        </div>
+        <div class="form-field">
+          <label for="id_peso" class="form-label">Peso (kg)</label>
+          {{ form.peso }}
+          {% if form.peso.errors %}
+            {% for e in form.peso.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          {% endif %}
+        </div>
       </div>
 
       <div class="app-form__actions">
         <a href="{% url 'usuarios:dashboard' %}" class="btn btn--ghost">Cancelar</a>
         <a href="{% url 'registrar_dueno' %}" class="btn btn--ghost">+ Nuevo Dueño</a>
-        <button type="submit" class="btn btn--primary" id="btn-guardar">Guardar Mascota</button>
+        <button type="submit" class="btn btn--primary" id="btn-guardar">
+          {% if mascota %}Guardar cambios{% else %}Guardar Mascota{% endif %}
+        </button>
       </div>
     </form>
+
+    {% if mascota %}
+    <section class="app-card" id="seccion-vacunacion" style="margin-top: 24px; padding: 20px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);">
+      <h2 style="font-size: 1.15rem; margin-bottom: 12px; font-weight: 600;">Antecedentes de vacunación</h2>
+
+      {% if antecedentes_vacunacion %}
+        <div class="table-scroll" style="overflow-x: auto;">
+          <table class="app-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 13px;">
+                <th style="padding: 10px 8px;">Vacuna</th>
+                <th style="padding: 10px 8px;">Fecha</th>
+                <th style="padding: 10px 8px;">Observaciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in antecedentes_vacunacion %}
+                <tr style="border-bottom: 1px solid var(--border); font-size: 14px;">
+                  <td style="padding: 10px 8px; font-weight: 500;">{{ v.vacuna }}</td>
+                  <td style="padding: 10px 8px;">{{ v.fecha|date:"d/m/Y" }}</td>
+                  <td style="padding: 10px 8px; color: var(--text-muted);">{{ v.observaciones|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="app-form__hint">Esta mascota aún no tiene vacunas registradas.</p>
+      {% endif %}
+
+      <form method="POST" class="app-form" novalidate style="margin-top: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="guardar_vacunacion" value="1">
+        <div class="form-row-2">
+          <div class="form-field">
+            <label class="form-label" for="{{ vacunacion_form.vacuna.id_for_label }}">Vacuna *</label>
+            {{ vacunacion_form.vacuna }}
+            {% for e in vacunacion_form.vacuna.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="{{ vacunacion_form.fecha.id_for_label }}">Fecha de aplicación *</label>
+            {{ vacunacion_form.fecha }}
+            {% for e in vacunacion_form.fecha.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="{{ vacunacion_form.observaciones.id_for_label }}">Observaciones</label>
+          {{ vacunacion_form.observaciones }}
+        </div>
+        <div class="app-form__actions" style="margin-top: 14px;">
+          <button type="submit" class="btn btn--primary">Agregar vacuna</button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
   </main>
 </div>
 
@@ -168,6 +246,12 @@
   user-select: none;
   margin-top: 4px;
   animation: blinkCode 1.4s step-start infinite;
+}
+
+.codigo-badge--fijo {
+  animation: none;
+  border-style: solid;
+  color: var(--success);
 }
 
 .codigo-badge__prefix {
@@ -305,17 +389,21 @@
   const codigoEl = document.getElementById('codigo-chars');
   let shuffleTimer;
   function startShuffle() {
+    if (!codigoEl) return;
     shuffleTimer = setInterval(() => {
       codigoEl.textContent = randomCode();
     }, 80);
   }
   function stopShuffle(code) {
+    if (!codigoEl) return;
     clearInterval(shuffleTimer);
     codigoEl.textContent = code;
     codigoEl.style.animation = 'none';
     codigoEl.style.color = 'var(--success)';
   }
-  startShuffle(); // Empieza barajeo al cargar — se detiene si el servidor devuelve un código real
+  if (codigoEl) {
+    startShuffle(); // Solo empieza barajeo en alta nueva
+  }
 
   /* ── Autocomplete de dueño ──────────────────────────────────── */
   const txtDueno = document.getElementById('buscar_dueno');

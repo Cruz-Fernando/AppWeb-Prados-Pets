@@ -101,15 +101,16 @@
 
             <div class="pp-field">
               <label class="pp-label">Duración estimada</label>
-              <input type="text" id="id_duracion" placeholder="Ej: 1 hora y 30 min" class="pp-input">
+              <input type="text" id="id_duracion" class="pp-input pp-input--readonly" readonly placeholder="Elige una mascota">
+              <p class="pp-hint" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Se calcula según el tamaño de la mascota.</p>
             </div>
           </div>
 
           <!-- PRECIO -->
           <div class="pp-field">
-            <label class="pp-label">Precio <span class="pp-req">*</span></label>
-            <input type="text" name="precio" id="id_precio" value="$" required class="pp-input"
-                   inputmode="numeric" autocomplete="off">
+            <label class="pp-label">Precio</label>
+            <input type="text" name="precio" id="id_precio" class="pp-input pp-input--readonly" readonly placeholder="Elige una mascota">
+            <p class="pp-hint" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Calculado automáticamente según tamaño y servicio.</p>
           </div>
 
           <!-- OBSERVACIONES -->
@@ -125,7 +126,7 @@
       <div class="pp-card pp-card--summary">
         <div class="pp-summary__header">
           <span class="pp-summary__title">RESUMEN DE LA CITA</span>
-          <span class="pp-summary__status">● Borrador</span>
+          <span class="pp-summary__status pp-summary__status--pendiente" id="sum_estado">● Faltan datos</span>
         </div>
 
         <div class="pp-summary__pet-box">
@@ -254,7 +255,10 @@ select.pp-input option { background: #111122; color: #f8fafc; }
 .pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
 .pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
 .pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
-.pp-summary__status { font-size: .75rem; background: rgba(124, 58, 237, 0.2); color: #c4b5fd; padding: 3px 10px; border-radius: 12px; }
+.pp-summary__status { font-size: .75rem; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+.pp-summary__status--pendiente { background: rgba(250, 204, 21, 0.14); color: #facc15; }
+.pp-summary__status--listo     { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.pp-input--readonly { background: rgba(255, 255, 255, 0.04); cursor: default; }
 
 .pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
 .pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
@@ -341,6 +345,68 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     }, 250);
   });
 
+  function esc(v) {
+    return String(v ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  const TABLA_PRECIOS = {
+    'BANO_PEQUENO': 30000, 'BANO_MEDIANO': 40000, 'BANO_GRANDE': 55000,
+    'CORTE_PEQUENO': 40000, 'CORTE_MEDIANO': 50000, 'CORTE_GRANDE': 65000,
+    'COMPLETO_PEQUENO': 55000, 'COMPLETO_MEDIANO': 70000, 'COMPLETO_GRANDE': 90000,
+  };
+  const TABLA_DURACION = {
+    'PEQUENO': '60 min (1 hora)',
+    'MEDIANO': '90 min (1h 30m)',
+    'GRANDE': '120 min (2 horas)',
+  };
+  const fmtCop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+  const sumEstado = document.getElementById('sum_estado');
+
+  function actualizarEstado() {
+    if (!sumEstado) return;
+    const faltan = [];
+    if (!hiddenId || !hiddenId.value.trim()) faltan.push('mascota');
+    if (!inGroomer || !inGroomer.value.trim()) faltan.push('groomer');
+    if (!inFechaHora || !inFechaHora.value.trim()) faltan.push('fecha y hora');
+
+    const listo = faltan.length === 0;
+    sumEstado.textContent = listo ? '● Lista para agendar' : `● Faltan ${faltan.length} dato(s)`;
+    sumEstado.classList.toggle('pp-summary__status--listo', listo);
+    sumEstado.classList.toggle('pp-summary__status--pendiente', !listo);
+  }
+
+  function recalcularServicio() {
+    if (!hiddenId.value) {
+      inDur.value = '';
+      sumDur.textContent = 'Por definir';
+      inPrecio.value = '';
+      sumTotal.textContent = '—';
+      actualizarEstado();
+      return;
+    }
+    const tamano = (inTam.value || 'pequeno').toUpperCase();
+    const servicio = inServicio.value || 'BANO';
+    const clave = `${servicio}_${tamano}`;
+
+    const duracion = TABLA_DURACION[tamano] || '60 min';
+    inDur.value = duracion;
+    sumDur.textContent = duracion;
+
+    const precio = TABLA_PRECIOS[clave];
+    if (precio != null) {
+      const formatted = fmtCop.format(precio);
+      inPrecio.value = formatted;
+      sumTotal.textContent = formatted;
+    } else {
+      inPrecio.value = '';
+      sumTotal.textContent = '—';
+    }
+    actualizarEstado();
+  }
+
   function renderDropdown(items){
     dropdown.innerHTML = '';
     if(!items.length){
@@ -352,8 +418,8 @@ select.pp-input option { background: #111122; color: #f8fafc; }
       d.className = 'pp-dropdown-item';
       const emoji = EMOJIS[m.especie] || '🐾';
       d.innerHTML = `
-        <div class="pp-dropdown-item__name">${emoji} ${m.nombre}</div>
-        <div class="pp-dropdown-item__sub">${m.especie_display||m.especie} · ${m.raza||'Sin raza'} · Dueño: ${m.dueno}</div>
+        <div class="pp-dropdown-item__name">${emoji} ${esc(m.nombre)}</div>
+        <div class="pp-dropdown-item__sub">${esc(m.especie_display||m.especie)} · ${esc(m.raza||'Sin raza')} · Dueño: ${esc(m.dueno)}</div>
       `;
       d.addEventListener('click', ()=> seleccionar(m));
       dropdown.appendChild(d);
@@ -379,18 +445,23 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     sumAvatar.textContent = emoji;
     sumMascota.textContent = m.nombre;
     sumRazaTam.textContent = `${m.raza || 'Mascota'} · ${m.tamano_display || m.tamano || 'Pequeño'}`;
+
+    recalcularServicio();
   }
 
   if (btnClear) {
     btnClear.addEventListener('click', function(){
       hiddenId.value = '';
       input.value = '';
+      inRaza.value = '';
+      inTam.value = '';
       boxInfo.style.display = 'none';
       dropdown.style.display = 'none';
       sumAvatar.textContent = '🐾';
       sumMascota.textContent = 'Selecciona una mascota';
       sumRazaTam.textContent = 'Especie · Raza · Tamaño';
       input.focus();
+      recalcularServicio();
     });
   }
 
@@ -406,42 +477,33 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     }
   });
 
-  // Actualizador en tiempo real de Duración para la tarjeta lateral
-  inDur.addEventListener('input', function(){
-    sumDur.textContent = this.value.trim() || 'Por definir';
-  });
-
   // Actualizadores de Resumen Lateral
   inServicio.addEventListener('change', function(){
     sumServ.textContent = this.options[this.selectedIndex].text.replace(/^[^\s]+\s/, '');
+    recalcularServicio();
   });
 
   inGroomer.addEventListener('change', function(){
     sumGroomer.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
+    actualizarEstado();
   });
 
   inFechaHora.addEventListener('change', function(){
-    if(!this.value){ sumFecha.textContent = 'Por definir'; return; }
-    const dt = new Date(this.value);
-    sumFecha.textContent = dt.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    if(!this.value){ sumFecha.textContent = 'Por definir'; }
+    else {
+      const dt = new Date(this.value);
+      sumFecha.textContent = dt.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    }
+    actualizarEstado();
   });
 
-  // Formateo de precio
-  const SUFIJO = ' COP';
-  function formatearPrecio(){
-    const raw = inPrecio.value;
-    const digitos = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
-    if(!digitos){ 
-      inPrecio.value = '$'; 
-      sumTotal.textContent = '$0 COP';
-      return; 
-    }
-    const num = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    inPrecio.value = '$' + num + SUFIJO;
-    sumTotal.textContent = '$' + num + ' COP';
+  const formPeluqueria = document.getElementById('form-peluqueria');
+  if (formPeluqueria) {
+    formPeluqueria.addEventListener('input', actualizarEstado);
+    formPeluqueria.addEventListener('change', actualizarEstado);
   }
 
-  inPrecio.addEventListener('input', formatearPrecio);
+  recalcularServicio();
 }());
 </script>
 {% endblock %}
