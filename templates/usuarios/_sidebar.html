@@ -3,7 +3,10 @@
   <!-- Brand -->
   <div class="sidebar__brand">
     <div class="sidebar__brand-logo" style="width: 36px; height: 36px; min-width: 36px; min-height: 36px;">
-      <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" style="width: 100%; height: 100%; object-fit: cover;">
+      <picture>
+        <source srcset="{% static 'img/Logo_PradosPets.webp' %}" type="image/webp">
+        <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" style="width: 100%; height: 100%; object-fit: cover;">
+      </picture>
     </div>
     <div class="sidebar__brand-text">
       <span class="sidebar__brand-name">Prados Pets</span>

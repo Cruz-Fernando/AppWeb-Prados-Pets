@@ -165,7 +165,10 @@
 
         {% if not total_citas and not total_canceladas %}
         <div class="cal-empty">
-          <img src="{% static 'img/mascotas_prados_pets.png' %}" alt="" class="cal-empty__img">
+          <picture>
+            <source srcset="{% static 'img/mascotas_prados_pets.webp' %}" type="image/webp">
+            <img src="{% static 'img/mascotas_prados_pets.png' %}" alt="" class="cal-empty__img">
+          </picture>
           <h3>Agenda libre</h3>
           <p>No hay citas {% if vista == 'dia' %}para este día{% else %}esta semana{% endif %}. ¡Buen momento para agendar!</p>
           <a href="{% url 'agendamiento:agendar_cita' %}" class="cal-btn cal-btn--consulta">Agendar cita</a>

@@ -5,7 +5,10 @@
 <div class="auth-screen--dark">
   <div class="auth-glow" aria-hidden="true"></div>
   <div class="auth-card">
-    <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" class="auth-card__logo">
+    <picture>
+      <source srcset="{% static 'img/Logo_PradosPets.webp' %}" type="image/webp">
+      <img src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets" class="auth-card__logo">
+    </picture>
     <h1 class="auth-card__title">Prados Pets</h1>
     <p class="auth-card__subtitle">Ingresa con tu usuario para continuar.</p>
 
