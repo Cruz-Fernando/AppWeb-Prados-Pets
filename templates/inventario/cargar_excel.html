@@ -4,11 +4,20 @@
 {% block title %}Carga Masiva de Catálogo · Prados Pets{% endblock %}
 
 {% block body %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
 
   <div class="app-main">
     <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <div class="app-topbar__breadcrumb">
         <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
         <span class="app-topbar__sep">›</span>
@@ -17,57 +26,59 @@
     </header>
 
     <main class="app-content app-content--wide">
-      <div class="card" style="max-width: 800px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px;">
-        <h2 style="color: #fff; margin-bottom: 8px;">Carga masiva de catálogo (Excel)</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+      <div class="card" style="max-width: 800px; margin: 1.5rem auto; background: linear-gradient(170deg, #1C1530, var(--surface, #120e1c)); border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+        <h2 style="color: #fff; margin-bottom: 8px; font-size: 1.5rem; font-weight: 700;">Carga masiva de catálogo (Excel)</h2>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">
           Sube la plantilla de Excel (.xlsx) con la lista de productos, medicamentos y servicios.
         </p>
 
         {% if messages %}
           {% for message in messages %}
-            <div class="pp-alert pp-alert--{{ message.tags }}" style="margin-bottom: 16px;">
+            <div class="pp-alert pp-alert--{{ message.tags }}" style="margin-bottom: 16px; padding: 12px 16px; border-radius: 10px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac; font-weight: 500;">
               {{ message }}
             </div>
           {% endfor %}
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 16px;">
+        <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 20px;">
           {% csrf_token %}
           <div class="form-group">
             <label for="{{ form.archivo_excel.id_for_label }}" style="color: #e2e8f0; font-weight: 600; display: block; margin-bottom: 8px;">
               {{ form.archivo_excel.label }}
             </label>
-            {{ form.archivo_excel }}
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);">
+              {{ form.archivo_excel }}
+            </div>
             {% if form.archivo_excel.errors %}
-              <span style="color: #f87171; font-size: 0.85rem; margin-top: 4px; display: block;">
+              <span style="color: #f87171; font-size: 0.85rem; margin-top: 6px; display: block;">
                 {{ form.archivo_excel.errors.0 }}
               </span>
             {% endif %}
           </div>
 
-          <button type="submit" class="cal-btn cal-btn--consulta" style="align-self: flex-start; padding: 10px 24px; border: none; cursor: pointer;">
+          <button type="submit" class="cal-btn cal-btn--consulta" style="align-self: flex-start; padding: 12px 28px; border: none; cursor: pointer; color: #ffffff !important; font-weight: 600; border-radius: 10px;">
             Procesar y Cargar Catálogo
           </button>
         </form>
 
         {% if errores %}
-          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <h3 style="color: #fca5a5; font-size: 1.1rem; margin-bottom: 12px;">
-              ⚠️ Errores encontrados durante la importación ({{ errores|length }})
+          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.12);">
+            <h3 style="color: #fca5a5; font-size: 1.1rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+              <span>⚠️</span> Errores encontrados durante la importación ({{ errores|length }})
             </h3>
-            <div style="max-height: 250px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 12px;">
+            <div style="max-height: 250px; overflow-y: auto; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 8px 14px;">
               <table style="width: 100%; border-collapse: collapse; color: #f3f4f6; font-size: 0.875rem;">
                 <thead>
                   <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
-                    <th style="padding: 8px; width: 80px;">Fila</th>
-                    <th style="padding: 8px;">Mensaje de Error</th>
+                    <th style="padding: 10px 8px; width: 90px; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Fila</th>
+                    <th style="padding: 10px 8px; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Mensaje de Error</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for item in errores %}
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                      <td style="padding: 8px; font-weight: 700; color: #f87171;">Fila {{ item.fila }}</td>
-                      <td style="padding: 8px; color: #e2e8f0;">{{ item.error }}</td>
+                      <td style="padding: 10px 8px; font-weight: 700; color: #f87171;">Fila {{ item.fila }}</td>
+                      <td style="padding: 10px 8px; color: #e2e8f0;">{{ item.error }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
