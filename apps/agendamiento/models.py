@@ -6,6 +6,20 @@ from django.utils import timezone
 
 from apps.directorio.models import Mascota
 
+# Misma duración por defecto que usa el calendario para citas sin hora_fin
+DURACION_DEFECTO_MIN = 30
+
+
+def _minutos(hora):
+    return hora.hour * 60 + hora.minute
+
+
+def _rango_en_minutos(hora_inicio, hora_fin):
+    inicio = _minutos(hora_inicio)
+    if hora_fin and _minutos(hora_fin) > inicio:
+        return inicio, _minutos(hora_fin)
+    return inicio, inicio + DURACION_DEFECTO_MIN
+
 
 class Cita(models.Model):
     """
@@ -77,26 +91,36 @@ class Cita(models.Model):
         return f"{self.mascota.nombre} - {self.fecha} {self.hora_inicio} ({self.veterinario})"
 
     def clean(self):
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
 
-        # Bloquear fechas pasadas
-        if self.fecha and self.fecha < hoy:
+        # Bloquear fechas pasadas solo al CREAR la cita: así se puede seguir
+        # marcando como atendida o cancelada una cita que ya pasó.
+        if self.pk is None and self.fecha and self.fecha < hoy:
             raise ValidationError(
                 {"fecha": "No se pueden agendar citas en fechas pasadas. Selecciona hoy o una fecha futura."}
             )
 
-        # RF24: sin cruces de horario para el mismo veterinario
+        if self.hora_inicio and self.hora_fin and self.hora_fin <= self.hora_inicio:
+            raise ValidationError(
+                {"hora_fin": "La hora de fin debe ser posterior a la hora de inicio."}
+            )
+
+        # RF24: sin cruces de horario para el mismo veterinario. Se comparan
+        # los rangos completos (inicio–fin), no solo la hora de inicio.
         if self.veterinario_id and self.fecha and self.hora_inicio:
-            conflicto = (
-                Cita.objects.filter(
-                    veterinario_id=self.veterinario_id,
-                    fecha=self.fecha,
-                    hora_inicio=self.hora_inicio,
-                )
+            nuevo_ini, nuevo_fin = _rango_en_minutos(self.hora_inicio, self.hora_fin)
+            otras = (
+                Cita.objects.filter(veterinario_id=self.veterinario_id, fecha=self.fecha)
                 .exclude(estado="cancelada")
                 .exclude(pk=self.pk)
             )
-            if conflicto.exists():
-                raise ValidationError(
-                    "Este veterinario ya tiene una cita programada en esa fecha y hora."
-                )
+            for otra in otras:
+                ini, fin = _rango_en_minutos(otra.hora_inicio, otra.hora_fin)
+                if nuevo_ini < fin and ini < nuevo_fin:
+                    horario = f"{otra.hora_inicio:%H:%M}"
+                    if otra.hora_fin:
+                        horario += f"–{otra.hora_fin:%H:%M}"
+                    raise ValidationError(
+                        f"Este veterinario ya tiene una cita en ese horario ({horario}). "
+                        "Elige otra hora u otro veterinario."
+                    )

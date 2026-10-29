@@ -39,36 +39,13 @@ class CitaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["fecha"].widget.attrs["min"] = timezone.now().date().isoformat()
+        self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
         self.fields["mascota"].required = True
 
     def clean_fecha(self):
         fecha = self.cleaned_data.get("fecha")
-        if fecha and fecha < timezone.now().date():
+        if fecha and fecha < timezone.localdate():
             raise ValidationError(
                 "No se pueden agendar citas en fechas pasadas. Selecciona hoy o una fecha futura."
             )
         return fecha
-
-    def clean(self):
-        cleaned = super().clean()
-        veterinario = cleaned.get("veterinario")
-        fecha = cleaned.get("fecha")
-        hora_inicio = cleaned.get("hora_inicio")
-
-        if veterinario and fecha and hora_inicio:
-            conflicto = Cita.objects.filter(
-                veterinario=veterinario,
-                fecha=fecha,
-                hora_inicio=hora_inicio,
-            ).exclude(estado="cancelada")
-
-            if self.instance.pk:
-                conflicto = conflicto.exclude(pk=self.instance.pk)
-
-            if conflicto.exists():
-                raise ValidationError(
-                    f"El veterinario {veterinario} ya tiene una cita agendada "
-                    f"el {fecha} a las {hora_inicio}. Elige otra hora u otro veterinario."
-                )
-        return cleaned

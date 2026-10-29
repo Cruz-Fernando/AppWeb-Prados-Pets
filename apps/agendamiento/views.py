@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 
 from apps.directorio.models import Mascota
@@ -28,11 +29,18 @@ def agendar_cita(request):
             except IntegrityError:
                 form.add_error(None, "Ya existe una cita para ese veterinario en esa fecha y hora.")
             else:
-                messages.success(request, "¡Cita agendada con éxito!")
-                return redirect("agendamiento:cita_pdf", pk=cita.pk)
+                messages.success(request, "¡Cita agendada con éxito! El comprobante PDF se está descargando.")
+                return redirect(f"{reverse('agendamiento:agendar_cita')}?descargar={cita.pk}")
     else:
         form = CitaForm()
-    return render(request, "agendamiento/cita_form.html", {"form": form})
+
+    # Tras agendar, la página se recarga (con el mensaje visible) y el
+    # navegador descarga el comprobante a partir de este enlace.
+    descargar_url = None
+    descargar = request.GET.get("descargar", "")
+    if request.method == "GET" and descargar.isdigit() and Cita.objects.filter(pk=int(descargar)).exists():
+        descargar_url = reverse("agendamiento:cita_pdf", args=[int(descargar)])
+    return render(request, "agendamiento/cita_form.html", {"form": form, "descargar_url": descargar_url})
 
 
 @login_required
