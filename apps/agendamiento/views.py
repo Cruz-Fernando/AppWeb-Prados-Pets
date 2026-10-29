@@ -19,11 +19,8 @@ from .models import Cita
 
 @login_required
 def agendar_cita(request):
-<<<<<<< HEAD
-    """HU06 / PB-08: Agendar consultas médicas con validación de horario de veterinario."""
-=======
-    """HU06 / PB-08 / PC-07: Agendar consultas médicas con validación en Formulario."""
->>>>>>> b7b1e38d71feee080ad4b2dce62bcde2870862f2
+    """HU06 / PB-08 / PC-07: Agendar consultas médicas con validación de horario de veterinario en formulario."""
+
     if request.method == "POST":
         form = CitaForm(request.POST)
         if form.is_valid():
