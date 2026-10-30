@@ -21,7 +21,10 @@
     <main class="app-content app-content--wide">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="color: #fff; margin: 0;">Listado General de Dueños (Total: {{ duenos|length }})</h2>
-        <a href="{% url 'buscar_directorio' %}" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px; color: #fff; text-decoration: none;">Volver al Buscador</a>
+        <div style="display: flex; gap: 10px;">
+          <a href="{% url 'exportar_duenos_excel' %}" style="padding: 8px 16px; background: #10b981; border-radius: 8px; color: #fff; text-decoration: none; font-weight: 600;">📥 Exportar a Excel</a>
+          <a href="{% url 'buscar_directorio' %}" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px; color: #fff; text-decoration: none;">Volver al Buscador</a>
+        </div>
       </div>
 
       <div style="background: var(--surface, #1e1b2e); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">

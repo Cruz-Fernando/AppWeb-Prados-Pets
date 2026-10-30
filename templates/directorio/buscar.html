@@ -22,15 +22,16 @@
     </header>
 
     <main class="app-content">
-      <!-- Encabezado con Botones de Accesos Rápidos a Listados -->
+      <!-- Encabezado con Botones de Accesos Rápidos a Listados y Exportación -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <div>
           <h1 style="margin: 0;">Buscar dueño o mascota</h1>
           <p class="app-content__subtitle" style="margin: 0.25rem 0 0 0;">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <a href="{% url 'lista_duenos' %}" class="btn btn--ghost" style="white-space: nowrap;">👥 Listado de Dueños</a>
           <a href="{% url 'lista_mascotas' %}" class="btn btn--ghost" style="white-space: nowrap;">🐾 Listado de Mascotas</a>
+          <a href="{% url 'exportar_directorio_excel' %}" class="btn btn--ghost" style="white-space: nowrap; color: #10b981; border-color: #10b981;">📊 Exportar Todo (Excel)</a>
         </div>
       </div>
 
