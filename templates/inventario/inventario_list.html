@@ -40,15 +40,17 @@
 
       <!-- Barra de Acciones y Filtros -->
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <form method="get" style="display: flex; gap: 0.5rem; flex: 1; max-width: 500px;">
+        <form method="get" style="display: flex; gap: 0.5rem; flex: 1; max-width: 400px;">
           <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por código o nombre..." 
                  style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; padding: 0.5rem 1rem; flex: 1;">
           <button type="submit" class="cal-btn cal-btn--consulta" style="padding: 0.5rem 1rem; border-radius: 8px;">Buscar</button>
         </form>
 
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <a href="{% url 'inventario:crear_producto' %}" class="cal-btn" style="background: #8b5cf6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;">+ Nuevo Producto</a>
           <a href="{% url 'inventario:reposicion' %}" class="cal-btn" style="background: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;">+ Entradas / Reposición</a>
           <a href="{% url 'inventario:cargar_excel' %}" class="cal-btn" style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;">Carga Masiva Excel</a>
+          <a href="{% url 'inventario:exportar_excel' %}" class="cal-btn" style="background: #059669; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;">Exportar Excel</a>
         </div>
       </div>
 

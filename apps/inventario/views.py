@@ -1,10 +1,13 @@
 from datetime import datetime
 import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction, models
+from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView
@@ -253,6 +256,108 @@ def cargar_catalogo_excel(request):
         'inventario/cargar_excel.html',
         {'form': form, 'errores': errores, 'exitos': exitos}
     )
+
+
+@login_required
+def exportar_inventario_excel(request):
+    """
+    Genera un archivo .xlsx con el listado actual de productos en inventario.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Inventario Prados Pets"
+
+    headers = [
+        'Código', 'Código Barras', 'Nombre', 'Categoría', 'Proveedor',
+        'Precio Compra ($)', 'Precio Venta ($)', 'Stock Actual', 'Stock Mínimo', 'Estado'
+    ]
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color="1E1530", end_color="1E1530", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    productos = Producto.objects.filter(activo=True).select_related('categoria', 'proveedor')
+    for prod in productos:
+        estado = "REABASTECER" if prod.necesita_reposicion else "OK"
+        cat_nombre = prod.categoria.nombre if prod.categoria else "General"
+        prov_nombre = prod.proveedor.nombre if prod.proveedor else "N/A"
+        
+        ws.append([
+            prod.codigo,
+            prod.codigo_barras or '',
+            prod.nombre,
+            cat_nombre,
+            prov_nombre,
+            float(prod.precio_compra),
+            float(prod.precio_venta),
+            prod.stock_actual,
+            prod.stock_minimo,
+            estado
+        ])
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="Inventario_Prados_Pets.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def descargar_plantilla_excel(request):
+    """
+    Genera un archivo .xlsx formateado con ejemplos para la carga masiva.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Catálogo"
+
+    headers = [
+        'Tipo', 'Codigo', 'Nombre', 'Descripcion', 'Precio', 'StockMinimo',
+        'PrincipioActivo', 'Concentracion', 'Presentacion', 'RequiereReceta',
+        'NumeroLote', 'FechaVencimiento', 'CantidadLote'
+    ]
+    ws.append(headers)
+
+    ejemplos = [
+        ['MEDICAMENTO', 'MED-001', 'Amoxicilina 500mg', 'Antibiótico de amplio espectro', 25000, 5, 'Amoxicilina', '500 mg', 'Frasco 100ml', 'SI', 'LOTE-2026-A', '2027-12-31', 30],
+        ['PRODUCTO', 'PROD-001', 'Champú Antipulgas 250ml', 'Higiene y cuidado canino', 32000, 3, '', '', 'Frasco 250ml', 'NO', 'LOTE-2026-B', '2028-06-30', 15],
+        ['SERVICIO', 'SERV-001', 'Consulta Médica General', 'Atención médica veterinaria integral', 45000, 0, '', '', '', 'NO', '', '', '']
+    ]
+    for row in ejemplos:
+        ws.append(row)
+
+    header_fill = PatternFill(start_color="1E1530", end_color="1E1530", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 14)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="Plantilla_Carga_Catalogo_PradosPets.xlsx"'
+    wb.save(response)
+    return response
 
 
 class KardexListView(LoginRequiredMixin, ListView):
