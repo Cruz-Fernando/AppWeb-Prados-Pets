@@ -55,7 +55,6 @@ def registrar_dueno(request):
 
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
-<<<<<<< HEAD
 def editar_dueno(request, dueno_id):
     """
     SW-02 / RF04 / PB-06: Edición de propietarios.
@@ -122,8 +121,6 @@ def lista_mascotas(request):
 
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
-=======
->>>>>>> origin/main
 def registrar_mascota(request):
     if request.method == 'POST':
         form = MascotaForm(request.POST)
@@ -250,7 +247,6 @@ def autocomplete_duenos(request):
                 'id': d.id_dueno,
                 'texto': texto,
             })
-<<<<<<< HEAD
     return JsonResponse({'resultados': resultados})
 
 
@@ -417,6 +413,3 @@ def exportar_mascotas_excel(request):
     response['Content-Disposition'] = 'attachment; filename="Listado_Mascotas_PradosPets.xlsx"'
     wb.save(response)
     return response
-=======
-    return JsonResponse({'resultados': resultados})
->>>>>>> origin/main
