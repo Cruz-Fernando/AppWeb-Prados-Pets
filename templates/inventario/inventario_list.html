@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inventario y Stock · Prados Pets{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Inventario y Stock</span>
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide" style="padding: 2rem;">
+      <!-- Tarjetas de Resumen Contable -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: rgba(30, 27, 50, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem;">
+          <span style="color: #94a3b8; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Valor Total del Inventario</span>
+          <h3 style="color: #38bdf8; font-size: 1.5rem; font-weight: 700; margin: 0;">${{ total_valor_inventario|default:"0.00" }}</h3>
+        </div>
+        <div style="background: rgba(30, 27, 50, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem;">
+          <span style="color: #94a3b8; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Alertas de Bajo Stock</span>
+          <h3 style="color: #f87171; font-size: 1.5rem; font-weight: 700; margin: 0;">{{ productos_bajo_stock }} productos</h3>
+        </div>
+      </div>
+
+      <!-- Barra de Acciones y Filtros -->
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <form method="get" style="display: flex; gap: 0.5rem; flex: 1; max-width: 500px;">
+          <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por código o nombre..." 
+                 style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; padding: 0.5rem 1rem; flex: 1;">
+          <button type="submit" class="cal-btn cal-btn--consulta" style="padding: 0.5rem 1rem; border-radius: 8px;">Buscar</button>
+        </form>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <a href="{% url 'inventario:reposicion' %}" class="cal-btn" style="background: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;">+ Entradas / Reposición</a>
+          <a href="{% url 'inventario:cargar_excel' %}" class="cal-btn" style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;">Carga Masiva Excel</a>
+        </div>
+      </div>
+
+      <!-- Tabla de Productos -->
+      <div style="background: rgba(22, 18, 36, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; color: #e2e8f0; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); text-align: left;">
+              <th style="padding: 12px 16px;">Código</th>
+              <th style="padding: 12px 16px;">Nombre</th>
+              <th style="padding: 12px 16px;">Categoría</th>
+              <th style="padding: 12px 16px;">Costo Compra</th>
+              <th style="padding: 12px 16px;">Precio Venta</th>
+              <th style="padding: 12px 16px;">Stock Actual</th>
+              <th style="padding: 12px 16px;">Stock Mín.</th>
+              <th style="padding: 12px 16px;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prod in productos %}
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px 16px; font-weight: 600; color: #93c5fd;">{{ prod.codigo }}</td>
+                <td style="padding: 12px 16px; font-weight: 500;">{{ prod.nombre }}</td>
+                <td style="padding: 12px 16px; color: #94a3b8;">{{ prod.categoria.nombre|default:"General" }}</td>
+                <td style="padding: 12px 16px;">${{ prod.precio_compra }}</td>
+                <td style="padding: 12px 16px; font-weight: 600; color: #4ade80;">${{ prod.precio_venta }}</td>
+                
+                {% if prod.necesita_reposicion %}
+                  <td style="padding: 12px 16px; font-weight: 700; color: #f87171;">
+                {% else %}
+                  <td style="padding: 12px 16px; font-weight: 700; color: #38bdf8;">
+                {% endif %}
+                    {{ prod.stock_actual }}
+                  </td>
+
+                <td style="padding: 12px 16px; color: #94a3b8;">{{ prod.stock_minimo }}</td>
+                <td style="padding: 12px 16px;">
+                  {% if prod.necesita_reposicion %}
+                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Reabastecer</span>
+                  {% else %}
+                    <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">OK</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" style="padding: 24px; text-align: center; color: #94a3b8;">No hay productos registrados en el inventario.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

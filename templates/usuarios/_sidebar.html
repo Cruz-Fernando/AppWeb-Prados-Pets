@@ -141,10 +141,10 @@
       <span class="sidebar__badge-soon">Pronto</span>
     </div>
 
-    <!-- Inventario (Carga Masiva / Catálogo) -->
+    <!-- Inventario y Gestión de Stock -->
     {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,veterinario,recepcionista' %}
-    <a href="{% url 'inventario:cargar_excel' %}"
-       class="sidebar__item {% if request.resolver_match.app_name == 'inventario' %}sidebar__item--active{% endif %}"
+    <a href="{% url 'inventario:lista' %}"
+       class="sidebar__item {% if request.resolver_match.app_name == 'inventario' and request.resolver_match.url_name == 'lista' %}sidebar__item--active{% endif %}"
        id="nav-inventario">
       <span class="sidebar__icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -153,7 +153,37 @@
           <line x1="12" y1="22.08" x2="12" y2="12"/>
         </svg>
       </span>
-      <span class="sidebar__label">Inventario</span>
+      <span class="sidebar__label">Inventario / Stock</span>
+    </a>
+
+    <a href="{% url 'inventario:cargar_excel' %}"
+       class="sidebar__item {% if request.resolver_match.url_name == 'cargar_excel' %}sidebar__item--active{% endif %}"
+       id="nav-inventario-excel" style="padding-left: 2.2rem; font-size: 0.85rem;">
+      <span class="sidebar__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <polyline points="9 15 12 12 15 15"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Carga Masiva Excel</span>
+    </a>
+
+    <a href="{% url 'inventario:kardex' %}"
+       class="sidebar__item {% if request.resolver_match.url_name == 'kardex' %}sidebar__item--active{% endif %}"
+       id="nav-inventario-kardex" style="padding-left: 2.2rem; font-size: 0.85rem;">
+      <span class="sidebar__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </span>
+      <span class="sidebar__label">Kardex (Movimientos)</span>
     </a>
     {% endif %}
 
