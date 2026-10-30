@@ -7,11 +7,12 @@ from .models import Cita
 
 class CitaForm(forms.ModelForm):
     """
-    HU06-fix:
+    HU06-fix / SW-04:
       - buscar_mascota: campo de texto libre visible; el id real va en
         un HiddenInput que el JS rellena tras elegir del dropdown AJAX.
       - tipo_servicio: Select con los choices del modelo.
       - fecha: atributo min=hoy para bloqueo en el navegador.
+      - hora_fin: exigida como requerida obligatoria.
     """
 
     buscar_mascota = forms.CharField(
@@ -41,6 +42,7 @@ class CitaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["fecha"].widget.attrs["min"] = timezone.now().date().isoformat()
         self.fields["mascota"].required = True
+        self.fields["hora_fin"].required = True  # SW-04: Exigir hora_fin en el formulario
 
     def clean_fecha(self):
         fecha = self.cleaned_data.get("fecha")
@@ -63,7 +65,7 @@ class CitaForm(forms.ModelForm):
                 "La hora de finalización debe ser mayor que la hora de inicio."
             )
 
-        # 2. Validaciones de traslape por intervalo (PC-07)
+        # 2. Validaciones de traslape por intervalo (PC-07 / SW-04)
         if veterinario and fecha and hora_inicio and hora_fin:
             conflicto = Cita.objects.filter(
                 veterinario=veterinario,
