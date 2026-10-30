@@ -1,6 +1,7 @@
-Django>=5.0,<6.0
-gunicorn
-openpyxl
-psycopg2-binary
-python-dotenv
-pillow
+Django==6.1.1
+psycopg[binary]==3.2.10
+gunicorn==23.0.0
+whitenoise==6.7.0
+xhtml2pdf==0.2.16
+python-dotenv==1.0.1
+openpyxl==3.1.5
