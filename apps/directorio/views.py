@@ -1,13 +1,12 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
-from apps.directorio.forms import MascotaForm, VacunacionForm
+from apps.directorio.forms import DuenoForm, MascotaForm, VacunacionForm
 from .models import Dueno, Mascota
 
 
@@ -33,12 +32,33 @@ def registrar_dueno(request):
                 f"Error [ERR-001]: El número de teléfono '{telefono}' ya está registrado. "
                 "Causa: el teléfono debe ser único. Solución: verifica el número o usa uno diferente."
             )
-            # Conservamos lo escrito para no obligar a retipear todo
             return render(request, 'directorio/dueno_form.html', {
                 'nombre': nombre, 'telefono': telefono, 'direccion': direccion,
             })
 
     return render(request, 'directorio/dueno_form.html')
+
+
+@login_required
+def editar_dueno(request, dueno_id):
+    """SW-02: Edición de datos de un propietario."""
+    dueno = get_object_or_404(Dueno, id_dueno=dueno_id)
+    if request.method == 'POST':
+        form = DuenoForm(request.POST, instance=dueno)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, '¡Propietario actualizado con éxito!')
+                return redirect('editar_dueno', dueno_id=dueno.id_dueno)
+            except IntegrityError:
+                form.add_error('telefono', 'El número de teléfono ya pertenece a otro dueño.')
+    else:
+        form = DuenoForm(instance=dueno)
+
+    return render(request, 'directorio/dueno_editar_form.html', {
+        'form': form,
+        'dueno': dueno
+    })
 
 
 @login_required
@@ -100,13 +120,6 @@ def editar_mascota(request, mascota_id):
 
 @login_required
 def buscar_directorio(request):
-    """
-    HU05 — "Como recepcionista, quiero buscar un dueño o mascota,
-    para atenderlo rápidamente."
-
-    Sirve tanto la página completa (para GET normal / sin JS) como
-    respuestas JSON para la búsqueda en tiempo real vía fetch().
-    """
     q = request.GET.get('q', '').strip()
     duenos = Dueno.objects.none()
     mascotas = Mascota.objects.none()
@@ -131,6 +144,7 @@ def buscar_directorio(request):
                     'nombre_completo': d.nombre_completo,
                     'telefono': d.telefono,
                     'direccion': d.direccion,
+                    'url_edicion': reverse('editar_dueno', args=[d.id_dueno]),
                 }
                 for d in duenos
             ],

@@ -1,5 +1,26 @@
 from django import forms
-from .models import Mascota, Vacunacion
+from .models import Dueno, Mascota, Vacunacion
+
+
+class DuenoForm(forms.ModelForm):
+    class Meta:
+        model = Dueno
+        fields = ['nombre_completo', 'telefono', 'direccion', 'correo']
+        widgets = {
+            'nombre_completo': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_nombre_completo'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_telefono'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_direccion'}),
+            'correo': forms.EmailInput(attrs={'class': 'form-control', 'id': 'id_correo'}),
+        }
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get('telefono', '').strip()
+        dueno_id = self.instance.pk
+        if Dueno.objects.filter(telefono=telefono).exclude(pk=dueno_id).exists():
+            raise forms.ValidationError(
+                f"El número de teléfono '{telefono}' ya está registrado por otro dueño."
+            )
+        return telefono
 
 
 class MascotaForm(forms.ModelForm):
@@ -49,7 +70,6 @@ class MascotaForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        # Si el campo oculto id_dueno quedó vacío, lanzar error descriptivo
         if not cleaned.get('id_dueno'):
             self.add_error('buscar_dueno', 'Debes seleccionar un dueño de la lista de sugerencias.')
         return cleaned
