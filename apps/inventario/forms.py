@@ -1,4 +1,5 @@
 from django import forms
+<<<<<<< HEAD
 from .models import Producto, MovimientoInventario, Venta, DetalleVenta, CategoriaProducto, Proveedor
 
 
@@ -45,10 +46,13 @@ class ReposicionForm(forms.Form):
         required=False, 
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+=======
+>>>>>>> origin/main
 
 
 class CargaExcelForm(forms.Form):
     archivo_excel = forms.FileField(
+<<<<<<< HEAD
         label="Archivo Excel",
         widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls, .csv'})
     )
@@ -56,3 +60,15 @@ class CargaExcelForm(forms.Form):
 
 # Alias por compatibilidad
 CargarExcelForm = CargaExcelForm
+=======
+        label="Seleccionar archivo Excel (.xlsx)",
+        widget=forms.FileInput(attrs={'accept': '.xlsx, .xls', 'class': 'form-control'})
+    )
+
+    def clean_archivo_excel(self):
+        archivo = self.cleaned_data.get('archivo_excel')
+        if archivo:
+            if not archivo.name.endswith(('.xlsx', '.xls')):
+                raise forms.ValidationError("El archivo seleccionado debe tener extensión .xlsx o .xls")
+        return archivo
+>>>>>>> origin/main
