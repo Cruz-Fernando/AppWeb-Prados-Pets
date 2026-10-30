@@ -11,7 +11,6 @@
           <th>Nombre</th>
           <th>Teléfono</th>
           <th>Dirección</th>
-          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -20,9 +19,6 @@
             <td>{{ d.nombre_completo }}</td>
             <td>{{ d.telefono }}</td>
             <td>{{ d.direccion }}</td>
-            <td>
-              <a href="{% url 'editar_dueno' d.id_dueno %}" class="btn btn--ghost btn--sm">Editar</a>
-            </td>
           </tr>
         {% endfor %}
       </tbody>
@@ -56,4 +52,4 @@
       </tbody>
     </table>
   {% endif %}
-{% endif %}python manage.py runserver
+{% endif %}
