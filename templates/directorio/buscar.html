@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Buscar · Prados Pets{% endblock %}
+
 {% block body %}
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -21,35 +22,45 @@
     </header>
 
     <main class="app-content">
-    <h1>Buscar dueño o mascota</h1>
-    <p class="app-content__subtitle">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
+      <!-- Encabezado con Botones de Accesos Rápidos a Listados -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h1 style="margin: 0;">Buscar dueño o mascota</h1>
+          <p class="app-content__subtitle" style="margin: 0.25rem 0 0 0;">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="{% url 'lista_duenos' %}" class="btn btn--ghost" style="white-space: nowrap;">👥 Listado de Dueños</a>
+          <a href="{% url 'lista_mascotas' %}" class="btn btn--ghost" style="white-space: nowrap;">🐾 Listado de Mascotas</a>
+        </div>
+      </div>
 
-    {% if messages %}
-    <ul class="app-messages">
-      {% for message in messages %}
-        <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+      {% if messages %}
+      <ul class="app-messages">
+        {% for message in messages %}
+          <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
 
-    <form method="get" class="app-search" id="form-buscar">
-      <input
-        type="text"
-        name="q"
-        id="input-buscar"
-        class="app-input"
-        placeholder="Nombre, mascota o teléfono..."
-        value="{{ q }}"
-        autocomplete="off"
-        autofocus
-      >
-      <button type="submit" class="btn btn--ghost">Buscar</button>
-    </form>
+      <form method="get" class="app-search" id="form-buscar">
+        <input
+          type="text"
+          name="q"
+          id="input-buscar"
+          class="app-input"
+          placeholder="Nombre, mascota o teléfono..."
+          value="{{ q }}"
+          autocomplete="off"
+          autofocus
+        >
+        <button type="submit" class="btn btn--ghost">Buscar</button>
+      </form>
 
-    <div id="resultados-buscar">
-      {% include "directorio/_resultados_busqueda.html" %}
-    </div>
-  </main>
+      <div id="resultados-buscar">
+        {% include "directorio/_resultados_busqueda.html" %}
+      </div>
+    </main>
+  </div>
 </div>
 
 <script>
@@ -59,8 +70,7 @@
   var form = document.getElementById('form-buscar');
   var temporizador = null;
 
-  // Evita el recargo de página cuando hay JS disponible; sin JS,
-  // el formulario sigue funcionando normal (GET con ?q=...).
+  // Evita el recargo de página cuando hay JS disponible
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     buscar(input.value.trim());
@@ -98,18 +108,20 @@
 
     if (data.duenos.length) {
       html += '<h2 class="app-search__section-title">Dueños</h2>';
-      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th></tr></thead><tbody>';
+      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th style="text-align: right;">Acciones</th></tr></thead><tbody>';
       data.duenos.forEach(function (d) {
-        html += '<tr><td>' + escapeHtml(d.nombre_completo) + '</td><td>' + escapeHtml(d.telefono) + '</td><td>' + escapeHtml(d.direccion) + '</td></tr>';
+        var btnEditar = d.url_edicion ? '<a href="' + d.url_edicion + '" class="btn btn--ghost" style="padding: 4px 10px; font-size: 0.85rem;">✏️ Editar</a>' : '';
+        html += '<tr><td>' + escapeHtml(d.nombre_completo) + '</td><td>' + escapeHtml(d.telefono) + '</td><td>' + escapeHtml(d.direccion) + '</td><td style="text-align: right;">' + btnEditar + '</td></tr>';
       });
       html += '</tbody></table>';
     }
 
     if (data.mascotas.length) {
       html += '<h2 class="app-search__section-title">Mascotas</h2>';
-      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th></tr></thead><tbody>';
+      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th><th style="text-align: right;">Acciones</th></tr></thead><tbody>';
       data.mascotas.forEach(function (m) {
-        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td></tr>';
+        var btnEditar = m.url_edicion ? '<a href="' + m.url_edicion + '" class="btn btn--ghost" style="padding: 4px 10px; font-size: 0.85rem;">✏️ Editar</a>' : '';
+        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td><td style="text-align: right;">' + btnEditar + '</td></tr>';
       });
       html += '</tbody></table>';
     }
@@ -124,7 +136,4 @@
   }
 })();
 </script>
-  </main>
-</div>
-</div>
 {% endblock %}

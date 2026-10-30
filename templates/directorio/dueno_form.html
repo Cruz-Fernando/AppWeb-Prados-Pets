@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
-{% block title %}Registrar Dueño · Prados Pets{% endblock %}
+{% load static %}
+
+{% block title %}{% if es_edicion %}Editar Propietario{% else %}Registrar Dueño{% endif %} · Prados Pets{% endblock %}
+
 {% block body %}
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -11,9 +14,9 @@
       <div class="app-topbar__breadcrumb">
         <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
         <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Directorio</span>
+        <a href="{% url 'buscar_directorio' %}" style="color: inherit; text-decoration: none;">Directorio</a>
         <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Registrar Dueño</span>
+        <span class="app-topbar__current">{% if es_edicion %}Editar Propietario{% else %}Registrar Dueño{% endif %}</span>
       </div>
     </header>
 
@@ -23,8 +26,8 @@
         <div class="pp-form-card__header">
           <div class="pp-form-card__icon">👤</div>
           <div>
-            <h2 class="pp-form-card__title">Registrar Dueño</h2>
-            <p class="pp-form-card__sub">Ingresa los datos del propietario de la mascota</p>
+            <h2 class="pp-form-card__title">{% if es_edicion %}Editar Propietario{% else %}Registrar Dueño{% endif %}</h2>
+            <p class="pp-form-card__sub">{% if es_edicion %}Actualiza los datos del propietario{% else %}Ingresa los datos del propietario de la mascota{% endif %}</p>
           </div>
         </div>
 
@@ -66,11 +69,22 @@
             </div>
           </div>
 
+          <div class="pp-field">
+            <label for="correo" class="pp-label">Correo Electrónico</label>
+            <div class="pp-input-wrap">
+              <span class="pp-input-ico">✉️</span>
+              <input type="email" id="correo" name="correo" class="pp-input pp-input--icon"
+                     value="{{ correo|default:'' }}" placeholder="Ej: propietario@email.com" autocomplete="email">
+            </div>
+          </div>
+
           <div class="pp-form__actions">
-            <a href="{% url 'usuarios:dashboard' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
+            <a href="{% url 'buscar_directorio' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
+            {% if not es_edicion %}
             <a href="{% url 'registrar_mascota' %}" class="pp-btn pp-btn--ghost">🐾 Registrar Mascota</a>
+            {% endif %}
             <button type="submit" class="pp-btn pp-btn--primary" id="btn-save-dueno">
-              <span class="pp-btn__txt">Guardar Dueño</span>
+              <span class="pp-btn__txt">{% if es_edicion %}Guardar Cambios{% else %}Guardar Dueño{% endif %}</span>
               <span class="pp-btn__arrow">→</span>
             </button>
           </div>

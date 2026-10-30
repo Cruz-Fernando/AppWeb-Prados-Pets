@@ -1,10 +1,9 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
 from apps.directorio.forms import MascotaForm, VacunacionForm
@@ -19,13 +18,18 @@ def registrar_dueno(request):
         nombre = request.POST.get('nombre', '').strip()
         telefono = request.POST.get('telefono', '').strip()
         direccion = request.POST.get('direccion', '').strip()
+        correo = request.POST.get('correo', '').strip()
 
         try:
-            Dueno.objects.create(
+            dueno = Dueno(
                 nombre_completo=nombre,
                 telefono=telefono,
                 direccion=direccion,
             )
+            if hasattr(dueno, 'correo'):
+                dueno.correo = correo
+            dueno.save()
+
             messages.success(request, '¡Dueño registrado con éxito!')
             return redirect('registrar_dueno')
 
@@ -35,12 +39,80 @@ def registrar_dueno(request):
                 f"Error [ERR-001]: El número de teléfono '{telefono}' ya está registrado. "
                 "Causa: el teléfono debe ser único. Solución: verifica el número o usa uno diferente."
             )
-            # Conservamos lo escrito para no obligar a retipear todo
             return render(request, 'directorio/dueno_form.html', {
-                'nombre': nombre, 'telefono': telefono, 'direccion': direccion,
+                'nombre': nombre,
+                'telefono': telefono,
+                'direccion': direccion,
+                'correo': correo,
             })
 
     return render(request, 'directorio/dueno_form.html')
+
+
+@login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
+def editar_dueno(request, dueno_id):
+    """
+    SW-02 / RF04 / PB-06: Edición de propietarios.
+    Actualiza nombre, teléfono, dirección y correo verificando unicidad de teléfono.
+    """
+    dueno = get_object_or_404(Dueno, pk=dueno_id)
+
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre', '').strip()
+        telefono = request.POST.get('telefono', '').strip()
+        direccion = request.POST.get('direccion', '').strip()
+        correo = request.POST.get('correo', '').strip()
+
+        try:
+            dueno.nombre_completo = nombre
+            dueno.telefono = telefono
+            dueno.direccion = direccion
+            if hasattr(dueno, 'correo'):
+                dueno.correo = correo
+            dueno.save()
+
+            messages.success(request, '¡Propietario actualizado con éxito!')
+            return redirect('buscar_directorio')
+
+        except IntegrityError:
+            messages.error(
+                request,
+                f"Error: El número de teléfono '{telefono}' ya está registrado con otro propietario. Debe ser único."
+            )
+            return render(request, 'directorio/dueno_form.html', {
+                'dueno': dueno,
+                'nombre': nombre,
+                'telefono': telefono,
+                'direccion': direccion,
+                'correo': correo,
+                'es_edicion': True,
+            })
+
+    return render(request, 'directorio/dueno_form.html', {
+        'dueno': dueno,
+        'nombre': dueno.nombre_completo,
+        'telefono': dueno.telefono,
+        'direccion': dueno.direccion,
+        'correo': getattr(dueno, 'correo', ''),
+        'es_edicion': True,
+    })
+
+
+@login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
+def lista_duenos(request):
+    """Listado completo y numerado de dueños registrados."""
+    duenos = Dueno.objects.all().order_by('id_dueno')
+    return render(request, 'directorio/lista_duenos.html', {'duenos': duenos})
+
+
+@login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
+def lista_mascotas(request):
+    """Listado completo y numerado de mascotas registradas con su dueño."""
+    mascotas = Mascota.objects.select_related('id_dueno').all().order_by('id_mascota')
+    return render(request, 'directorio/lista_mascotas.html', {'mascotas': mascotas})
 
 
 @login_required
@@ -136,6 +208,7 @@ def buscar_directorio(request):
                     'nombre_completo': d.nombre_completo,
                     'telefono': d.telefono,
                     'direccion': d.direccion,
+                    'url_edicion': reverse('editar_dueno', args=[d.id_dueno]),
                 }
                 for d in duenos
             ],
