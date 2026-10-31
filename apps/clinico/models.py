@@ -1,5 +1,67 @@
 from django.db import models
+from django.conf import settings
+from django.core.validators import MinValueValidator
+
 from apps.directorio.models import Mascota
+
+
+class ConsultaMedica(models.Model):
+    mascota = models.ForeignKey(
+        Mascota,
+        on_delete=models.CASCADE,
+        related_name="historial_clinico",
+    )
+    profesional = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="consultas_clinicas",
+    )
+    fecha_consulta = models.DateTimeField(auto_now_add=True)
+    anamnesis = models.TextField(verbose_name="Anamnesis")
+    peso = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.01)],
+        verbose_name="Peso (kg)",
+    )
+    temperatura = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        verbose_name="Temperatura (°C)",
+    )
+    frecuencia_cardiaca = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Frecuencia cardíaca (lpm)",
+    )
+    frecuencia_respiratoria = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Frecuencia respiratoria (rpm)",
+    )
+    examen_general = models.TextField(blank=True, verbose_name="Examen general")
+    sistema_tegumentario = models.TextField(blank=True, verbose_name="Sistema tegumentario")
+    sistema_cardiovascular = models.TextField(blank=True, verbose_name="Sistema cardiovascular")
+    sistema_respiratorio = models.TextField(blank=True, verbose_name="Sistema respiratorio")
+    sistema_digestivo = models.TextField(blank=True, verbose_name="Sistema digestivo")
+    sistema_genitourinario = models.TextField(blank=True, verbose_name="Sistema genitourinario")
+    sistema_musculoesqueletico = models.TextField(blank=True, verbose_name="Sistema musculoesquelético")
+    sistema_nervioso = models.TextField(blank=True, verbose_name="Sistema nervioso")
+    sistema_linfatico = models.TextField(blank=True, verbose_name="Sistema linfático")
+
+    class Meta:
+        ordering = ["-fecha_consulta", "-pk"]
+        verbose_name = "Consulta médica"
+        verbose_name_plural = "Consultas médicas"
+
+    def __str__(self):
+        return f"Consulta de {self.mascota.nombre} ({self.fecha_consulta:%d/%m/%Y})"
+
 
 class Hospitalizacion(models.Model):
     ESTADO_CHOICES = [

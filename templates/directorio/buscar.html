@@ -110,7 +110,7 @@
       html += '<h2 class="app-search__section-title">Mascotas</h2>';
       html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th><th>Acciones</th></tr></thead><tbody>';
       data.mascotas.forEach(function (m) {
-        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td><td><a href="' + m.url_edicion + '" class="btn btn--ghost btn--sm">Editar</a></td></tr>';
+        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td><td><a href="' + escapeHtml(m.url_edicion) + '" class="btn btn--ghost btn--sm">Editar</a> <a href="' + escapeHtml(m.url_historial_clinico) + '" class="btn btn--ghost btn--sm">Historia clínica</a></td></tr>';
       });
       html += '</tbody></table>';
     }

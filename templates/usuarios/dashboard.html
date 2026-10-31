@@ -105,17 +105,18 @@
           </div>
         </div>
 
-        <!-- Consulta y Hospitalización -->
-        <div class="app-module-card app-module-card--disabled">
+        <!-- Consulta e historial clínico -->
+        <div class="app-module-card app-module-card--available">
           <div class="app-module-card__icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </div>
           <div class="app-module-card__body">
-            <div class="app-module-card__title">Consulta y Hospitalización</div>
-            <div class="app-module-card__desc">Historia clínica, diagnósticos y hospitalizados.</div>
+            <div class="app-module-card__title">Historia clínica</div>
+            <div class="app-module-card__desc">Registro de consultas médicas y seguimiento clínico por mascota.</div>
           </div>
           <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
+            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
+            <a href="{% url 'clinico:seleccionar_mascota_historial' %}" class="btn btn--ghost btn--sm">Abrir historias →</a>
           </div>
         </div>
 
