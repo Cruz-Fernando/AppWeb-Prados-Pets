@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kardex - Movimientos de Inventario · Prados Pets{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <a href="{% url 'inventario:lista' %}">Inventario</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Kardex (Historial Contable)</span>
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide" style="padding: 2rem;">
+      <h2 style="color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Historial de Movimientos (Kardex)</h2>
+
+      <div style="background: rgba(22, 18, 36, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; color: #e2e8f0; font-size: 0.875rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); text-align: left;">
+              <th style="padding: 12px 16px;">Fecha</th>
+              <th style="padding: 12px 16px;">Producto</th>
+              <th style="padding: 12px 16px;">Tipo de Movimiento</th>
+              <th style="padding: 12px 16px;">Cantidad</th>
+              <th style="padding: 12px 16px;">Precio Unitario</th>
+              <th style="padding: 12px 16px;">Monto Total</th>
+              <th style="padding: 12px 16px;">Usuario</th>
+              <th style="padding: 12px 16px;">Observación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for mov in movimientos %}
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px 16px; color: #94a3b8;">{{ mov.fecha|date:"Y-m-d H:i" }}</td>
+                <td style="padding: 12px 16px; font-weight: 600;">{{ mov.producto.nombre }}</td>
+                <td style="padding: 12px 16px;">
+                  {% if 'ENTRADA' in mov.tipo %}
+                    <span style="color: #4ade80; background: rgba(34, 197, 94, 0.15); padding: 4px 8px; border-radius: 6px; font-weight: 600;">Entrada</span>
+                  {% else %}
+                    <span style="color: #f87171; background: rgba(239, 68, 68, 0.15); padding: 4px 8px; border-radius: 6px; font-weight: 600;">Salida</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 12px 16px; font-weight: 700;">{{ mov.cantidad }}</td>
+                <td style="padding: 12px 16px;">${{ mov.precio_unitario_historico }}</td>
+                <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8;">${{ mov.monto_total }}</td>
+                <td style="padding: 12px 16px; color: #94a3b8;">{{ mov.usuario.username|default:"Sistema" }}</td>
+                <td style="padding: 12px 16px; color: #cbd5e1;">{{ mov.observacion|default:"-" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" style="padding: 24px; text-align: center; color: #94a3b8;">No se registran movimientos contables en el historial.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Acceso Denegado · Prados Pets{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+  <main class="app-content" style="display: grid; place-items: center; min-height: 70vh;">
+    <div style="text-align: center; max-width: 400px; padding: 2rem;">
+      <h1 style="font-size: 3rem; color: #ef4444; margin-bottom: 0.5rem;">403</h1>
+      <h2>Acceso denegado</h2>
+      <p style="color: #9ca3af; margin: 1rem 0 1.5rem;">No tienes permiso para acceder a este módulo. Consulta con el administrador del sistema.</p>
+      <a href="{% url 'usuarios:dashboard' %}" class="btn btn-primary">Volver al Dashboard</a>
+    </div>
+  </main>
+</div>
+{% endblock %}

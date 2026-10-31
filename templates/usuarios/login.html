@@ -9,7 +9,9 @@
     <h1 class="auth-card__title">Prados Pets</h1>
     <p class="auth-card__subtitle">Ingresa con tu usuario para continuar.</p>
 
-    {% if form.errors %}
+    {% if bloqueado %}
+      <p class="auth-card__error">Demasiados intentos fallidos. Espera 15 minutos antes de volver a intentarlo.</p>
+    {% elif form.errors %}
       <p class="auth-card__error">Usuario o contraseña incorrectos. Intenta de nuevo.</p>
     {% endif %}
 

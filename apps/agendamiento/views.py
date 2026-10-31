@@ -7,10 +7,14 @@ from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from apps.directorio.models import Mascota
 from apps.peluqueria.models import CitaPeluqueria
+from apps.usuarios.permissions import rol_requerido
 
 from . import calendario as cal
 from .forms import CitaForm
@@ -18,6 +22,7 @@ from .models import Cita
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def agendar_cita(request):
     """HU06 / PB-08 / PC-07: Agendar consultas médicas con validación en Formulario."""
     if request.method == "POST":
@@ -28,14 +33,22 @@ def agendar_cita(request):
             except IntegrityError:
                 form.add_error(None, "Error de integridad: Ya existe una cita similar.")
             else:
-                messages.success(request, "¡Cita agendada con éxito!")
-                return redirect("agendamiento:cita_pdf", pk=cita.pk)
+                messages.success(request, "¡Cita agendada con éxito! El comprobante PDF se está descargando.")
+                return redirect(f"{reverse('agendamiento:agendar_cita')}?descargar={cita.pk}")
     else:
         form = CitaForm()
-    return render(request, "agendamiento/cita_form.html", {"form": form})
+
+    # Tras agendar, la página se recarga (con el mensaje visible) y el
+    # navegador descarga el comprobante a partir de este enlace.
+    descargar_url = None
+    descargar = request.GET.get("descargar", "")
+    if request.method == "GET" and descargar.isdigit() and Cita.objects.filter(pk=int(descargar)).exists():
+        descargar_url = reverse("agendamiento:cita_pdf", args=[int(descargar)])
+    return render(request, "agendamiento/cita_form.html", {"form": form, "descargar_url": descargar_url})
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def buscar_mascotas_ajax(request):
     q = request.GET.get("q", "").strip()
     resultados = []
@@ -61,6 +74,7 @@ def buscar_mascotas_ajax(request):
 
 
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
 def cita_pdf(request, pk):
     cita = get_object_or_404(Cita, pk=pk)
     contexto = {
@@ -88,7 +102,53 @@ def cita_pdf(request, pk):
         return HttpResponse(html_str)
 
 
+MOTIVO_CANCELACION_MAX = 255
+
+
 @login_required
+@rol_requerido('administrador', 'veterinario', 'recepcionista')
+@require_POST
+def cancelar_cita(request, pk):
+    """
+    RF05 / PB-11: Cancelación de citas de consulta (solo POST).
+
+    La cita pasa a estado «cancelada» y conserva el motivo. Al quedar fuera
+    de la restricción de unicidad y de las validaciones de cruce de horario,
+    su franja queda libre para volver a agendarse.
+    """
+    cita = get_object_or_404(Cita, pk=pk)
+    destino = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        destino = f"{reverse('agendamiento:calendario')}?fecha={cita.fecha.isoformat()}"
+
+    motivo = request.POST.get("motivo_cancelacion", "").strip()
+
+    if cita.estado == "cancelada":
+        messages.info(request, "Esta cita ya estaba cancelada.")
+    elif cita.estado == "atendida":
+        messages.error(request, "No se puede cancelar una cita que ya fue atendida.")
+    elif not motivo:
+        messages.error(request, "Debes indicar el motivo de la cancelación.")
+    elif len(motivo) > MOTIVO_CANCELACION_MAX:
+        messages.error(
+            request,
+            f"El motivo no puede superar los {MOTIVO_CANCELACION_MAX} caracteres.",
+        )
+    else:
+        cita.estado = "cancelada"
+        cita.motivo_cancelacion = motivo
+        cita.save(update_fields=["estado", "motivo_cancelacion"])
+        messages.success(
+            request,
+            f"Cita de {cita.mascota.nombre} cancelada. El horario quedó disponible.",
+        )
+    return redirect(destino)
+
+
+@login_required
+@rol_requerido('administrador', 'veterinario', 'groomer', 'recepcionista')
 def calendario(request):
     """HU08: Calendario visual diario y semanal."""
     vista = request.GET.get("vista", "semana")

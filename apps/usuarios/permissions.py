@@ -1,37 +1,36 @@
 from functools import wraps
-
+from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.shortcuts import redirect
-
 
 def rol_requerido(*roles_permitidos):
     """
-    Restringe una vista a usuarios cuyo Usuario.id_rol.nombre_rol esté
-    dentro de roles_permitidos. Los superusuarios siempre pasan.
-
-    Si el usuario no tiene permiso, se le redirige al panel con un
-    mensaje de error en vez de mostrarle una página de error técnica.
-
-    Uso:
-        @login_required
-        @rol_requerido("administrador")
-        def gestionar_usuarios(request):
-            ...
+    Decorador que verifica si el usuario autenticado posee uno de los roles permitidos.
+    Si no cumple con el rol, restringe el acceso y muestra un mensaje de advertencia.
     """
-
-    def decorador(view_func):
+    def decorator(view_func):
         @wraps(view_func)
-        def _wrapped(request, *args, **kwargs):
+        def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('usuarios:login')
+
+            # El superadministrador de Django siempre tiene acceso completo
             if request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
 
-            rol = getattr(request.user, "id_rol", None)
-            if rol and rol.nombre_rol in roles_permitidos:
+            # Obtener el nombre del rol del usuario (ajustar si tu modelo usa 'rol', 'perfil.rol' o 'groups')
+            user_rol = getattr(request.user, 'rol', None)
+            if hasattr(user_rol, 'lower'):
+                user_rol = user_rol.lower()
+
+            # Normalizar los roles permitidos a minúsculas
+            roles_normalizados = [r.lower() for r in roles_permitidos]
+
+            if user_rol in roles_normalizados:
                 return view_func(request, *args, **kwargs)
 
-            messages.error(request, "No tienes permiso para acceder a ese módulo.")
-            return redirect("usuarios:dashboard")
+            # Respuesta cuando no tiene permiso
+            messages.error(request, "No tienes permiso para acceder a este módulo.")
+            return render(request, '403.html', status=403)
 
-        return _wrapped
-
-    return decorador
+        return _wrapped_view
+    return decorator

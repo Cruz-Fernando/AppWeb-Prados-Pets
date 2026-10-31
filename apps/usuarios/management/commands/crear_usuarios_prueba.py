@@ -14,7 +14,8 @@ ADVERTENCIA:
 =============================================================================
 """
 
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from apps.usuarios.models import Usuario, Rol
 
 
@@ -77,6 +78,14 @@ class Command(BaseCommand):
     ]
 
     def handle(self, *args, **options):
+        # Guarda de seguridad: este comando crea un superusuario con una
+        # contraseña pública, así que solo corre con DEBUG=True (settings.dev).
+        if not settings.DEBUG:
+            raise CommandError(
+                "crear_usuarios_prueba solo puede ejecutarse en desarrollo (DEBUG=True). "
+                "Se canceló para no crear cuentas con contraseñas públicas."
+            )
+
         self.stdout.write(self.style.WARNING(
             "\n[AVISO]: Creando / actualizando usuarios de prueba para desarrollo local."
         ))

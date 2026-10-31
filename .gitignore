@@ -11,6 +11,8 @@ venv/
 env/
 
 # Django
+datos_respaldo*.json
+*.dump
 *.sqlite3
 db.sqlite3
 staticfiles/

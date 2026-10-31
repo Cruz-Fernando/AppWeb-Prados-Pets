@@ -6,6 +6,20 @@ from django.utils import timezone
 
 from apps.directorio.models import Mascota
 
+# Misma duración por defecto que usa el calendario para citas sin hora_fin
+DURACION_DEFECTO_MIN = 30
+
+
+def _minutos(hora):
+    return hora.hour * 60 + hora.minute
+
+
+def _rango_en_minutos(hora_inicio, hora_fin):
+    inicio = _minutos(hora_inicio)
+    if hora_fin and _minutos(hora_fin) > inicio:
+        return inicio, _minutos(hora_fin)
+    return inicio, inicio + DURACION_DEFECTO_MIN
+
 
 class Cita(models.Model):
     """
@@ -78,10 +92,11 @@ class Cita(models.Model):
         return f"{self.mascota.nombre} - {self.fecha} {self.hora_inicio} ({self.veterinario})"
 
     def clean(self):
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
 
-        # Bloquear fechas pasadas
-        if self.fecha and self.fecha < hoy:
+        # Bloquear fechas pasadas solo al CREAR la cita: así se puede seguir
+        # marcando como atendida o cancelada una cita que ya pasó.
+        if self.pk is None and self.fecha and self.fecha < hoy:
             raise ValidationError(
                 {"fecha": "No se pueden agendar citas en fechas pasadas. Selecciona hoy o una fecha futura."}
             )

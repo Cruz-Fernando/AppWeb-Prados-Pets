@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Registrar Reposición de Stock · Prados Pets{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <a href="{% url 'inventario:lista' %}">Inventario</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Entrada / Reposición</span>
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide">
+      <div class="card" style="max-width: 600px; margin: 2rem auto; background: linear-gradient(170deg, #1C1530, #120e1c); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px;">
+        <h2 style="color: #fff; margin-bottom: 8px; font-weight: 700;">Registrar Reposición de Stock</h2>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">Ingresa las unidades recibidas para actualizar el inventario y generar el asiento de entrada en el Kardex.</p>
+
+        <form method="post" style="display: flex; flex-direction: column; gap: 16px;">
+          {% csrf_token %}
+          {% for field in form %}
+            <div>
+              <label style="color: #e2e8f0; font-weight: 600; display: block; margin-bottom: 6px;">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <small style="color: #94a3b8; display: block; margin-top: 4px;">{{ field.help_text }}</small>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <button type="submit" class="cal-btn cal-btn--consulta" style="margin-top: 12px; padding: 12px 24px; border-radius: 10px; color: white; font-weight: 600;">
+            Guardar Reposición
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

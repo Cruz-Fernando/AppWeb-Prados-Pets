@@ -40,13 +40,13 @@ class CitaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["fecha"].widget.attrs["min"] = timezone.now().date().isoformat()
+        self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
         self.fields["mascota"].required = True
         self.fields["hora_fin"].required = True  # SW-04: Exigir hora_fin en el formulario
 
     def clean_fecha(self):
         fecha = self.cleaned_data.get("fecha")
-        if fecha and fecha < timezone.now().date():
+        if fecha and fecha < timezone.localdate():
             raise ValidationError(
                 "No se pueden agendar citas en fechas pasadas. Selecciona hoy o una fecha futura."
             )

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Buscar · Prados Pets{% endblock %}
+
 {% block body %}
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -97,9 +98,10 @@
 
     if (data.duenos.length) {
       html += '<h2 class="app-search__section-title">Dueños</h2>';
-      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th></tr></thead><tbody>';
+      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th style="text-align: right;">Acciones</th></tr></thead><tbody>';
       data.duenos.forEach(function (d) {
-        html += '<tr><td>' + escapeHtml(d.nombre_completo) + '</td><td>' + escapeHtml(d.telefono) + '</td><td>' + escapeHtml(d.direccion) + '</td></tr>';
+        var btnEditar = d.url_edicion ? '<a href="' + d.url_edicion + '" class="btn btn--ghost" style="padding: 4px 10px; font-size: 0.85rem;">✏️ Editar</a>' : '';
+        html += '<tr><td>' + escapeHtml(d.nombre_completo) + '</td><td>' + escapeHtml(d.telefono) + '</td><td>' + escapeHtml(d.direccion) + '</td><td style="text-align: right;">' + btnEditar + '</td></tr>';
       });
       html += '</tbody></table>';
     }

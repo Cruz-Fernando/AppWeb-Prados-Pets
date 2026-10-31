@@ -45,7 +45,7 @@
           </ul>
         {% endif %}
 
-        <form method="POST" class="pp-form" id="form-cita-medica" novalidate>
+        <form method="POST" class="pp-form" id="form-cita-medica" novalidate{% if descargar_url %} data-descargar="{{ descargar_url }}"{% endif %}>
           {% csrf_token %}
 
           <!-- MASCOTA -->
@@ -353,7 +353,19 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 
   function buscar(q) {
     fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
-      .then(r => r.json()).then(data => render(data.resultados));
+      .then(r => {
+        if (r.status === 401) { window.location.href = "{% url 'usuarios:login' %}"; throw new Error('sesion'); }
+        return r.json();
+      })
+      .then(data => render(data.resultados))
+      .catch(() => cerrar());
+  }
+
+  // Escapa texto antes de meterlo en innerHTML (evita XSS con nombres maliciosos)
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
   }
 
   function render(items) {
@@ -365,8 +377,8 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     items.forEach(m => {
       const d = document.createElement('div');
       d.className = 'pp-dropdown-item';
-      d.innerHTML = `<div class="pp-dropdown-item__name">🐾 ${m.nombre_mascota} <small>[${m.codigo}]</small></div>
-        <div class="pp-dropdown-item__sub">${m.especie} · ${m.raza} | Dueño: ${m.dueno} · ${m.telefono}</div>`;
+      d.innerHTML = `<div class="pp-dropdown-item__name">🐾 ${esc(m.nombre_mascota)} <small>[${esc(m.codigo)}]</small></div>
+        <div class="pp-dropdown-item__sub">${esc(m.especie)} · ${esc(m.raza)} | Dueño: ${esc(m.dueno)} · ${esc(m.telefono)}</div>`;
       d.addEventListener('click', () => seleccionar(m));
       dropdown.appendChild(d);
     });
@@ -378,7 +390,7 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     input.value  = m.label;
     cerrar();
     badge.style.display = 'flex';
-    badge.innerHTML = `<span>✔ <strong>${m.nombre_mascota}</strong> [${m.codigo}] — ${m.dueno} · ${m.telefono}</span>
+    badge.innerHTML = `<span>✔ <strong>${esc(m.nombre_mascota)}</strong> [${esc(m.codigo)}] — ${esc(m.dueno)} · ${esc(m.telefono)}</span>
       <button type="button" class="pp-pet-badge__clear" title="Cambiar">✕</button>`;
     badge.querySelector('.pp-pet-badge__clear').addEventListener('click', limpiar);
 
@@ -423,7 +435,9 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   }
 
   if (inFecha) {
-    const hoy = new Date().toISOString().split('T')[0];
+    // Fecha LOCAL (toISOString usa UTC y después de las 7 p. m. en Colombia ya sería "mañana")
+    const ahora = new Date();
+    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0') + '-' + String(ahora.getDate()).padStart(2, '0');
     inFecha.setAttribute('min', hoy);
 
     inFecha.addEventListener('change', function() {
@@ -448,5 +462,11 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   if (inHoraIn) inHoraIn.addEventListener('change', actualizarHorario);
   if (inHoraFn) inHoraFn.addEventListener('change', actualizarHorario);
 }());
+
+// Tras agendar con éxito: descarga automática del comprobante PDF
+(function () {
+  const f = document.getElementById('form-cita-medica');
+  if (f && f.dataset.descargar) { window.location.href = f.dataset.descargar; }
+})();
 </script>
 {% endblock %}
