@@ -37,7 +37,12 @@ def _mascota_a_dict(m):
 
 
 def _formatear_precio(valor):
-    return '$' + f'{valor:,}'.replace(',', '.') + ' COP'
+    try:
+        if isinstance(valor, str):
+            valor = float(valor.replace('$', '').replace(' COP', '').replace('.', ''))
+        return '$' + f'{valor:,.0f}'.replace(',', '.') + ' COP'
+    except (ValueError, TypeError):
+        return str(valor)
 
 
 def _parsear_fecha_hora(texto):
@@ -113,7 +118,6 @@ def guardar_cita(request):
         fecha_hora_str = request.POST.get('fecha_hora')
         groomer_id     = request.POST.get('groomer_id') or None
 
-        
         if not mascota_id.isdigit():
             messages.error(
                 request,
@@ -149,7 +153,6 @@ def guardar_cita(request):
             except (Usuario.DoesNotExist, ValueError):
                 pass
 
-       
         if not fecha_hora or not groomer:
             messages.error(request, 'Debe seleccionar un groomer y una fecha/hora válida para agendar.')
             return redirect('peluqueria:panel_peluqueria')
@@ -159,7 +162,6 @@ def guardar_cita(request):
             messages.error(request, 'No se puede agendar una cita de peluquería en una fecha u hora pasada.')
             return redirect('peluqueria:panel_peluqueria')
 
-        
         fecha_hora_fin = fecha_hora + timedelta(minutes=duracion_min)
         
         citas_existentes_dia = CitaPeluqueria.objects.filter(
@@ -171,7 +173,6 @@ def guardar_cita(request):
             inicio_ext = cita_ext.fecha_hora
             fin_ext = inicio_ext + timedelta(minutes=cita_ext.duracion_estimada_min)
             
-            
             if fecha_hora < fin_ext and fecha_hora_fin > inicio_ext:
                 hora_ini_txt = inicio_ext.strftime("%I:%M %p")
                 hora_fin_txt = fin_ext.strftime("%I:%M %p")
@@ -180,7 +181,6 @@ def guardar_cita(request):
                     f'El groomer ya tiene una cita ocupada en ese horario (de {hora_ini_txt} a {hora_fin_txt}).'
                 )
                 return redirect('peluqueria:panel_peluqueria')
-       
 
         cita = CitaPeluqueria.objects.create(
             nombre_mascota=mascota.nombre,
@@ -192,16 +192,47 @@ def guardar_cita(request):
             observaciones=request.POST.get('observaciones', ''),
             groomer=groomer,
         )
-        cita.precio_formateado = precio
-        cita.duracion_texto    = f'{duracion_min // 60} hora(s)' if duracion_min == 60 else f'{duracion_min} minutos'
 
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Comprobante_Spa_{mascota.nombre}.pdf"'
-        template = get_template('peluqueria/pdf_cita.html')
-        html     = template.render({'cita': cita, 'mascota': mascota, 'groomer': groomer})
-        status   = pisa.CreatePDF(html, dest=response)
-        if status.err:
-            return HttpResponse('Error al generar el PDF.', status=500)
-        return response
+        # Pasamos variables dinámicas a la sesión para usarlas en la vista comprobante_pdf 
+        # (por si tu base de datos no tiene la columna 'precio' guardada de forma persistente).
+        request.session[f'precio_cita_{cita.pk}'] = precio
+
+        # Mostrar el mensaje de éxito y redireccionar pasando el parámetro ?descargar=ID
+        messages.success(request, f'Cita agendada exitosamente para {mascota.nombre}.')
+        return redirect(reverse('peluqueria:panel_peluqueria') + f'?descargar={cita.pk}')
 
     return redirect('peluqueria:panel_peluqueria')
+
+
+@login_required
+def comprobante_pdf(request, pk):
+    """Genera el PDF del comprobante de la cita"""
+    cita = get_object_or_404(CitaPeluqueria, pk=pk)
+    
+    # Buscamos la mascota en base de datos para pasarla al template
+    mascota = Mascota.objects.filter(nombre=cita.nombre_mascota).first()
+    
+    # Textos dinámicos para el PDF
+    duracion_min = cita.duracion_estimada_min or 60
+    cita.duracion_texto = f'{duracion_min // 60} hora(s)' if duracion_min == 60 else f'{duracion_min} minutos'
+    
+    # Validamos si existe precio en la base de datos o si lo tenemos que rescatar de la sesión
+    precio_guardado = getattr(cita, 'precio', None)
+    if precio_guardado:
+        cita.precio_formateado = _formatear_precio(precio_guardado)
+    else:
+        cita.precio_formateado = request.session.pop(f'precio_cita_{cita.pk}', 'Valor no especificado')
+
+    # Configuración de respuesta
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Comprobante_Spa_{cita.nombre_mascota}.pdf"'
+    
+    # Renderizado y creación
+    template = get_template('peluqueria/pdf_cita.html')
+    html = template.render({'cita': cita, 'mascota': mascota, 'groomer': cita.groomer})
+    status = pisa.CreatePDF(html, dest=response)
+    
+    if status.err:
+        return HttpResponse('Error al generar el PDF.', status=500)
+        
+    return response

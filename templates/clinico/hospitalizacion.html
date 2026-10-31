@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Ingreso a Hospitalización - Prados Pets{% endblock %}
+
+{% block body %}
+<style>
+    .form-wrapper { animation: fadeIn 0.3s ease-in-out; }
+    .form-card {
+        background-color: var(--bg-surface, #1e1e2d);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        padding: 30px;
+        border: 1px solid var(--border-color, #2b2b40);
+        color: var(--text-primary, #ffffff);
+        margin-top: 20px;
+    }
+    .form-label {
+        color: var(--text-secondary, #a1a5b7);
+        font-weight: 500;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .form-control, .form-select {
+        width: 100%;
+        background-color: #151521;
+        border: 1px solid #323248;
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 10px 15px;
+        font-size: 0.95rem;
+        box-sizing: border-box;
+    }
+    .form-control:focus, .form-select:focus {
+        background-color: #1a1a27;
+        border-color: #4CAF50;
+        outline: none;
+    }
+    input[type=file]::file-selector-button {
+        background-color: #323248;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        margin-right: 15px;
+        cursor: pointer;
+    }
+    .section-title {
+        color: #4CAF50;
+        font-size: 1.1rem;
+        border-bottom: 1px dashed #323248;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        margin-top: 35px;
+        font-weight: 600;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* CSS Grid Personalizado para reemplazar Bootstrap */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px; }
+
+    @media (max-width: 768px) {
+        .grid-2, .grid-4 { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="app-shell">
+    <!-- Incluimos la barra lateral -->
+    {% include "usuarios/_sidebar.html" %}
+
+    <div class="app-main">
+        <!-- Barra superior -->
+        <header class="app-topbar">
+            <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="app-topbar__breadcrumb">
+                <span class="app-topbar__current">Ingreso a Hospitalización</span>
+            </div>
+        </header>
+
+        <!-- Contenido del formulario -->
+        <main class="app-content form-wrapper">
+            <div class="app-section-header" style="margin-bottom: 0;">
+                <h2>Ingreso a Hospitalización</h2>
+                <p>Registro de triaje clínico y adjunto de documentos</p>
+            </div>
+
+            <div class="form-card">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="section-title">1. Información Básica</div>
+                    <div class="grid-2">
+                        <div>
+                            <label class="form-label">Mascota Paciente</label>
+                            {{ form.mascota }}
+                        </div>
+                        <div>
+                            <label class="form-label">Motivo Principal de Ingreso</label>
+                            {{ form.motivo }}
+                        </div>
+                    </div>
+
+                    <div class="section-title">2. Triaje y Constantes Vitales</div>
+                    <div class="grid-4">
+                        <div>
+                            <label class="form-label">Peso (kg)</label>
+                            {{ form.peso_actual }}
+                        </div>
+                        <div>
+                            <label class="form-label">Temp. (°C)</label>
+                            {{ form.temperatura }}
+                        </div>
+                        <div>
+                            <label class="form-label">F. Cardíaca (lpm)</label>
+                            {{ form.frecuencia_cardiaca }}
+                        </div>
+                        <div>
+                            <label class="form-label">F. Resp. (rpm)</label>
+                            {{ form.frecuencia_respiratoria }}
+                        </div>
+                    </div>
+                    <div class="grid-1">
+                        <div>
+                            <label class="form-label">Estado de Mucosas y TLLC</label>
+                            {{ form.mucosas }}
+                        </div>
+                    </div>
+
+                    <div class="section-title">3. Valoración Médica</div>
+                    <div class="grid-2">
+                        <div>
+                            <label class="form-label">Diagnóstico Presuntivo</label>
+                            {{ form.diagnostico_presuntivo }}
+                        </div>
+                        <div>
+                            <label class="form-label">Plan de Tratamiento Inicial</label>
+                            {{ form.tratamiento_inicial }}
+                        </div>
+                    </div>
+                    <div class="grid-1">
+                        <div>
+                            <label class="form-label">Observaciones Adicionales</label>
+                            {{ form.observaciones }}
+                        </div>
+                    </div>
+
+                    <div class="section-title">4. Documentación Adjunta</div>
+                    <div class="grid-2">
+                        <div>
+                            <label class="form-label">Consentimiento Informado (Firma Propietario)</label>
+                            {{ form.documento_consentimiento }}
+                        </div>
+                        <div>
+                            <label class="form-label">Exámenes Clínicos / Laboratorio</label>
+                            {{ form.examenes_adjuntos }}
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 30px;">
+                        <a href="{% url 'clinico:hospitalizacion' %}" class="btn" style="background-color: transparent; border: 1px solid #323248; color: #a1a5b7; padding: 10px 20px; text-decoration: none; border-radius: 6px;">Cancelar</a>
+                        <button type="submit" class="btn btn--primary" style="background-color: #4CAF50; border: none; padding: 10px 20px; color: white; border-radius: 6px; cursor: pointer;">Guardar e Ingresar Paciente</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
