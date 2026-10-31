@@ -22,18 +22,8 @@
     </header>
 
     <main class="app-content">
-      <!-- Encabezado con Botones de Accesos Rápidos a Listados y Exportación -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <h1 style="margin: 0;">Buscar dueño o mascota</h1>
-          <p class="app-content__subtitle" style="margin: 0.25rem 0 0 0;">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
-        </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <a href="{% url 'lista_duenos' %}" class="btn btn--ghost" style="white-space: nowrap;">👥 Listado de Dueños</a>
-          <a href="{% url 'lista_mascotas' %}" class="btn btn--ghost" style="white-space: nowrap;">🐾 Listado de Mascotas</a>
-          <a href="{% url 'exportar_directorio_excel' %}" class="btn btn--ghost" style="white-space: nowrap; color: #10b981; border-color: #10b981;">📊 Exportar Todo (Excel)</a>
-        </div>
-      </div>
+      <h1>Buscar dueño o mascota</h1>
+      <p class="app-content__subtitle">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
 
       {% if messages %}
       <ul class="app-messages">
@@ -71,7 +61,6 @@
   var form = document.getElementById('form-buscar');
   var temporizador = null;
 
-  // Evita el recargo de página cuando hay JS disponible
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     buscar(input.value.trim());
@@ -92,7 +81,7 @@
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function (resp) { return resp.json(); })
       .then(function (data) { renderizar(q, data); })
-      .catch(function () { /* si falla el fetch, el usuario aún puede darle Enter/click en Buscar */ });
+      .catch(function () { });
   }
 
   function renderizar(q, data) {
@@ -119,10 +108,9 @@
 
     if (data.mascotas.length) {
       html += '<h2 class="app-search__section-title">Mascotas</h2>';
-      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th><th style="text-align: right;">Acciones</th></tr></thead><tbody>';
+      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th><th>Acciones</th></tr></thead><tbody>';
       data.mascotas.forEach(function (m) {
-        var btnEditar = m.url_edicion ? '<a href="' + m.url_edicion + '" class="btn btn--ghost" style="padding: 4px 10px; font-size: 0.85rem;">✏️ Editar</a>' : '';
-        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td><td style="text-align: right;">' + btnEditar + '</td></tr>';
+        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td><td><a href="' + m.url_edicion + '" class="btn btn--ghost btn--sm">Editar</a></td></tr>';
       });
       html += '</tbody></table>';
     }

@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 
 
 class Dueno(models.Model):
@@ -43,7 +44,7 @@ class Mascota(models.Model):
 
     id_mascota = models.AutoField(primary_key=True)
     codigo_mascota = models.CharField(
-        max_length=10,
+        max_length=12,
         unique=True,
         blank=True,
         verbose_name="Código",
@@ -74,15 +75,20 @@ class Mascota(models.Model):
     def __str__(self):
         return f"{self.nombre} [{self.codigo_mascota}] ({self.id_dueno.nombre_completo})"
 
-    # ------------------------------------------------------------------
-    # Generación automática del código único de mascota (ej. M-A3X9)
+    
     # ------------------------------------------------------------------
     def _generar_codigo(self):
         import random
         import string
+        
+        
+        hoy = timezone.now()
+        prefijo_fecha = hoy.strftime("%y%m")
         chars = string.ascii_uppercase + string.digits
+        
         while True:
-            codigo = "M-" + "".join(random.choices(chars, k=4))
+            sufijo = "".join(random.choices(chars, k=4))
+            codigo = f"M{prefijo_fecha}-{sufijo}"
             if not Mascota.objects.filter(codigo_mascota=codigo).exists():
                 return codigo
 

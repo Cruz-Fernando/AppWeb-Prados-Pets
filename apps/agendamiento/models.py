@@ -24,9 +24,10 @@ def _rango_en_minutos(hora_inicio, hora_fin):
 class Cita(models.Model):
     """
     HU06: Agendamiento de Consultas Médicas.
-    HU06-fix:
+    HU06-fix / SW-04:
       - TIPO_SERVICIO_CHOICES: lista cerrada de servicios reales de la clínica.
-      - clean(): valida que la fecha no sea anterior a hoy.
+      - hora_fin exigida obligatoriamente para validación por intervalo.
+      - clean(): valida que la fecha no sea anterior a hoy y evita traslapes por rango.
     """
 
     ESTADO_CHOICES = [
@@ -68,7 +69,7 @@ class Cita(models.Model):
     )
     fecha = models.DateField()
     hora_inicio = models.TimeField()
-    hora_fin = models.TimeField(null=True, blank=True)
+    hora_fin = models.TimeField(null=False, blank=False)  # SW-04: Exigido para validar cruces por rango
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="programada")
     fecha_anterior = models.DateField(null=True, blank=True)
     hora_anterior = models.TimeField(null=True, blank=True)
@@ -100,27 +101,24 @@ class Cita(models.Model):
                 {"fecha": "No se pueden agendar citas en fechas pasadas. Selecciona hoy o una fecha futura."}
             )
 
+        # SW-04 / PC-07: Validación de cruce por rango de horarios
         if self.hora_inicio and self.hora_fin and self.hora_fin <= self.hora_inicio:
             raise ValidationError(
-                {"hora_fin": "La hora de fin debe ser posterior a la hora de inicio."}
+                {"hora_fin": "La hora de finalización debe ser posterior a la hora de inicio."}
             )
 
-        # RF24: sin cruces de horario para el mismo veterinario. Se comparan
-        # los rangos completos (inicio–fin), no solo la hora de inicio.
-        if self.veterinario_id and self.fecha and self.hora_inicio:
-            nuevo_ini, nuevo_fin = _rango_en_minutos(self.hora_inicio, self.hora_fin)
-            otras = (
-                Cita.objects.filter(veterinario_id=self.veterinario_id, fecha=self.fecha)
+        if self.veterinario_id and self.fecha and self.hora_inicio and self.hora_fin:
+            conflicto = (
+                Cita.objects.filter(
+                    veterinario_id=self.veterinario_id,
+                    fecha=self.fecha,
+                    hora_inicio__lt=self.hora_fin,
+                    hora_fin__gt=self.hora_inicio,
+                )
                 .exclude(estado="cancelada")
                 .exclude(pk=self.pk)
             )
-            for otra in otras:
-                ini, fin = _rango_en_minutos(otra.hora_inicio, otra.hora_fin)
-                if nuevo_ini < fin and ini < nuevo_fin:
-                    horario = f"{otra.hora_inicio:%H:%M}"
-                    if otra.hora_fin:
-                        horario += f"–{otra.hora_fin:%H:%M}"
-                    raise ValidationError(
-                        f"Este veterinario ya tiene una cita en ese horario ({horario}). "
-                        "Elige otra hora u otro veterinario."
-                    )
+            if conflicto.exists():
+                raise ValidationError(
+                    "El veterinario ya tiene una cita agendada en ese rango horario."
+                )

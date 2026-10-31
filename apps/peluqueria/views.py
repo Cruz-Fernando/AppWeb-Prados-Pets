@@ -69,6 +69,7 @@ def _groomer_ocupado(groomer, inicio, duracion_min):
 
 @login_required
 def panel_peluqueria(request):
+    
     groomers = Usuario.objects.filter(
         id_rol__nombre_rol='groomer', estado='activo'
     ).order_by('nombre_completo')
@@ -106,111 +107,101 @@ def buscar_mascota(request):
 
 @login_required
 def guardar_cita(request):
-    if request.method != 'POST':
-        return redirect('peluqueria:panel_peluqueria')
+    if request.method == 'POST':
+        mascota_id     = (request.POST.get('mascota_id') or '').strip()
+        servicio       = request.POST.get('servicio')
+        fecha_hora_str = request.POST.get('fecha_hora')
+        groomer_id     = request.POST.get('groomer_id') or None
 
-    errores = []
+        
+        if not mascota_id.isdigit():
+            messages.error(
+                request,
+                'Debe buscar y seleccionar una mascota de la lista desplegable antes de agendar.',
+            )
+            return redirect('peluqueria:panel_peluqueria')
 
-    # --- Mascota (debe elegirse del desplegable del buscador) ---
-    mascota = None
-    mascota_id = (request.POST.get('mascota_id') or '').strip()
-    if not mascota_id.isdigit():
-        errores.append('Debe buscar y seleccionar una mascota de la lista desplegable antes de agendar.')
-    else:
-        mascota = Mascota.objects.select_related('id_dueno').filter(id_mascota=int(mascota_id)).first()
-        if mascota is None:
-            errores.append('Debe seleccionar una mascota válida del sistema.')
+        fecha_hora = None
+        if fecha_hora_str:
+            for fmt in ('%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S'):
+                try:
+                    fecha_hora = datetime.strptime(fecha_hora_str, fmt)
+                    break
+                except ValueError:
+                    continue
 
-    # --- Servicio ---
-    servicio = request.POST.get('servicio')
-    if servicio not in dict(CitaPeluqueria.SERVICIO_CHOICES):
-        errores.append('Selecciona un tipo de servicio válido.')
+        precio_raw = request.POST.get('precio', '$0')
+        precio     = precio_raw.strip()
 
-    # --- Fecha y hora (obligatoria y no pasada) ---
-    fecha_hora = _parsear_fecha_hora(request.POST.get('fecha_hora'))
-    if fecha_hora is None:
-        errores.append('Indica una fecha y hora válidas para la cita.')
-    elif fecha_hora < timezone.now().replace(second=0, microsecond=0):
-        errores.append('No se pueden agendar citas de peluquería en fechas u horas pasadas.')
+        try:
+            mascota = Mascota.objects.select_related('id_dueno').get(id_mascota=int(mascota_id))
+        except Mascota.DoesNotExist:
+            messages.error(request, 'Debe seleccionar una mascota válida del sistema.')
+            return redirect('peluqueria:panel_peluqueria')
 
-    # --- Precio (solo números, mayor que cero) ---
-    digitos = ''.join(ch for ch in (request.POST.get('precio') or '') if ch.isdigit())
-    precio = int(digitos) if digitos else 0
-    if precio <= 0:
-        errores.append('Ingresa el precio del servicio (debe ser mayor que cero).')
-    elif precio > 99_999_999:
-        errores.append('El precio ingresado es demasiado alto.')
+        tamano = getattr(mascota, 'tamano', 'pequeno') or 'pequeno'
+        duracion_min = 120 if tamano.upper() == 'GRANDE' else 90 if tamano.upper() == 'MEDIANO' else 60
 
-    # --- Groomer (debe ser un usuario activo con rol groomer) ---
-    groomer = None
-    groomer_id = (request.POST.get('groomer_id') or '').strip()
-    if not groomer_id.isdigit():
-        errores.append('Selecciona el groomer responsable.')
-    else:
-        groomer = Usuario.objects.filter(
-            pk=int(groomer_id), id_rol__nombre_rol='groomer', estado='activo'
-        ).first()
-        if groomer is None:
-            errores.append('El groomer seleccionado no es válido.')
+        groomer = None
+        if groomer_id:
+            try:
+                groomer = Usuario.objects.get(pk=groomer_id)
+            except (Usuario.DoesNotExist, ValueError):
+                pass
 
-    # --- Duración según tamaño, y disponibilidad del groomer ---
-    tamano = ((mascota.tamano if mascota else '') or 'pequeno').upper()
-    duracion_min = DURACION_POR_TAMANO.get(tamano, 60)
-    if groomer and fecha_hora and _groomer_ocupado(groomer, fecha_hora, duracion_min):
-        errores.append(
-            f'{groomer.nombre_completo or groomer.username} ya tiene una cita de peluquería '
-            'que se cruza con ese horario. Elige otra hora u otro groomer.'
+       
+        if not fecha_hora or not groomer:
+            messages.error(request, 'Debe seleccionar un groomer y una fecha/hora válida para agendar.')
+            return redirect('peluqueria:panel_peluqueria')
+
+        # 2. Rechazar fechas pasadas
+        if fecha_hora < datetime.now():
+            messages.error(request, 'No se puede agendar una cita de peluquería en una fecha u hora pasada.')
+            return redirect('peluqueria:panel_peluqueria')
+
+        
+        fecha_hora_fin = fecha_hora + timedelta(minutes=duracion_min)
+        
+        citas_existentes_dia = CitaPeluqueria.objects.filter(
+            groomer=groomer,
+            fecha_hora__date=fecha_hora.date()
+        ).exclude(estado='cancelada')
+
+        for cita_ext in citas_existentes_dia:
+            inicio_ext = cita_ext.fecha_hora
+            fin_ext = inicio_ext + timedelta(minutes=cita_ext.duracion_estimada_min)
+            
+            
+            if fecha_hora < fin_ext and fecha_hora_fin > inicio_ext:
+                hora_ini_txt = inicio_ext.strftime("%I:%M %p")
+                hora_fin_txt = fin_ext.strftime("%I:%M %p")
+                messages.error(
+                    request, 
+                    f'El groomer ya tiene una cita ocupada en ese horario (de {hora_ini_txt} a {hora_fin_txt}).'
+                )
+                return redirect('peluqueria:panel_peluqueria')
+       
+
+        cita = CitaPeluqueria.objects.create(
+            nombre_mascota=mascota.nombre,
+            raza=mascota.raza or 'No especificada',
+            tamano=tamano.upper(),
+            servicio=servicio,
+            fecha_hora=fecha_hora,
+            duracion_estimada_min=duracion_min,
+            observaciones=request.POST.get('observaciones', ''),
+            groomer=groomer,
         )
+        cita.precio_formateado = precio
+        cita.duracion_texto    = f'{duracion_min // 60} hora(s)' if duracion_min == 60 else f'{duracion_min} minutos'
 
-    if errores:
-        for e in errores:
-            messages.error(request, e)
-        # Se conserva lo escrito para no obligar a llenar todo otra vez
-        request.session['peluqueria_borrador'] = {
-            'mascota': _mascota_a_dict(mascota) if mascota else None,
-            'servicio': servicio or '',
-            'groomer_id': groomer_id,
-            'fecha_hora': (request.POST.get('fecha_hora') or '')[:16],
-            'precio': precio,
-            'observaciones': request.POST.get('observaciones', ''),
-        }
-        return redirect('peluqueria:panel_peluqueria')
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="Comprobante_Spa_{mascota.nombre}.pdf"'
+        template = get_template('peluqueria/pdf_cita.html')
+        html     = template.render({'cita': cita, 'mascota': mascota, 'groomer': groomer})
+        status   = pisa.CreatePDF(html, dest=response)
+        if status.err:
+            return HttpResponse('Error al generar el PDF.', status=500)
+        return response
 
-    cita = CitaPeluqueria.objects.create(
-        mascota=mascota,
-        nombre_mascota=mascota.nombre,
-        raza=mascota.raza or 'No especificada',
-        tamano=tamano,
-        servicio=servicio,
-        fecha_hora=fecha_hora,
-        duracion_estimada_min=duracion_min,
-        precio=precio,
-        observaciones=request.POST.get('observaciones', ''),
-        groomer=groomer,
-    )
-    messages.success(request, '¡Cita de peluquería agendada! El comprobante PDF se está descargando.')
-    return redirect(f"{reverse('peluqueria:panel_peluqueria')}?descargar={cita.pk}")
-
-
-@login_required
-def comprobante_pdf(request, pk):
-    cita = get_object_or_404(
-        CitaPeluqueria.objects.select_related('mascota__id_dueno', 'groomer'), pk=pk
-    )
-    mascota = cita.mascota
-    if mascota is None:
-        return HttpResponse(
-            'La mascota de esta cita ya no existe en el directorio; no se puede generar el comprobante.',
-            status=404,
-        )
-    cita.precio_formateado = _formatear_precio(cita.precio)
-
-    response = HttpResponse(content_type='application/pdf')
-    nombre_archivo = ''.join(ch for ch in mascota.nombre if ch.isalnum()) or 'mascota'
-    response['Content-Disposition'] = f'attachment; filename="Comprobante_Spa_{nombre_archivo}.pdf"'
-    template = get_template('peluqueria/pdf_cita.html')
-    html = template.render({'cita': cita, 'mascota': mascota, 'groomer': cita.groomer})
-    status = pisa.CreatePDF(html, dest=response)
-    if status.err:
-        return HttpResponse('Error al generar el PDF.', status=500)
-    return response
+    return redirect('peluqueria:panel_peluqueria')

@@ -1,13 +1,10 @@
-import openpyxl
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import JsonResponse
 from django.urls import reverse
 
 from apps.directorio.forms import MascotaForm, VacunacionForm
@@ -55,7 +52,6 @@ def registrar_dueno(request):
 
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
-<<<<<<< HEAD
 def editar_dueno(request, dueno_id):
     """
     SW-02 / RF04 / PB-06: Edición de propietarios.
@@ -122,8 +118,6 @@ def lista_mascotas(request):
 
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
-=======
->>>>>>> origin/main
 def registrar_mascota(request):
     if request.method == 'POST':
         form = MascotaForm(request.POST)
@@ -184,13 +178,6 @@ def editar_mascota(request, mascota_id):
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def buscar_directorio(request):
-    """
-    HU05 — "Como recepcionista, quiero buscar un dueño o mascota,
-    para atenderlo rápidamente."
-
-    Sirve tanto la página completa (para GET normal / sin JS) como
-    respuestas JSON para la búsqueda en tiempo real vía fetch().
-    """
     q = request.GET.get('q', '').strip()
     duenos = Dueno.objects.none()
     mascotas = Mascota.objects.none()
@@ -250,7 +237,7 @@ def autocomplete_duenos(request):
                 'id': d.id_dueno,
                 'texto': texto,
             })
-<<<<<<< HEAD
+    return JsonResponse({'resultados': resultados})
     return JsonResponse({'resultados': resultados})
 
 
@@ -334,7 +321,7 @@ def exportar_directorio_excel(request):
     return response
 
 
-@login_required
+@login_required     
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def exportar_duenos_excel(request):
     """
@@ -417,6 +404,3 @@ def exportar_mascotas_excel(request):
     response['Content-Disposition'] = 'attachment; filename="Listado_Mascotas_PradosPets.xlsx"'
     wb.save(response)
     return response
-=======
-    return JsonResponse({'resultados': resultados})
->>>>>>> origin/main

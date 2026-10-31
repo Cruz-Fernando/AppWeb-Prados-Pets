@@ -49,7 +49,6 @@ class MascotaForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        # Si el campo oculto id_dueno quedó vacío, lanzar error descriptivo
         if not cleaned.get('id_dueno'):
             self.add_error('buscar_dueno', 'Debes seleccionar un dueño de la lista de sugerencias.')
         return cleaned
