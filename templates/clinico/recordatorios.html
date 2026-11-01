@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Recordatorios · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Recordatorios</span>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <h1>Recordatorios de servicios</h1>
+      <p class="app-content__subtitle">
+        La fecha agendada es el primer recordatorio. El patrocinador puede cambiar desde aquí el lapso de repetición de cada cita.
+      </p>
+
+      {% if messages %}
+      <ul class="app-messages">
+        {% for message in messages %}
+        <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <div class="reminder-search">
+        <label for="buscar-recordatorios" class="form-label">Buscar recordatorio</label>
+        <input
+          type="search"
+          id="buscar-recordatorios"
+          class="app-input"
+          placeholder="Mascota, propietario, teléfono o servicio..."
+          autocomplete="off"
+        >
+      </div>
+
+      <section class="reminder-section">
+        <h2>Vacunación</h2>
+        {% if vacunas_programadas %}
+        <div class="app-table-wrap">
+          <table class="app-table">
+            <thead>
+              <tr><th>Mascota</th><th>Propietario</th><th>Teléfono</th><th>Servicio</th><th>Fecha recordatorio</th><th>Lapso (días)</th><th>Siguiente recordatorio</th></tr>
+            </thead>
+            <tbody>
+              {% for recordatorio in vacunas_programadas %}
+              <tr data-reminder-row data-search="{{ recordatorio.mascota.nombre }} {{ recordatorio.mascota.id_dueno.nombre_completo }} {{ recordatorio.mascota.id_dueno.telefono }} {{ recordatorio.servicio }}">
+                <td>{{ recordatorio.mascota.nombre }}</td>
+                <td>{{ recordatorio.mascota.id_dueno.nombre_completo }}</td>
+                <td><a href="tel:{{ recordatorio.mascota.id_dueno.telefono }}">{{ recordatorio.mascota.id_dueno.telefono }}</a></td>
+                <td>{{ recordatorio.servicio }}</td>
+                <td>{{ recordatorio.fecha_recordatorio|date:"d/m/Y" }}</td>
+                <td>
+                  {% if puede_editar_intervalos %}
+                  <form method="post" class="reminder-interval-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo_recordatorio" value="vacunacion">
+                    <input type="hidden" name="cita_id" value="{{ recordatorio.cita_id }}">
+                    <input type="number" name="intervalo_recordatorio_dias" value="{{ recordatorio.intervalo_dias }}" min="1" step="1" required aria-label="Intervalo de vacunación en días">
+                    <button type="submit" name="guardar_intervalo_recordatorio" value="1" class="btn btn--ghost btn--sm">Guardar</button>
+                  </form>
+                  {% else %}
+                  Cada {{ recordatorio.intervalo_dias }} días
+                  {% endif %}
+                </td>
+                <td>{{ recordatorio.fecha_siguiente|date:"d/m/Y" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p class="app-content__subtitle reminder-no-match" hidden>No hay vacunas que coincidan con la búsqueda.</p>
+        </div>
+        {% else %}
+        <p class="app-content__subtitle">No hay recordatorios de vacunación registrados.</p>
+        {% endif %}
+      </section>
+
+      <section class="reminder-section">
+        <h2>Baño</h2>
+        {% if banos_programados %}
+        <div class="app-table-wrap">
+          <table class="app-table">
+            <thead>
+              <tr><th>Mascota</th><th>Propietario</th><th>Teléfono</th><th>Servicio</th><th>Fecha recordatorio</th><th>Lapso (días)</th><th>Siguiente recordatorio</th></tr>
+            </thead>
+            <tbody>
+              {% for recordatorio in banos_programados %}
+              <tr data-reminder-row data-search="{{ recordatorio.mascota.nombre }} {{ recordatorio.mascota.id_dueno.nombre_completo }} {{ recordatorio.mascota.id_dueno.telefono }} {{ recordatorio.servicio }}">
+                <td>{{ recordatorio.mascota.nombre }}</td>
+                <td>{{ recordatorio.mascota.id_dueno.nombre_completo }}</td>
+                <td><a href="tel:{{ recordatorio.mascota.id_dueno.telefono }}">{{ recordatorio.mascota.id_dueno.telefono }}</a></td>
+                <td>{{ recordatorio.servicio }}</td>
+                <td>{{ recordatorio.fecha_recordatorio|date:"d/m/Y" }}</td>
+                <td>
+                  {% if puede_editar_intervalos %}
+                  <form method="post" class="reminder-interval-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo_recordatorio" value="bano">
+                    <input type="hidden" name="cita_id" value="{{ recordatorio.cita_id }}">
+                    <input type="number" name="intervalo_recordatorio_dias" value="{{ recordatorio.intervalo_dias }}" min="1" step="1" required aria-label="Intervalo de baño en días">
+                    <button type="submit" name="guardar_intervalo_recordatorio" value="1" class="btn btn--ghost btn--sm">Guardar</button>
+                  </form>
+                  {% else %}
+                  Cada {{ recordatorio.intervalo_dias }} días
+                  {% endif %}
+                </td>
+                <td>{{ recordatorio.fecha_siguiente|date:"d/m/Y" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p class="app-content__subtitle reminder-no-match" hidden>No hay baños que coincidan con la búsqueda.</p>
+        </div>
+        {% else %}
+        <p class="app-content__subtitle">No hay recordatorios de baño registrados.</p>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+</div>
+<style>
+.reminder-search { max-width: 560px; margin-top: 20px; }
+.reminder-search .form-label { display: block; margin-bottom: 8px; }
+.reminder-section { margin-top: 32px; }
+.reminder-section h2 { margin-bottom: 12px; }
+.app-table-wrap { overflow-x: auto; }
+.reminder-interval-form { display: flex; align-items: center; gap: 6px; min-width: 150px; }
+.reminder-interval-form input { width: 76px; }
+</style>
+<script>
+(function () {
+  var input = document.getElementById('buscar-recordatorios');
+  if (!input) return;
+
+  function normalizar(texto) {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+  }
+
+  input.addEventListener('input', function () {
+    var consulta = normalizar(input.value.trim());
+    document.querySelectorAll('.reminder-section').forEach(function (section) {
+      var filas = section.querySelectorAll('[data-reminder-row]');
+      var visibles = 0;
+      filas.forEach(function (fila) {
+        var coincide = normalizar(fila.dataset.search || '').includes(consulta);
+        fila.hidden = !coincide;
+        if (coincide) visibles += 1;
+      });
+
+      var aviso = section.querySelector('.reminder-no-match');
+      if (aviso) aviso.hidden = visibles > 0;
+    });
+  });
+})();
+</script>
+{% endblock %}
