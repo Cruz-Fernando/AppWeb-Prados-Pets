@@ -198,12 +198,45 @@ class HistorialClinicoTests(TestCase):
         recordatorio = response.context["vacunas_programadas"][0]
         self.assertEqual(
             recordatorio["fecha_recordatorio"],
-            hoy + timedelta(days=10),
+            hoy,
         )
         self.assertEqual(
             recordatorio["fecha_siguiente"],
-            hoy + timedelta(days=30),
+            hoy + timedelta(days=20),
         )
+        self.assertEqual(response.context["recordatorios_hoy"], [recordatorio])
+        self.assertContains(response, 'id="reminder-modal"')
+
+    def test_modal_avisa_vacuna_y_bano_cuando_intervalo_cae_hoy(self):
+        hoy = timezone.localdate()
+        intervalo_vacuna = 45
+        intervalo_bano = 12
+        Cita.objects.create(
+            mascota=self.mascota,
+            veterinario=self.profesional,
+            tipo_servicio="vacunacion",
+            fecha=hoy - timedelta(days=intervalo_vacuna),
+            hora_inicio=time(9, 0),
+            hora_fin=time(9, 30),
+            intervalo_recordatorio_dias=intervalo_vacuna,
+        )
+        CitaPeluqueria.objects.create(
+            mascota=self.mascota,
+            nombre_mascota=self.mascota.nombre,
+            raza=self.mascota.raza or "No especificada",
+            servicio="BANO",
+            fecha_hora=timezone.now() - timedelta(days=intervalo_bano),
+            intervalo_recordatorio_dias=intervalo_bano,
+        )
+
+        response = self.client.get(reverse("clinico:recordatorios"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["recordatorios_hoy"]), 2)
+        self.assertContains(response, "Recordatorios para hoy")
+        self.assertContains(response, "Vacunación")
+        self.assertContains(response, "Baño")
+        self.assertContains(response, "Carlos Ruiz")
 
     def test_administrador_cambia_intervalo_desde_la_ventana_recordatorios(self):
         admin = get_user_model().objects.create_user(

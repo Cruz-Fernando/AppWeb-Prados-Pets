@@ -17,7 +17,7 @@ def _fechas_recordatorio(fecha_base, intervalo_dias, hoy):
     fecha_recordatorio = fecha_base
     if fecha_recordatorio < hoy:
         dias_transcurridos = (hoy - fecha_recordatorio).days
-        ciclos = dias_transcurridos // intervalo_dias + 1
+        ciclos = (dias_transcurridos + intervalo_dias - 1) // intervalo_dias
         fecha_recordatorio += timedelta(days=ciclos * intervalo_dias)
     return fecha_recordatorio, fecha_recordatorio + timedelta(days=intervalo_dias)
 
@@ -85,20 +85,25 @@ def recordatorios(request):
     ).order_by('fecha_hora')
 
     vacunas_programadas = []
+    recordatorios_hoy = []
     for cita in citas_vacunacion:
         fecha_recordatorio, fecha_siguiente = _fechas_recordatorio(
             cita.fecha,
             cita.intervalo_recordatorio_dias,
             hoy,
         )
-        vacunas_programadas.append({
+        recordatorio = {
             'cita_id': cita.pk,
             'mascota': cita.mascota,
             'servicio': cita.get_tipo_servicio_display(),
             'fecha_recordatorio': fecha_recordatorio,
             'fecha_siguiente': fecha_siguiente,
             'intervalo_dias': cita.intervalo_recordatorio_dias,
-        })
+            'tipo': 'Vacunación',
+        }
+        vacunas_programadas.append(recordatorio)
+        if fecha_recordatorio == hoy:
+            recordatorios_hoy.append(recordatorio)
 
     banos_programados = []
     for cita in citas_bano:
@@ -108,14 +113,18 @@ def recordatorios(request):
             cita.intervalo_recordatorio_dias,
             hoy,
         )
-        banos_programados.append({
+        recordatorio = {
             'cita_id': cita.pk,
             'mascota': cita.mascota,
             'servicio': cita.get_servicio_display(),
             'fecha_recordatorio': fecha_recordatorio,
             'fecha_siguiente': fecha_siguiente,
             'intervalo_dias': cita.intervalo_recordatorio_dias,
-        })
+            'tipo': 'Baño',
+        }
+        banos_programados.append(recordatorio)
+        if fecha_recordatorio == hoy:
+            recordatorios_hoy.append(recordatorio)
 
     vacunas_programadas.sort(key=lambda item: item['fecha_recordatorio'])
     banos_programados.sort(key=lambda item: item['fecha_recordatorio'])
@@ -123,6 +132,7 @@ def recordatorios(request):
     return render(request, 'clinico/recordatorios.html', {
         'vacunas_programadas': vacunas_programadas,
         'banos_programados': banos_programados,
+        'recordatorios_hoy': recordatorios_hoy,
         'puede_editar_intervalos': puede_editar_intervalos,
     })
 

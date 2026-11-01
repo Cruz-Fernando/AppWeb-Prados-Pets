@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
@@ -70,6 +71,11 @@ class Cita(models.Model):
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField(null=False, blank=False)  # SW-04: Exigido para validar cruces por rango
+    intervalo_recordatorio_dias = models.PositiveIntegerField(
+        default=365,
+        validators=[MinValueValidator(1)],
+        verbose_name="Intervalo de recordatorio (días)",
+    )
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="programada")
     fecha_anterior = models.DateField(null=True, blank=True)
     hora_anterior = models.TimeField(null=True, blank=True)

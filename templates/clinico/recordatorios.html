@@ -17,6 +17,27 @@
       </div>
     </header>
 
+    {% if recordatorios_hoy %}
+    <div class="reminder-modal-backdrop" id="reminder-modal" role="dialog" aria-modal="true" aria-labelledby="reminder-modal-title">
+      <section class="reminder-modal">
+        <button type="button" class="reminder-modal__close" id="reminder-modal-close" aria-label="Cerrar recordatorios">×</button>
+        <h2 id="reminder-modal-title">Recordatorios para hoy</h2>
+        <p>Hoy corresponde realizar estos servicios:</p>
+        <ul class="reminder-modal__list">
+          {% for recordatorio in recordatorios_hoy %}
+          <li>
+            <strong>{{ recordatorio.tipo }}{% if recordatorio.tipo == "Vacunación" %} · {{ recordatorio.servicio }}{% endif %}</strong>
+            <span>Mascota: {{ recordatorio.mascota.nombre }}</span>
+            <span>Propietario: {{ recordatorio.mascota.id_dueno.nombre_completo }}</span>
+            <span>Teléfono: <a href="tel:{{ recordatorio.mascota.id_dueno.telefono }}">{{ recordatorio.mascota.id_dueno.telefono }}</a></span>
+          </li>
+          {% endfor %}
+        </ul>
+        <button type="button" class="btn btn--ghost" id="reminder-modal-ok">Entendido</button>
+      </section>
+    </div>
+    {% endif %}
+
     <main class="app-content">
       <h1>Recordatorios de servicios</h1>
       <p class="app-content__subtitle">
@@ -127,6 +148,13 @@
   </div>
 </div>
 <style>
+.reminder-modal-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: 20px; background: rgba(8, 6, 18, .78); }
+.reminder-modal-backdrop[hidden] { display: none; }
+.reminder-modal { position: relative; width: min(100%, 520px); max-height: 85vh; overflow-y: auto; padding: 28px; border: 1px solid rgba(167,139,250,.45); border-radius: 16px; background: #171326; color: #f5f3ff; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+.reminder-modal h2 { margin: 0 32px 8px 0; }
+.reminder-modal__close { position: absolute; top: 12px; right: 16px; border: 0; background: transparent; color: inherit; font-size: 28px; cursor: pointer; }
+.reminder-modal__list { display: grid; gap: 12px; margin: 18px 0; padding: 0; list-style: none; }
+.reminder-modal__list li { display: grid; gap: 5px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,.05); }
 .reminder-search { max-width: 560px; margin-top: 20px; }
 .reminder-search .form-label { display: block; margin-bottom: 8px; }
 .reminder-section { margin-top: 32px; }
@@ -137,6 +165,24 @@
 </style>
 <script>
 (function () {
+  var modal = document.getElementById('reminder-modal');
+  var closeButtons = [
+    document.getElementById('reminder-modal-close'),
+    document.getElementById('reminder-modal-ok')
+  ];
+  closeButtons.forEach(function (button) {
+    if (button) {
+      button.addEventListener('click', function () {
+        modal.hidden = true;
+      });
+    }
+  });
+  if (modal) {
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') modal.hidden = true;
+    });
+  }
+
   var input = document.getElementById('buscar-recordatorios');
   if (!input) return;
 
