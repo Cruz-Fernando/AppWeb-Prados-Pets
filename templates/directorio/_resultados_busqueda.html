@@ -46,6 +46,7 @@
             <td>{{ m.id_dueno.telefono }}</td>
             <td>
               <a href="{% url 'editar_mascota' m.id_mascota %}" class="btn btn--ghost btn--sm">Editar</a>
+              <a href="{% url 'clinico:historial_clinico' m.id_mascota %}" class="btn btn--ghost btn--sm">Historia clínica</a>
             </td>
           </tr>
         {% endfor %}

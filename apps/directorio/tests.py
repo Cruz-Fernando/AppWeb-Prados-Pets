@@ -32,6 +32,9 @@ class GestionMascotasTests(TestCase):
     def setUp(self):
         self.client.force_login(self.usuario)
 
+    def test_ruta_autocomplete_duenos_esta_registrada(self):
+        self.assertEqual(reverse("autocomplete_duenos"), "/directorio/duenos/autocomplete/")
+
     def test_edicion_muestra_datos_existentes_y_antecedentes(self):
         response = self.client.get(
             reverse("editar_mascota", args=[self.mascota.id_mascota])
