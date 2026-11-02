@@ -1,0 +1,88 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{% block titulo %}Comprobante{% endblock %} · {{ clinica.nombre }}</title>
+<style>
+  @page {
+    size: a5 portrait;
+    margin: 0.9cm 1cm 1.6cm 1cm;
+    @frame pie { -pdf-frame-content: pie; bottom: 0.5cm; margin-left: 1cm; margin-right: 1cm; height: 1cm; }
+  }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 8.4pt; color: {{ marca.texto }}; line-height: 1.2; }
+  div, p { margin: 0; padding: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { vertical-align: top; }
+
+  /* Cabecera de marca */
+  .cab td { background-color: {{ marca.primario }}; color: #ffffff; padding: 6pt 9pt; vertical-align: middle; }
+  .cab .logo { width: 50pt; padding-right: 0; }
+  .cab .marca { font-size: 15pt; font-weight: bold; }
+  .cab .eslogan { font-size: 7.5pt; color: #F3E3FA; }
+  .cab .doc { text-align: right; width: 42%; }
+  .cab .doc-tipo { font-size: 7pt; color: #F3E3FA; text-transform: uppercase; letter-spacing: .2pt; }
+  .cab .doc-num { font-size: 12pt; font-weight: bold; }
+  .franja { background-color: {{ marca.primario_oscuro }}; height: 3pt; font-size: 1pt; }
+
+  /* Bloque "cuándo" */
+  .cuando { margin-top: 8pt; border: 1px solid {{ marca.borde }}; background-color: {{ marca.suave }}; }
+  .cuando td { padding: 4pt 8pt; border-right: 1px solid {{ marca.borde }}; }
+  .cuando td.ult { border-right: 0; }
+  .et { font-size: 6.5pt; color: {{ marca.gris }}; text-transform: uppercase; letter-spacing: .4pt; }
+  .grande { font-size: 13pt; font-weight: bold; color: {{ marca.primario_oscuro }}; }
+  .medio { font-size: 10pt; font-weight: bold; color: {{ marca.texto }}; }
+  .sub { font-size: 7.5pt; color: {{ marca.gris }}; }
+
+  h2 { font-size: 7.5pt; color: {{ marca.primario }}; text-transform: uppercase; letter-spacing: .6pt;
+       border-bottom: 1px solid {{ marca.borde }}; padding-bottom: 2pt; margin: 0 0 3pt; }
+  .sec { padding-top: 8pt; }
+  .datos td { padding: 1pt 0; }
+  .datos .k { width: 38%; color: {{ marca.gris }}; font-size: 7.5pt; }
+  .datos .v { font-weight: bold; font-size: 8.5pt; }
+  .col { width: 50%; }
+  .col-izq { padding-right: 8pt; }
+  .col-der { padding-left: 8pt; }
+
+  .servicio { margin-top: 7pt; border-left: 4pt solid {{ marca.primario }}; background-color: #FBF8FD; }
+  .servicio td { padding: 4pt 8pt; }
+  .servicio .nombre { font-size: 11pt; font-weight: bold; color: {{ marca.texto }}; }
+
+  .chip { color: {{ marca.primario_oscuro }}; background-color: {{ marca.suave }}; font-size: 7pt; font-weight: bold; padding: 1pt 5pt; }
+  .estado-programada { color: #1D4ED8; background-color: #DBEAFE; }
+  .estado-atendida { color: #15803D; background-color: #DCFCE7; }
+  .estado-cancelada { color: #B91C1C; background-color: #FEE2E2; }
+
+  .total td { background-color: {{ marca.primario_oscuro }}; color: #ffffff; padding: 5pt 9pt; vertical-align: middle; }
+  .total .monto { text-align: right; font-size: 15pt; font-weight: bold; }
+
+  .reco { margin-top: 2pt; }
+  .reco td { padding: 0.5pt 0; font-size: 7.8pt; }
+  .reco .p { width: 9pt; color: {{ marca.primario }}; font-weight: bold; }
+  .nota { border: 1px dashed {{ marca.borde }}; padding: 4pt 7pt; font-size: 8pt; color: {{ marca.texto }}; }
+
+  .firma { margin-top: 20pt; }
+  .firma td { text-align: center; font-size: 7.5pt; color: {{ marca.gris }}; }
+  .firma .raya { border-top: 1px solid {{ marca.texto }}; padding-top: 3pt; }
+
+  #pie { font-size: 6.5pt; color: {{ marca.gris }}; border-top: 1px solid {{ marca.borde }}; padding-top: 3pt; }
+  #pie b { color: {{ marca.primario }}; }
+</style>
+</head>
+<body>
+  <div id="pie">
+    <table><tr>
+      <td><b>{{ clinica.nombre }}</b> · {{ clinica.eslogan }} · {{ clinica.ciudad }}{% if clinica.direccion %} · {{ clinica.direccion }}{% endif %}{% if clinica.telefono %} · Tel. {{ clinica.telefono }}{% endif %}{% if clinica.correo %} · {{ clinica.correo }}{% endif %}{% if clinica.instagram %} · {{ clinica.instagram }}{% endif %}</td>
+      <td style="text-align:right; width:30%;">Generado {{ fecha_generacion|date:"d/m/Y H:i" }}</td>
+    </tr></table>
+  </div>
+
+  <table class="cab"><tr>
+    <td class="logo"><img src="{% static 'img/Logo_PradosPets.png' %}" width="44" height="44"></td>
+    <td><div class="marca">{{ clinica.nombre }}</div><div class="eslogan">{% block eslogan %}{{ clinica.eslogan }}{% endblock %}</div></td>
+    <td class="doc"><div class="doc-tipo">{% block tipo_doc %}Comprobante{% endblock %}</div><div class="doc-num">{% block numero %}{% endblock %}</div></td>
+  </tr></table>
+  <div class="franja">&nbsp;</div>
+
+  {% block contenido %}{% endblock %}
+</body>
+</html>

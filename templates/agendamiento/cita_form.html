@@ -3,6 +3,7 @@
 {% block title %}Agendar Cita · Prados Pets{% endblock %}
 
 {% block body %}
+<link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=1">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
@@ -14,502 +15,449 @@
       </button>
       <div class="app-topbar__breadcrumb">
         <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
-        <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Agendar Cita</span>
+        <span class="app-topbar__sep">/</span>
+        <a href="{% url 'agendamiento:calendario' %}">Calendario</a>
+        <span class="app-topbar__sep">/</span>
+        <span class="app-topbar__current">Agendar cita</span>
       </div>
     </header>
 
-    <main class="pp-layout-split">
-      <!-- COLUMNA IZQUIERDA: FORMULARIO -->
-      <div class="pp-card pp-card--form">
-        <div class="pp-card__header">
-          <div class="pp-card__icon">📅</div>
-          <div>
-            <h2 class="pp-card__title">Agendar Cita <span class="pp-title-highlight">Médica</span></h2>
-            <p class="pp-card__sub">Asigna fecha, hora y veterinario para la consulta</p>
-          </div>
+    <main class="ag">
+      <div class="ag-head">
+        <img class="ag-head__logo" src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets">
+        <div>
+          <div class="ag-eyebrow">Consulta médica</div>
+          <h1>Agendar cita</h1>
+          <p>Elige el paciente, el servicio y el horario. Al guardar se descarga el comprobante.</p>
         </div>
-
-        {% if messages %}
-          <ul class="pp-alerts">
-            {% for message in messages %}
-              <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-        {% if form.non_field_errors %}
-          <ul class="pp-alerts">
-            {% for error in form.non_field_errors %}
-              <li class="pp-alert pp-alert--error">{{ error }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-
-        <form method="POST" class="pp-form" id="form-cita-medica" novalidate{% if descargar_url %} data-descargar="{{ descargar_url }}"{% endif %}>
-          {% csrf_token %}
-
-          <!-- MASCOTA -->
-          <div class="pp-field">
-            <label class="pp-label">Mascota <span class="pp-req">*</span></label>
-            <div class="pp-search-wrap">
-              <span class="pp-search-ico">🔍</span>
-              <input type="text" name="buscar_mascota" id="buscar_mascota_input" class="pp-input pp-input--search"
-                     placeholder="Escribe nombre de la mascota o teléfono del dueño…" autocomplete="off">
-              <div id="mascota-dropdown" class="pp-dropdown"></div>
-            </div>
-            <input type="hidden" name="mascota" id="id_mascota_hidden">
-            <div id="mascota-seleccionada" class="pp-pet-badge" style="display:none;"></div>
-            {% for e in form.mascota.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-          </div>
-
-          <!-- VETERINARIO Y TIPO DE SERVICIO -->
-          <div class="pp-grid-2">
-            <div class="pp-field">
-              <label for="{{ form.veterinario.id_for_label }}" class="pp-label">Veterinario <span class="pp-req">*</span></label>
-              <div class="pp-input-wrap">
-                <span class="pp-input-ico">🩺</span>
-                <div class="pp-select-wrap">{{ form.veterinario }}</div>
-              </div>
-              {% for e in form.veterinario.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-            </div>
-
-            <div class="pp-field">
-              <label for="{{ form.tipo_servicio.id_for_label }}" class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
-              <div class="pp-input-wrap">
-                <span class="pp-input-ico">🏥</span>
-                <div class="pp-select-wrap">{{ form.tipo_servicio }}</div>
-              </div>
-              {% for e in form.tipo_servicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-            </div>
-          </div>
-
-          <!-- FECHA -->
-          <div class="pp-field">
-            <label for="{{ form.fecha.id_for_label }}" class="pp-label">Fecha <span class="pp-req">*</span></label>
-            <div class="pp-input-wrap">
-              <span class="pp-input-ico">📅</span>
-              {{ form.fecha }}
-            </div>
-            {% for e in form.fecha.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-          </div>
-
-          <!-- HORA INICIO Y HORA FIN -->
-          <div class="pp-grid-2">
-            <div class="pp-field">
-              <label for="{{ form.hora_inicio.id_for_label }}" class="pp-label">Hora inicio <span class="pp-req">*</span></label>
-              <div class="pp-input-wrap">
-                <span class="pp-input-ico">🕐</span>
-                {{ form.hora_inicio }}
-              </div>
-              {% for e in form.hora_inicio.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-            </div>
-
-            <div class="pp-field">
-              <label for="{{ form.hora_fin.id_for_label }}" class="pp-label">Hora fin</label>
-              <div class="pp-input-wrap">
-                <span class="pp-input-ico">🕔</span>
-                {{ form.hora_fin }}
-              </div>
-              {% for e in form.hora_fin.errors %}<p class="pp-field-error">{{ e }}</p>{% endfor %}
-            </div>
-          </div>
-        </form>
       </div>
 
-      <!-- COLUMNA DERECHA: RESUMEN DE LA CITA -->
-      <div class="pp-card pp-card--summary">
-        <div class="pp-summary__header">
-          <span class="pp-summary__title">RESUMEN DE LA CITA</span>
-          <span class="pp-summary__status" id="sum_estado" role="status" aria-live="polite">● Faltan datos</span>
+      {% if messages or form.non_field_errors %}
+      <ul class="ag-alerts">
+        {% for message in messages %}{% if not cita_creada or message.tags != 'success' %}
+          <li class="ag-alert ag-alert--{{ message.tags|default:'info' }}">{{ message }}</li>
+        {% endif %}{% endfor %}
+        {% for error in form.non_field_errors %}
+          <li class="ag-alert ag-alert--error">{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if cita_creada %}
+      <div class="ag-success" role="status">
+        <span class="ag-success__ico">{% include "agendamiento/_icono.html" with nombre="ok" size=22 %}</span>
+        <div class="ag-success__text">
+          <b>Cita agendada para {{ cita_creada.mascota.nombre }}</b>
+          <span>{{ cita_creada.get_tipo_servicio_display }} · {{ cita_creada.fecha|date:"l j \d\e F" }} · {{ cita_creada.hora_inicio|time:"H:i" }}{% if cita_creada.hora_fin %}–{{ cita_creada.hora_fin|time:"H:i" }}{% endif %} · {{ cita_creada.veterinario.nombre_completo|default:cita_creada.veterinario.username }}. El comprobante se está descargando.</span>
+        </div>
+        <a href="{{ descargar_url }}" class="btn btn--ghost">{% include "agendamiento/_icono.html" with nombre="descargar" size=16 %} Descargar de nuevo</a>
+      </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <form method="POST" class="ag-card" id="form-cita-medica" novalidate{% if descargar_url %} data-descargar="{{ descargar_url }}"{% endif %}>
+        {% csrf_token %}
+
+        <!-- 1. Paciente -->
+        <section class="ag-step" id="paso-mascota">
+          <h2 class="ag-step__title"><span class="ag-step__n">1</span> Paciente</h2>
+          <div class="ag-field{% if form.mascota.errors %} has-error{% endif %}">
+            <label class="ag-label" for="buscar_mascota_input">Mascota <span class="ag-req">*</span></label>
+            <div class="ag-search">
+              <span class="ag-search__ico">{% include "agendamiento/_icono.html" with nombre="buscar" %}</span>
+              <input type="text" name="buscar_mascota" id="buscar_mascota_input" class="ag-input"
+                     placeholder="Nombre de la mascota, dueño, teléfono o código…" autocomplete="off"
+                     role="combobox" aria-expanded="false" aria-controls="mascota-dropdown" aria-autocomplete="list">
+              <div id="mascota-dropdown" class="ag-dropdown" role="listbox"></div>
+            </div>
+            <input type="hidden" name="mascota" id="id_mascota_hidden" value="{{ mascota_previa.id|default:'' }}">
+            <div id="mascota-seleccionada" class="ag-pet">
+              <span class="ag-avatar ag-avatar--lg" id="pet_avatar">?</span>
+              <div class="ag-pet__data">
+                <div class="ag-pet__name"><span id="pet_nombre"></span><span class="ag-tag" id="pet_codigo"></span></div>
+                <div class="ag-pet__sub" id="pet_sub"></div>
+              </div>
+              <button type="button" class="ag-link" id="btn_cambiar_mascota">Cambiar</button>
+            </div>
+            <p class="ag-error" id="error-mascota" {% if not form.mascota.errors %}hidden{% endif %}>{% for e in form.mascota.errors %}{{ e }}{% empty %}Busca y selecciona una mascota de la lista.{% endfor %}</p>
+          </div>
+        </section>
+
+        <!-- 2. Servicio -->
+        <section class="ag-step" id="paso-servicio">
+          <h2 class="ag-step__title"><span class="ag-step__n">2</span> Servicio y veterinario</h2>
+          <div class="ag-field{% if form.tipo_servicio.errors %} has-error{% endif %}">
+            <span class="ag-label">Tipo de servicio <span class="ag-req">*</span></span>
+            <div class="ag-choices" role="radiogroup" aria-label="Tipo de servicio">
+              {% for clave, nombre in servicios %}
+              <label class="ag-choice">
+                <input type="radio" name="tipo_servicio" value="{{ clave }}" data-nombre="{{ nombre }}"{% if form.tipo_servicio.value == clave %} checked{% endif %}>
+                <span class="ag-choice__box">
+                  <span class="ag-choice__ico">{% include "agendamiento/_icono.html" with nombre=clave size=17 %}</span>
+                  <span class="ag-choice__title">{{ nombre }}</span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+            {% for e in form.tipo_servicio.errors %}<p class="ag-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div class="ag-field{% if form.veterinario.errors %} has-error{% endif %}">
+            <label for="{{ form.veterinario.id_for_label }}" class="ag-label">Veterinario <span class="ag-req">*</span></label>
+            {{ form.veterinario }}
+            {% for e in form.veterinario.errors %}<p class="ag-error">{{ e }}</p>{% endfor %}
+          </div>
+        </section>
+
+        <!-- 3. Fecha y hora -->
+        <section class="ag-step" id="paso-horario">
+          <h2 class="ag-step__title"><span class="ag-step__n">3</span> Fecha y hora</h2>
+          <div class="ag-field{% if form.fecha.errors %} has-error{% endif %}">
+            <label for="{{ form.fecha.id_for_label }}" class="ag-label">Fecha <span class="ag-req">*</span></label>
+            {{ form.fecha }}
+            <div class="ag-chips" id="chips-fecha">
+              <button type="button" class="ag-chip" data-dias="0">Hoy</button>
+              <button type="button" class="ag-chip" data-dias="1">Mañana</button>
+              <button type="button" class="ag-chip" data-dias="2">Pasado mañana</button>
+              <button type="button" class="ag-chip" data-dias="7">En una semana</button>
+            </div>
+            {% for e in form.fecha.errors %}<p class="ag-error">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div class="ag-row">
+            <div class="ag-field{% if form.hora_inicio.errors %} has-error{% endif %}">
+              <label for="{{ form.hora_inicio.id_for_label }}" class="ag-label">Hora de inicio <span class="ag-req">*</span></label>
+              {{ form.hora_inicio }}
+              {% for e in form.hora_inicio.errors %}<p class="ag-error">{{ e }}</p>{% endfor %}
+            </div>
+            <div class="ag-field{% if form.hora_fin.errors %} has-error{% endif %}">
+              <label for="{{ form.hora_fin.id_for_label }}" class="ag-label">Hora de fin <span class="ag-req">*</span></label>
+              {{ form.hora_fin }}
+              {% for e in form.hora_fin.errors %}<p class="ag-error">{{ e }}</p>{% endfor %}
+            </div>
+          </div>
+          <div class="ag-field">
+            <span class="ag-label">Duración rápida</span>
+            <div class="ag-chips" id="chips-duracion">
+              <button type="button" class="ag-chip" data-min="15">15 min</button>
+              <button type="button" class="ag-chip" data-min="30">30 min</button>
+              <button type="button" class="ag-chip" data-min="45">45 min</button>
+              <button type="button" class="ag-chip" data-min="60">1 hora</button>
+              <button type="button" class="ag-chip" data-min="90">1 h 30</button>
+              <button type="button" class="ag-chip" data-min="120">2 horas</button>
+            </div>
+            <p class="ag-hint">Calcula la hora de fin a partir de la hora de inicio.</p>
+          </div>
+        </section>
+      </form>
+
+      <!-- RESUMEN TIPO TICKET -->
+      <aside class="ag-card ag-ticket" aria-label="Resumen de la cita">
+        <div class="ag-ticket__head">
+          <img src="{% static 'img/Logo_PradosPets.png' %}" alt="">
+          <div class="ag-ticket__brand">Prados Pets<small>Resumen de la cita</small></div>
+          <span class="ag-status pp-summary__status" id="sum_estado" role="status" aria-live="polite">● Faltan datos</span>
         </div>
 
-        <div class="pp-summary__pet-box">
-          <div class="pp-summary__pet-avatar" id="sum_avatar">🐾</div>
+        <div class="ag-ticket__pet">
+          <span class="ag-avatar ag-avatar--lg" id="sum_avatar">?</span>
           <div>
-            <h3 class="pp-summary__pet-name" id="sum_mascota">Selecciona una mascota</h3>
-            <p class="pp-summary__pet-sub" id="sum_dueno_info">Dueño · Teléfono</p>
+            <h3 id="sum_mascota">Selecciona una mascota</h3>
+            <p id="sum_dueno_info">Dueño · Teléfono</p>
           </div>
         </div>
 
-        <div class="pp-summary__details">
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Veterinario</span>
-            <span class="pp-summary__val" id="sum_veterinario">Por asignar</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Servicio</span>
-            <span class="pp-summary__val" id="sum_servicio">Por definir</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Fecha</span>
-            <span class="pp-summary__val" id="sum_fecha">Por definir</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Horario</span>
-            <span class="pp-summary__val" id="sum_horario">--:--</span>
-          </div>
-        </div>
+        <ul class="ag-ticket__rows">
+          <li><span>Servicio</span><span id="sum_servicio" class="is-empty">Por definir</span></li>
+          <li><span>Veterinario</span><span id="sum_veterinario" class="is-empty">Por asignar</span></li>
+          <li><span>Fecha</span><span id="sum_fecha" class="is-empty">Por definir</span></li>
+          <li><span>Horario</span><span id="sum_horario" class="is-empty">--:--</span></li>
+        </ul>
 
-        <div class="pp-summary__actions">
-          <button type="submit" form="form-cita-medica" class="pp-btn pp-btn--submit">
-            <span>Guardar Cita</span>
-            <span class="pp-btn__arrow">→</span>
+        <div class="ag-perf"></div>
+
+        <div class="ag-ticket__foot">
+          <button type="submit" form="form-cita-medica" class="ag-submit" id="btn-guardar">
+            <span class="ag-spin"></span><span>Guardar cita</span>
           </button>
-          <a href="{% url 'usuarios:dashboard' %}" class="pp-btn pp-btn--ghost">Cancelar</a>
+          <a href="{% url 'usuarios:dashboard' %}" class="ag-cancel">Cancelar</a>
+          <p class="ag-note">El comprobante en PDF se descarga automáticamente.</p>
         </div>
+      </aside>
+
+      <!-- Barra inferior en móvil -->
+      <div class="ag-mobilebar">
+        <div class="ag-mobilebar__text"><b id="mb_titulo">Nueva cita</b><span id="mb_detalle">Faltan datos</span></div>
+        <button type="submit" form="form-cita-medica" class="ag-submit"><span class="ag-spin"></span><span>Guardar</span></button>
       </div>
     </main>
   </div>
 </div>
 
-<style>
-/* Layout Principal Dividido */
-.pp-layout-split {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 1.5rem;
-  max-width: 1100px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
-}
-
-@media (max-width: 900px) {
-  .pp-layout-split { grid-template-columns: 1fr; }
-}
-
-.pp-card {
-  background: #111122;
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  border-radius: 18px;
-  padding: 2rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-}
-
-.pp-card__header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
-.pp-card__icon { font-size: 1.8rem; background: rgba(124, 58, 237, 0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #a78bfa; }
-.pp-card__title { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin: 0; }
-.pp-title-highlight { color: #a78bfa; }
-.pp-card__sub { font-size: .85rem; color: #818cf8; margin: .2rem 0 0; }
-
-.pp-alerts { list-style: none; padding: 0; margin: 0 0 1rem; }
-.pp-alert { padding: .7rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: .85rem; margin-bottom: .4rem; }
-
-.pp-form { display: flex; flex-direction: column; gap: 1.2rem; }
-.pp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-.pp-field { display: flex; flex-direction: column; gap: .4rem; }
-.pp-label { font-size: .82rem; font-weight: 600; color: #cbd5e1; }
-.pp-req { color: #f43f5e; }
-.pp-field-error { font-size: .78rem; color: #f87171; margin: .2rem 0 0; }
-
-.pp-input-wrap { position: relative; width: 100%; }
-.pp-input-ico { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); font-size: .9rem; z-index: 1; pointer-events: none; opacity: .7; }
-
-/* Estilos de inputs unificados */
-.pp-input,
-.pp-input-wrap input,
-.pp-input-wrap select,
-.pp-select-wrap select {
-  width: 100% !important;
-  padding: .75rem 1rem .75rem 2.5rem !important;
-  background: rgba(22, 22, 42, 0.9) !important;
-  border: 1px solid rgba(124, 58, 237, 0.3) !important;
-  border-radius: 12px !important;
-  color: #f8fafc !important;
-  font-size: .9rem !important;
-  outline: none;
-  box-sizing: border-box !important;
-  transition: all .2s;
-}
-
-.pp-input:focus,
-.pp-input-wrap input:focus,
-.pp-input-wrap select:focus {
-  border-color: #7c3aed !important;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25) !important;
-}
-
-select option { background: #111122; color: #f8fafc; }
-input[type="date"], input[type="time"] { color-scheme: dark; }
-
-.pp-search-wrap { position: relative; width: 100%; }
-.pp-search-ico { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); font-size: .9rem; opacity: .6; pointer-events: none; z-index: 2; }
-.pp-input--search { padding-left: 2.5rem !important; }
-
-.pp-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #18182c; border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 12px; z-index: 200; max-height: 220px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-.pp-dropdown-item { padding: .75rem 1rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.05); }
-.pp-dropdown-item:hover { background: rgba(124, 58, 237, 0.2); }
-.pp-dropdown-item__name { font-weight: 600; color: #a78bfa; }
-.pp-dropdown-item__sub { font-size: .78rem; color: #94a3b8; }
-.pp-dropdown-empty { padding: .9rem 1rem; color: #64748b; font-size: .85rem; }
-
-/* Badge Mascota Seleccionada */
-.pp-pet-badge {
-  margin-top: 8px;
-  padding: 10px 14px;
-  background: rgba(124,58,237,.12);
-  border: 1px solid rgba(124,58,237,.3);
-  border-radius: 12px;
-  font-size: 13px;
-  color: #a78bfa;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.pp-pet-badge__clear {
-  cursor: pointer;
-  font-size: 16px;
-  color: #64748b;
-  background: none;
-  border: none;
-  padding: 0 4px;
-  transition: color .15s;
-}
-.pp-pet-badge__clear:hover { color: #f87171; }
-
-/* Tarjeta Lateral Resumen */
-.pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
-.pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-.pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
-/* Por defecto (faltan datos) en ámbar; pasa a verde solo cuando la cita está completa */
-.pp-summary__status { font-size: .75rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 3px 10px; border-radius: 12px; transition: background .2s, color .2s; }
-.pp-summary__status--lista { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-
-.pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
-.pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-.pp-summary__pet-name { margin: 0; font-size: 1.05rem; color: #ffffff; font-weight: 700; }
-.pp-summary__pet-sub { margin: 2px 0 0; font-size: .8rem; color: #94a3b8; }
-
-.pp-summary__details { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 2rem; }
-.pp-summary__row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; }
-.pp-summary__lbl { color: #94a3b8; }
-.pp-summary__val { color: #f8fafc; font-weight: 600; text-align: right; }
-
-.pp-summary__actions { display: flex; flex-direction: column; gap: .6rem; }
-.pp-btn--submit {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .6rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-  color: #ffffff;
-  font-size: .95rem;
-  font-weight: 700;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
-  transition: all .2s;
-}
-.pp-btn--submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6); }
-
-.pp-btn--ghost {
-  display: block;
-  text-align: center;
-  padding: .75rem;
-  color: #94a3b8;
-  text-decoration: none;
-  font-size: .9rem;
-  font-weight: 600;
-  border-radius: 10px;
-  transition: background .15s;
-}
-.pp-btn--ghost:hover { background: rgba(255, 255, 255, 0.05); color: #f8fafc; }
-</style>
-
+{% if mascota_previa %}{{ mascota_previa|json_script:"mascota-previa" }}{% endif %}
 <script>
 (function () {
+  const form     = document.getElementById('form-cita-medica');
   const input    = document.getElementById('buscar_mascota_input');
   const hidden   = document.getElementById('id_mascota_hidden');
   const dropdown = document.getElementById('mascota-dropdown');
   const badge    = document.getElementById('mascota-seleccionada');
+  const errMasc  = document.getElementById('error-mascota');
 
-  // Resumen Lateral
-  const sumMascota    = document.getElementById('sum_mascota');
-  const sumDuenoInfo  = document.getElementById('sum_dueno_info');
-  const sumVet        = document.getElementById('sum_veterinario');
-  const sumServ       = document.getElementById('sum_servicio');
-  const sumFecha      = document.getElementById('sum_fecha');
-  const sumHorario    = document.getElementById('sum_horario');
-  const sumEstado     = document.getElementById('sum_estado');
+  const sumAvatar    = document.getElementById('sum_avatar');
+  const sumMascota   = document.getElementById('sum_mascota');
+  const sumDuenoInfo = document.getElementById('sum_dueno_info');
+  const sumVet       = document.getElementById('sum_veterinario');
+  const sumServ      = document.getElementById('sum_servicio');
+  const sumFecha     = document.getElementById('sum_fecha');
+  const sumHorario   = document.getElementById('sum_horario');
+  const sumEstado    = document.getElementById('sum_estado');
+  const mbTitulo     = document.getElementById('mb_titulo');
+  const mbDetalle    = document.getElementById('mb_detalle');
 
   const inVet    = document.getElementById('id_veterinario');
-  const inServ   = document.getElementById('id_tipo_servicio');
   const inFecha  = document.getElementById('id_fecha');
   const inHoraIn = document.getElementById('id_hora_inicio');
   const inHoraFn = document.getElementById('id_hora_fin');
+  const radios   = Array.from(document.querySelectorAll('input[name="tipo_servicio"]'));
+  const botones  = Array.from(document.querySelectorAll('button[form="form-cita-medica"]'));
 
-  const AJAX_URL = "{% url 'agendamiento:buscar_mascotas_ajax' %}";
-  let timer = null;
+  const AJAX_URL  = "{% url 'agendamiento:buscar_mascotas_ajax' %}";
+  const LOGIN_URL = "{% url 'usuarios:login' %}";
+  let timer = null, items = [], activo = -1, duracionElegida = null;
 
-  // Búsqueda AJAX
-  if (input) {
-    input.addEventListener('input', function () {
-      clearTimeout(timer);
-      const q = this.value.trim();
-      if (q.length < 2) { cerrar(); return; }
-      timer = setTimeout(() => buscar(q), 260);
-    });
+  // ---------- Utilidades ----------
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
   }
+  function inicial(t) { return (String(t || '?').trim().charAt(0) || '?').toUpperCase(); }
+  function setValor(el, texto, vacio) { el.textContent = texto; el.classList.toggle('is-empty', !!vacio); }
+  function fechaLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function servicioSeleccionado() { return radios.find(r => r.checked); }
+
+  // ---------- Buscador de mascota (con teclado) ----------
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { cerrar(); return; }
+    timer = setTimeout(() => buscar(q), 250);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (!dropdown.classList.contains('is-open')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); mover(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); mover(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (items[activo]) seleccionar(items[activo]); }
+    else if (e.key === 'Escape') { cerrar(); }
+  });
 
   function buscar(q) {
-    fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
+    fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(r => {
-        if (r.status === 401) { window.location.href = "{% url 'usuarios:login' %}"; throw new Error('sesion'); }
+        if (r.status === 401) { window.location.href = LOGIN_URL; throw new Error('sesion'); }
         return r.json();
       })
       .then(data => render(data.resultados))
       .catch(() => cerrar());
   }
 
-  // Escapa texto antes de meterlo en innerHTML (evita XSS con nombres maliciosos)
-  function esc(t) {
-    return String(t == null ? '' : t).replace(/[&<>"']/g, c => (
-      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-    ));
+  function render(lista) {
+    items = lista; activo = lista.length ? 0 : -1;
+    if (!lista.length) {
+      dropdown.innerHTML = '<div class="ag-dropdown__empty">No encontramos mascotas con ese dato.</div>';
+    } else {
+      dropdown.innerHTML = lista.map((m, i) => `
+        <div class="ag-option${i === 0 ? ' is-active' : ''}" role="option" data-i="${i}">
+          <span class="ag-avatar">${esc(inicial(m.nombre_mascota))}</span>
+          <div>
+            <div class="ag-option__name">${esc(m.nombre_mascota)} <small>${esc(m.codigo)}</small></div>
+            <div class="ag-option__sub">${esc(m.especie)} · ${esc(m.raza)} · ${esc(m.dueno)} · ${esc(m.telefono)}</div>
+          </div>
+        </div>`).join('');
+    }
+    dropdown.classList.add('is-open');
+    input.setAttribute('aria-expanded', 'true');
   }
 
-  function render(items) {
-    dropdown.innerHTML = '';
-    if (!items.length) {
-      dropdown.innerHTML = '<div class="pp-dropdown-empty">Sin resultados…</div>';
-      dropdown.style.display = 'block'; return;
-    }
-    items.forEach(m => {
-      const d = document.createElement('div');
-      d.className = 'pp-dropdown-item';
-      d.innerHTML = `<div class="pp-dropdown-item__name">🐾 ${esc(m.nombre_mascota)} <small>[${esc(m.codigo)}]</small></div>
-        <div class="pp-dropdown-item__sub">${esc(m.especie)} · ${esc(m.raza)} | Dueño: ${esc(m.dueno)} · ${esc(m.telefono)}</div>`;
-      d.addEventListener('click', () => seleccionar(m));
-      dropdown.appendChild(d);
-    });
-    dropdown.style.display = 'block';
+  dropdown.addEventListener('mousedown', function (e) {
+    const op = e.target.closest('.ag-option');
+    if (op) { e.preventDefault(); seleccionar(items[+op.dataset.i]); }
+  });
+
+  function mover(paso) {
+    if (!items.length) return;
+    activo = (activo + paso + items.length) % items.length;
+    dropdown.querySelectorAll('.ag-option').forEach((el, i) => el.classList.toggle('is-active', i === activo));
+    const el = dropdown.querySelector('.ag-option.is-active');
+    if (el) el.scrollIntoView({ block: 'nearest' });
   }
 
   function seleccionar(m) {
     hidden.value = m.id;
-    input.value  = m.label;
+    input.value = '';
+    input.closest('.ag-search').hidden = true;
     cerrar();
-    badge.style.display = 'flex';
-    badge.innerHTML = `<span>✔ <strong>${esc(m.nombre_mascota)}</strong> [${esc(m.codigo)}] — ${esc(m.dueno)} · ${esc(m.telefono)}</span>
-      <button type="button" class="pp-pet-badge__clear" title="Cambiar">✕</button>`;
-    badge.querySelector('.pp-pet-badge__clear').addEventListener('click', limpiar);
+    errMasc.hidden = true;
+    document.getElementById('pet_avatar').textContent = inicial(m.nombre_mascota);
+    document.getElementById('pet_nombre').textContent = m.nombre_mascota;
+    document.getElementById('pet_codigo').textContent = m.codigo || '';
+    document.getElementById('pet_sub').textContent = `${m.especie} · ${m.raza} · ${m.dueno} · ${m.telefono}`;
+    badge.classList.add('is-visible');
 
-    // Actualizar Panel Lateral
-    sumMascota.textContent   = `${m.nombre_mascota} [${m.codigo}]`;
+    sumAvatar.textContent = inicial(m.nombre_mascota);
+    sumMascota.textContent = m.nombre_mascota;
     sumDuenoInfo.textContent = `${m.dueno} · ${m.telefono}`;
     actualizarEstado();
   }
 
   function limpiar() {
-    hidden.value = ''; input.value = '';
-    badge.style.display = 'none'; badge.innerHTML = '';
+    hidden.value = '';
+    badge.classList.remove('is-visible');
+    input.closest('.ag-search').hidden = false;
+    sumAvatar.textContent = '?';
     sumMascota.textContent = 'Selecciona una mascota';
     sumDuenoInfo.textContent = 'Dueño · Teléfono';
     actualizarEstado();
     input.focus();
   }
+  document.getElementById('btn_cambiar_mascota').addEventListener('click', limpiar);
 
-  // El badge del resumen solo dice "Lista para guardar" cuando están los datos obligatorios.
-  // Si falta algo, se queda en "Faltan datos" y el detalle va en el tooltip (title).
+  function cerrar() {
+    dropdown.classList.remove('is-open');
+    input.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('click', e => { if (!e.target.closest('.ag-search')) cerrar(); });
+
+  // ---------- Estado del resumen ----------
+  // Solo dice "Lista para guardar" cuando están todos los datos obligatorios.
   function actualizarEstado() {
     const faltan = [];
     if (!hidden.value)                 faltan.push('mascota');
+    if (!servicioSeleccionado())       faltan.push('tipo de servicio');
     if (!inVet || !inVet.value)        faltan.push('veterinario');
-    if (!inServ || !inServ.value)      faltan.push('tipo de servicio');
     if (!inFecha || !inFecha.value)    faltan.push('fecha');
     if (!inHoraIn || !inHoraIn.value)  faltan.push('hora de inicio');
     if (!inHoraFn || !inHoraFn.value)  faltan.push('hora de fin');
 
-    const rangoInvalido = !faltan.length && inHoraFn.value <= inHoraIn.value;
+    const rangoInvalido = inHoraIn.value && inHoraFn.value && inHoraFn.value <= inHoraIn.value;
     const lista = !faltan.length && !rangoInvalido;
 
     sumEstado.classList.toggle('pp-summary__status--lista', lista);
     if (lista) {
       sumEstado.textContent = '● Lista para guardar';
       sumEstado.removeAttribute('title');
+      mbDetalle.textContent = 'Lista para guardar';
     } else if (rangoInvalido) {
       sumEstado.textContent = '● Revisa el horario';
       sumEstado.title = 'La hora de fin debe ser posterior a la de inicio';
+      mbDetalle.textContent = 'La hora de fin debe ser posterior a la de inicio';
     } else {
       sumEstado.textContent = '● Faltan datos';
       sumEstado.title = 'Falta: ' + faltan.join(', ');
+      mbDetalle.textContent = 'Falta: ' + faltan.join(', ');
     }
+    mbTitulo.textContent = hidden.value ? sumMascota.textContent : 'Nueva cita';
+
+    document.getElementById('paso-mascota').classList.toggle('is-done', !!hidden.value);
+    document.getElementById('paso-servicio').classList.toggle('is-done', !!(servicioSeleccionado() && inVet.value));
+    document.getElementById('paso-horario').classList.toggle('is-done', !!(inFecha.value && inHoraIn.value && inHoraFn.value && !rangoInvalido));
   }
 
-  function cerrar() { dropdown.style.display = 'none'; }
+  // ---------- Servicio y veterinario ----------
+  radios.forEach(r => r.addEventListener('change', function () {
+    setValor(sumServ, this.dataset.nombre, false);
+    actualizarEstado();
+  }));
 
-  // OCULTA DROPDOWN AL HACER CLIC EN CUALQUIER OTRO LADO O CASILLA
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.pp-search-wrap')) cerrar();
+  inVet.addEventListener('change', function () {
+    setValor(sumVet, this.value ? this.options[this.selectedIndex].text : 'Por asignar', !this.value);
+    actualizarEstado();
   });
 
-  // Escuchar tecla Esc
-  if (input) {
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Escape') cerrar();
-    });
+  // ---------- Fecha ----------
+  // Fecha LOCAL (toISOString usa UTC y después de las 7 p. m. en Colombia ya sería "mañana")
+  const hoy = fechaLocal(new Date());
+  inFecha.setAttribute('min', hoy);
+
+  inFecha.addEventListener('change', function () {
+    document.querySelectorAll('#chips-fecha .ag-chip').forEach(c => c.classList.remove('is-active'));
+    if (!this.value) { setValor(sumFecha, 'Por definir', true); actualizarEstado(); return; }
+    const [y, m, d] = this.value.split('-').map(Number);
+    const fecha = new Date(y, m - 1, d);
+    setValor(sumFecha, fecha.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }), false);
+    actualizarEstado();
+  });
+
+  document.querySelectorAll('#chips-fecha .ag-chip').forEach(chip => chip.addEventListener('click', function () {
+    const d = new Date(); d.setDate(d.getDate() + Number(this.dataset.dias));
+    inFecha.value = fechaLocal(d);
+    inFecha.dispatchEvent(new Event('change'));
+    this.classList.add('is-active');
+  }));
+
+  // ---------- Horario y duración rápida ----------
+  function sumarMinutos(hhmm, minutos) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const total = Math.min(h * 60 + m + minutos, 23 * 60 + 59);
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
   }
 
-  // Actualizadores en tiempo real para el panel de Resumen
-  if (inVet) {
-    inVet.addEventListener('change', function() {
-      sumVet.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
-      actualizarEstado();
-    });
+  function aplicarDuracion() {
+    if (duracionElegida && inHoraIn.value) inHoraFn.value = sumarMinutos(inHoraIn.value, duracionElegida);
   }
 
-  if (inServ) {
-    inServ.addEventListener('change', function() {
-      sumServ.textContent = this.value ? this.options[this.selectedIndex].text : 'Por definir';
-      actualizarEstado();
-    });
-  }
-
-  if (inFecha) {
-    // Fecha LOCAL (toISOString usa UTC y después de las 7 p. m. en Colombia ya sería "mañana")
-    const ahora = new Date();
-    const hoy = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0') + '-' + String(ahora.getDate()).padStart(2, '0');
-    inFecha.setAttribute('min', hoy);
-
-    inFecha.addEventListener('change', function() {
-      if (!this.value) { sumFecha.textContent = 'Por definir'; actualizarEstado(); return; }
-      const [yyyy, mm, dd] = this.value.split('-');
-      sumFecha.textContent = `${dd}/${mm}/${yyyy}`;
-      actualizarEstado();
-    });
-  }
+  document.querySelectorAll('#chips-duracion .ag-chip').forEach(chip => chip.addEventListener('click', function () {
+    duracionElegida = Number(this.dataset.min);
+    document.querySelectorAll('#chips-duracion .ag-chip').forEach(c => c.classList.toggle('is-active', c === this));
+    if (!inHoraIn.value) { inHoraIn.focus(); return; }
+    aplicarDuracion();
+    actualizarHorario();
+  }));
 
   function actualizarHorario() {
-    const hIn = inHoraIn && inHoraIn.value ? inHoraIn.value : '';
-    const hFn = inHoraFn && inHoraFn.value ? inHoraFn.value : '';
-    if (hIn && hFn) {
-      sumHorario.textContent = `${hIn} - ${hFn}`;
-    } else if (hIn) {
-      sumHorario.textContent = hIn;
-    } else {
-      sumHorario.textContent = '--:--';
-    }
+    const hIn = inHoraIn.value, hFn = inHoraFn.value;
+    if (hIn && hFn) setValor(sumHorario, `${hIn} – ${hFn}`, false);
+    else if (hIn) setValor(sumHorario, `${hIn} – ?`, false);
+    else setValor(sumHorario, '--:--', true);
     actualizarEstado();
   }
 
-  if (inHoraIn) inHoraIn.addEventListener('change', actualizarHorario);
-  if (inHoraFn) inHoraFn.addEventListener('change', actualizarHorario);
+  inHoraIn.addEventListener('change', function () { aplicarDuracion(); actualizarHorario(); });
+  inHoraFn.addEventListener('change', function () {
+    duracionElegida = null;
+    document.querySelectorAll('#chips-duracion .ag-chip').forEach(c => c.classList.remove('is-active'));
+    actualizarHorario();
+  });
 
-  // Si el servidor devolvió el formulario con valores (p. ej. tras un error de validación),
-  // el resumen debe reflejarlos desde el inicio y no quedarse en "Por definir".
-  if (inVet && inVet.value)   sumVet.textContent  = inVet.options[inVet.selectedIndex].text;
-  if (inServ && inServ.value) sumServ.textContent = inServ.options[inServ.selectedIndex].text;
-  if (inFecha && inFecha.value) inFecha.dispatchEvent(new Event('change'));
-  actualizarHorario(); // también calcula el estado inicial del badge
+  // ---------- Envío ----------
+  form.addEventListener('submit', function (e) {
+    if (!hidden.value) {
+      e.preventDefault();
+      errMasc.hidden = false;
+      document.getElementById('paso-mascota').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus();
+      return;
+    }
+    // Evita doble clic (citas duplicadas)
+    botones.forEach(b => { b.disabled = true; });
+  });
+  window.addEventListener('pageshow', () => botones.forEach(b => { b.disabled = false; }));
+
+  // ---------- Estado inicial (p. ej. tras un error de validación) ----------
+  const previa = document.getElementById('mascota-previa');
+  if (previa) seleccionar(JSON.parse(previa.textContent));
+  const marcado = servicioSeleccionado();
+  if (marcado) setValor(sumServ, marcado.dataset.nombre, false);
+  if (inVet.value) setValor(sumVet, inVet.options[inVet.selectedIndex].text, false);
+  if (inFecha.value) inFecha.dispatchEvent(new Event('change'));
+  actualizarHorario();
+
+  // Tras agendar con éxito: descarga automática del comprobante PDF
+  if (form.dataset.descargar) { window.location.href = form.dataset.descargar; }
 }());
-
-// Tras agendar con éxito: descarga automática del comprobante PDF
-(function () {
-  const f = document.getElementById('form-cita-medica');
-  if (f && f.dataset.descargar) { window.location.href = f.dataset.descargar; }
-})();
 </script>
 {% endblock %}

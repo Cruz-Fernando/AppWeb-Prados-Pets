@@ -5,14 +5,15 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
-from xhtml2pdf import pisa
+from django.utils.text import slugify
 
+from apps.agendamiento.recomendaciones import RECOMENDACIONES_PELUQUERIA
 from apps.directorio.models import Mascota
+from config.pdf import render_pdf
 
 from .models import CitaPeluqueria
 
@@ -134,14 +135,19 @@ def panel_peluqueria(request):
     # Tras guardar, la página se recarga (con el mensaje de éxito visible) y
     # el navegador descarga el comprobante a partir de este enlace.
     descargar_url = None
+    cita_creada = None
     descargar = request.GET.get('descargar', '')
-    if descargar.isdigit() and CitaPeluqueria.objects.filter(pk=int(descargar)).exists():
-        descargar_url = reverse('peluqueria:comprobante_pdf', args=[int(descargar)])
+    if descargar.isdigit():
+        cita_creada = CitaPeluqueria.objects.select_related('groomer').filter(pk=int(descargar)).first()
+        if cita_creada:
+            descargar_url = reverse('peluqueria:comprobante_pdf', args=[cita_creada.pk])
 
     return render(request, 'peluqueria/agendar_peluqueria.html', {
         'groomers': groomers,
         'opciones_duracion': OPCIONES_DURACION,
+        'servicios': CitaPeluqueria.SERVICIO_CHOICES,
         'descargar_url': descargar_url,
+        'cita_creada': cita_creada,
         'ahora_min': timezone.localtime().strftime('%Y-%m-%dT%H:%M'),
         'borrador': request.session.pop('peluqueria_borrador', None),
     })
@@ -254,27 +260,23 @@ def guardar_cita(request):
 
 @login_required
 def comprobante_pdf(request, pk):
-    """Genera el PDF del comprobante de la cita"""
-    cita = get_object_or_404(CitaPeluqueria, pk=pk)
+    """Comprobante de la cita de peluquería con la marca de Prados Pets."""
+    cita = get_object_or_404(CitaPeluqueria.objects.select_related('groomer', 'mascota__id_dueno'), pk=pk)
 
     # La mascota viene del vínculo de la cita; las citas antiguas (sin vínculo) se buscan por nombre
     mascota = cita.mascota or Mascota.objects.filter(nombre=cita.nombre_mascota).first()
 
     # El precio y la duración salen de lo guardado en la cita: el PDF siempre coincide con la pantalla
-    cita.precio_formateado = (
-        _formatear_precio(cita.precio) if cita.precio else 'Valor no especificado'
-    )
-
-    # Configuración de respuesta
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Comprobante_Spa_{cita.nombre_mascota}.pdf"'
-
-    # Renderizado y creación
-    template = get_template('peluqueria/pdf_cita.html')
-    html = template.render({'cita': cita, 'mascota': mascota, 'groomer': cita.groomer})
-    status = pisa.CreatePDF(html, dest=response)
-
-    if status.err:
-        return HttpResponse('Error al generar el PDF.', status=500)
-
-    return response
+    duracion = cita.duracion_estimada_min or 60
+    inicio = timezone.localtime(cita.fecha_hora)
+    return render_pdf(request, 'peluqueria/pdf_cita.html', {
+        'cita': cita,
+        'mascota': mascota,
+        'dueno': mascota.id_dueno if mascota else None,
+        'groomer': cita.groomer,
+        'inicio': inicio,
+        'entrega': inicio + timedelta(minutes=duracion),
+        'duracion_texto': _etiqueta_duracion(duracion),
+        'precio_formateado': _formatear_precio(cita.precio) if cita.precio else 'Valor no especificado',
+        'recomendaciones': RECOMENDACIONES_PELUQUERIA,
+    }, f'Peluqueria_{cita.pk:05d}_{slugify(cita.nombre_mascota)}')

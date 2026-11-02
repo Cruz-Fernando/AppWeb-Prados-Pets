@@ -3,6 +3,7 @@
 {% block title %}Agendar Peluquería · Prados Pets{% endblock %}
 
 {% block body %}
+<link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=1">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
@@ -14,92 +15,114 @@
       </button>
       <div class="app-topbar__breadcrumb">
         <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
-        <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Agendar Peluquería</span>
+        <span class="app-topbar__sep">/</span>
+        <span class="app-topbar__current">Peluquería</span>
       </div>
     </header>
 
-    <main class="pp-layout-split">
-      <!-- COLUMNA IZQUIERDA: FORMULARIO -->
-      <div class="pp-card pp-card--form">
-        <div class="pp-card__header">
-          <div class="pp-card__icon">✂️</div>
-          <div>
-            <h2 class="pp-card__title">Peluquería &amp; Spa</h2>
-            <p class="pp-card__sub">Agendar cita de peluquería · Prados Pets</p>
-          </div>
+    <main class="ag ag--grooming">
+      <div class="ag-head">
+        <img class="ag-head__logo" src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets">
+        <div>
+          <div class="ag-eyebrow">Peluquería &amp; Spa</div>
+          <h1>Agendar peluquería</h1>
+          <p>Elige la mascota, el servicio y el groomer. Al confirmar se descarga el comprobante.</p>
         </div>
+      </div>
 
-        {% if messages %}
-          <ul class="pp-alerts">
-            {% for message in messages %}
-              <li class="pp-alert pp-alert--{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
+      {% if messages %}
+      <ul class="ag-alerts">
+        {% for message in messages %}{% if not cita_creada or message.tags != 'success' %}
+          <li class="ag-alert ag-alert--{{ message.tags|default:'info' }}">{{ message }}</li>
+        {% endif %}{% endfor %}
+      </ul>
+      {% endif %}
 
-        <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="pp-form" id="form-peluqueria"{% if descargar_url %} data-descargar="{{ descargar_url }}"{% endif %}>
-          {% csrf_token %}
+      {% if cita_creada %}
+      <div class="ag-success" role="status">
+        <span class="ag-success__ico">{% include "agendamiento/_icono.html" with nombre="ok" size=22 %}</span>
+        <div class="ag-success__text">
+          <b>Cita agendada para {{ cita_creada.nombre_mascota }}</b>
+          <span>{{ cita_creada.get_servicio_display }} · {{ cita_creada.fecha_hora|date:"l j \d\e F, H:i" }}{% if cita_creada.groomer %} · {{ cita_creada.groomer.nombre_completo }}{% endif %}. El comprobante se está descargando.</span>
+        </div>
+        <a href="{{ descargar_url }}" class="btn btn--ghost">{% include "agendamiento/_icono.html" with nombre="descargar" size=16 %} Descargar de nuevo</a>
+      </div>
+      {% endif %}
 
-          <!-- MASCOTA -->
-          <div class="pp-field">
-            <label class="pp-label">Mascota <span class="pp-req">*</span></label>
-            <div class="pp-search-wrap">
-              <span class="pp-search-ico">🔍</span>
-              <input type="text" id="buscar_mascota_input" class="pp-input pp-input--search"
-                     placeholder="Busca por nombre, dueño o teléfono…" autocomplete="off">
-              <div id="mascota-dropdown" class="pp-dropdown"></div>
+      <!-- FORMULARIO -->
+      <form action="{% url 'peluqueria:guardar_cita' %}" method="POST" class="ag-card" id="form-peluqueria" novalidate{% if descargar_url %} data-descargar="{{ descargar_url }}"{% endif %}>
+        {% csrf_token %}
+
+        <!-- 1. Mascota -->
+        <section class="ag-step" id="paso-mascota">
+          <h2 class="ag-step__title"><span class="ag-step__n">1</span> Mascota</h2>
+          <div class="ag-field">
+            <label class="ag-label" for="buscar_mascota_input">Buscar mascota <span class="ag-req">*</span></label>
+            <div class="ag-search">
+              <span class="ag-search__ico">{% include "agendamiento/_icono.html" with nombre="buscar" %}</span>
+              <input type="text" id="buscar_mascota_input" class="ag-input"
+                     placeholder="Nombre de la mascota, dueño, teléfono o código…" autocomplete="off"
+                     role="combobox" aria-expanded="false" aria-controls="mascota-dropdown" aria-autocomplete="list">
+              <div id="mascota-dropdown" class="ag-dropdown" role="listbox"></div>
             </div>
             <input type="hidden" name="mascota_id" id="id_mascota_hidden">
-          </div>
-
-          <!-- TARJETA SELECCIÓN MASCOTA -->
-          <div id="info-mascota-box" class="pp-pet-card" style="display:none">
-            <div class="pp-pet-card__avatar" id="lbl_avatar">🐾</div>
-            <div class="pp-pet-card__data">
-              <div class="pp-pet-card__title-row">
-                <strong id="lbl_pet_name" class="pp-pet-card__name"></strong>
-                <span id="lbl_tamano_texto" class="pp-badge"></span>
+            <div id="info-mascota-box" class="ag-pet">
+              <span class="ag-avatar ag-avatar--lg" id="lbl_avatar">?</span>
+              <div class="ag-pet__data">
+                <div class="ag-pet__name"><span id="lbl_pet_name"></span><span class="ag-tag" id="lbl_tamano_texto"></span></div>
+                <div class="ag-pet__sub" id="lbl_pet_sub"></div>
               </div>
-              <div class="pp-pet-card__sub" id="lbl_pet_sub"></div>
+              <button type="button" id="btn_clear_pet" class="ag-link">Cambiar</button>
             </div>
-            <button type="button" id="btn_clear_pet" class="pp-btn-clear">🔍 Cambiar</button>
+            <p class="ag-error" id="error-mascota" hidden>Busca y selecciona una mascota de la lista.</p>
+          </div>
+        </section>
+
+        <!-- 2. Servicio -->
+        <section class="ag-step" id="paso-servicio">
+          <h2 class="ag-step__title"><span class="ag-step__n">2</span> Servicio y groomer</h2>
+          <div class="ag-field">
+            <span class="ag-label">Tipo de servicio <span class="ag-req">*</span></span>
+            <div class="ag-choices ag-choices--3" role="radiogroup" aria-label="Tipo de servicio">
+              {% for clave, nombre in servicios %}
+              <label class="ag-choice">
+                <input type="radio" name="servicio" value="{{ clave }}" data-nombre="{{ nombre }}"{% if forloop.first %} checked{% endif %}>
+                <span class="ag-choice__box">
+                  <span class="ag-choice__ico">{% include "agendamiento/_icono.html" with nombre=clave size=17 %}</span>
+                  <span class="ag-choice__title">{% if clave == 'BANO' %}Baño{% elif clave == 'CORTE' %}Corte despuntado{% else %}Corte total{% endif %}
+                    <span class="ag-choice__sub">{% if clave == 'BANO' %}Solamente baño{% elif clave == 'CORTE' %}Solo tijera{% else %}Máquina y tijera{% endif %}</span>
+                  </span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
           </div>
 
-          <!-- SERVICIO -->
-          <div class="pp-field">
-            <label class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
-            <select name="servicio" id="id_servicio" required class="pp-input">
-              <option value="BANO">🛁 Solamente Baño</option>
-              <option value="CORTE">✂️ Corte Despuntado (Solo tijera)</option>
-              <option value="COMPLETO">💈 Corte Total (Máquina y tijera)</option>
-            </select>
-          </div>
-
-          <!-- GROOMER -->
-          <div class="pp-field">
-            <label class="pp-label">Groomer responsable <span class="pp-req">*</span></label>
-            <select name="groomer_id" id="id_groomer_id" required class="pp-input">
-              <option value="">— Selecciona un groomer —</option>
+          <div class="ag-field">
+            <label class="ag-label" for="id_groomer_id">Groomer responsable <span class="ag-req">*</span></label>
+            <select name="groomer_id" id="id_groomer_id" required>
+              <option value="">Selecciona un groomer</option>
               {% for g in groomers %}
                 <option value="{{ g.pk }}">{{ g.nombre_completo }}</option>
               {% empty %}
-                <option disabled>No hay groomers registrados</option>
+                <option disabled>No hay groomers activos registrados</option>
               {% endfor %}
             </select>
           </div>
+        </section>
 
-          <!-- FECHA Y HORA -->
-          <div class="pp-grid-2">
-            <div class="pp-field">
-              <label class="pp-label">Fecha y Hora <span class="pp-req">*</span></label>
-              <input type="datetime-local" name="fecha_hora" id="id_fecha_hora" required class="pp-input" min="{{ ahora_min }}">
+        <!-- 3. Fecha y duración -->
+        <section class="ag-step" id="paso-horario">
+          <h2 class="ag-step__title"><span class="ag-step__n">3</span> Fecha y duración</h2>
+          <div class="ag-row">
+            <div class="ag-field">
+              <label class="ag-label" for="id_fecha_hora">Fecha y hora <span class="ag-req">*</span></label>
+              <input type="datetime-local" name="fecha_hora" id="id_fecha_hora" required min="{{ ahora_min }}">
             </div>
-
-            <div class="pp-field">
-              <label class="pp-label" for="id_duracion">Duración estimada</label>
+            <div class="ag-field">
+              <label class="ag-label" for="id_duracion">Duración estimada</label>
               {# Campo real (name="duracion_min"): lo elegido se guarda y es lo que sale en el PDF #}
-              <select name="duracion_min" id="id_duracion" class="pp-input">
+              <select name="duracion_min" id="id_duracion">
                 <option value="">Según el tamaño de la mascota</option>
                 {% for minutos, etiqueta in opciones_duracion %}
                   <option value="{{ minutos }}">{{ etiqueta }}</option>
@@ -107,218 +130,107 @@
               </select>
             </div>
           </div>
+          <div class="ag-field">
+            <span class="ag-label">Atajos</span>
+            <div class="ag-chips" id="chips-dia">
+              <button type="button" class="ag-chip" data-dias="0">Hoy</button>
+              <button type="button" class="ag-chip" data-dias="1">Mañana</button>
+              <button type="button" class="ag-chip" data-dias="2">Pasado mañana</button>
+            </div>
+            <div class="ag-chips" id="chips-hora">
+              <button type="button" class="ag-chip" data-hora="08:00">8:00 a. m.</button>
+              <button type="button" class="ag-chip" data-hora="10:00">10:00 a. m.</button>
+              <button type="button" class="ag-chip" data-hora="14:00">2:00 p. m.</button>
+              <button type="button" class="ag-chip" data-hora="16:00">4:00 p. m.</button>
+            </div>
+          </div>
+        </section>
 
-          <!-- PRECIO -->
-          <div class="pp-field">
-            <label class="pp-label" for="id_precio">Precio (COP) <span class="pp-req">*</span></label>
-            <input type="text" name="precio" id="id_precio" required class="pp-input"
+        <!-- 4. Precio y notas -->
+        <section class="ag-step" id="paso-precio">
+          <h2 class="ag-step__title"><span class="ag-step__n">4</span> Precio y observaciones</h2>
+          <div class="ag-field">
+            <label class="ag-label" for="id_precio">Precio (COP) <span class="ag-req">*</span></label>
+            <input type="text" name="precio" id="id_precio" required class="ag-input"
                    inputmode="numeric" autocomplete="off" maxlength="12" placeholder="Ej: $50.000">
-            <p class="pp-field-hint">Solo números, en pesos colombianos. Debe ser mayor a $0.</p>
+            <p class="ag-hint">Solo números, en pesos colombianos. Debe ser mayor a $0.</p>
+            <p class="ag-error" id="error-precio" hidden>Ingresa el precio del servicio (debe ser mayor a $0).</p>
           </div>
-
-          <!-- OBSERVACIONES -->
-          <div class="pp-field">
-            <label class="pp-label">Observaciones</label>
-            <textarea name="observaciones" id="id_observaciones" rows="3" class="pp-input pp-textarea"
-                      placeholder="Alergias, piel sensible, comportamiento, indicaciones especiales..."></textarea>
+          <div class="ag-field">
+            <label class="ag-label" for="id_observaciones">Observaciones</label>
+            <textarea name="observaciones" id="id_observaciones" rows="3" class="ag-input"
+                      placeholder="Alergias, piel sensible, comportamiento, corte preferido…"></textarea>
           </div>
-        </form>
-      </div>
+        </section>
+      </form>
 
-      <!-- COLUMNA DERECHA: RESUMEN DE LA CITA -->
-      <div class="pp-card pp-card--summary">
-        <div class="pp-summary__header">
-          <span class="pp-summary__title">RESUMEN DE LA CITA</span>
-          <span class="pp-summary__status">● Borrador</span>
+      <!-- RESUMEN TIPO TICKET -->
+      <aside class="ag-card ag-ticket" aria-label="Resumen de la cita">
+        <div class="ag-ticket__head">
+          <img src="{% static 'img/Logo_PradosPets.png' %}" alt="">
+          <div class="ag-ticket__brand">Prados Pets<small>Peluquería &amp; Spa</small></div>
+          <span class="ag-status" id="sum_estado" role="status" aria-live="polite">● Faltan datos</span>
         </div>
 
-        <div class="pp-summary__pet-box">
-          <div class="pp-summary__pet-avatar" id="sum_avatar">🐾</div>
+        <div class="ag-ticket__pet">
+          <span class="ag-avatar ag-avatar--lg" id="sum_avatar">?</span>
           <div>
-            <h3 class="pp-summary__pet-name" id="sum_mascota">Selecciona una mascota</h3>
-            <p class="pp-summary__pet-sub" id="sum_raza_tamano">Especie · Raza · Tamaño</p>
+            <h3 id="sum_mascota">Selecciona una mascota</h3>
+            <p id="sum_raza_tamano">Especie · Raza · Tamaño</p>
           </div>
         </div>
 
-        <div class="pp-summary__details">
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Servicio</span>
-            <span class="pp-summary__val" id="sum_servicio">Solamente baño</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Groomer</span>
-            <span class="pp-summary__val" id="sum_groomer">Por asignar</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Fecha</span>
-            <span class="pp-summary__val" id="sum_fecha">Por definir</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Duración</span>
-            <span class="pp-summary__val" id="sum_duracion">Por definir</span>
-          </div>
+        <ul class="ag-ticket__rows">
+          <li><span>Servicio</span><span id="sum_servicio">Solamente Baño</span></li>
+          <li><span>Groomer</span><span id="sum_groomer" class="is-empty">Por asignar</span></li>
+          <li><span>Fecha</span><span id="sum_fecha" class="is-empty">Por definir</span></li>
+          <li><span>Duración</span><span id="sum_duracion" class="is-empty">Por definir</span></li>
+          <li><span>Entrega estimada</span><span id="sum_entrega" class="is-empty">--:--</span></li>
+        </ul>
+
+        <div class="ag-perf"></div>
+
+        <div class="ag-total">
+          <span>Total</span>
+          <span class="ag-total__val pp-summary__total-val--vacio" id="sum_total">Por definir</span>
         </div>
 
-        <div class="pp-summary__divider"></div>
-
-        <div class="pp-summary__total-row">
-          <span class="pp-summary__total-lbl">Total</span>
-          <span class="pp-summary__total-val pp-summary__total-val--vacio" id="sum_total">Por definir</span>
+        <div class="ag-ticket__foot">
+          <button type="submit" form="form-peluqueria" class="ag-submit" id="btn-guardar">
+            <span class="ag-spin"></span><span>Agendar y generar PDF</span>
+          </button>
+          <a href="{% url 'usuarios:dashboard' %}" class="ag-cancel">Cancelar</a>
+          <p class="ag-note">Revisa los datos antes de confirmar la cita.</p>
         </div>
+      </aside>
 
-        <button type="submit" form="form-peluqueria" class="pp-btn pp-btn--submit">
-          <span class="pp-btn__ico">📄</span>
-          <span>Agendar y generar PDF</span>
-          <span class="pp-btn__arrow">→</span>
-        </button>
-
-        <p class="pp-summary__footer-note">Revisa los datos antes de confirmar la cita.</p>
+      <div class="ag-mobilebar">
+        <div class="ag-mobilebar__text"><b id="mb_titulo">Nueva cita de peluquería</b><span id="mb_detalle">Faltan datos</span></div>
+        <button type="submit" form="form-peluqueria" class="ag-submit"><span class="ag-spin"></span><span>Agendar</span></button>
       </div>
     </main>
   </div>
 </div>
 
-<style>
-/* Layout principal en 2 columnas */
-.pp-layout-split {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 1.5rem;
-  max-width: 1100px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
-}
-
-@media (max-width: 900px) {
-  .pp-layout-split { grid-template-columns: 1fr; }
-}
-
-.pp-card {
-  background: #111122;
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  border-radius: 18px;
-  padding: 2rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-}
-
-.pp-card__header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
-.pp-card__icon { font-size: 1.8rem; background: rgba(124, 58, 237, 0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #a78bfa; }
-.pp-card__title { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin: 0; }
-.pp-card__sub { font-size: .85rem; color: #818cf8; margin: .2rem 0 0; }
-
-.pp-alerts { list-style: none; padding: 0; margin: 0 0 1rem; }
-.pp-alert { padding: .7rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: .85rem; margin-bottom: .4rem; }
-
-.pp-form { display: flex; flex-direction: column; gap: 1.2rem; }
-.pp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-.pp-field { display: flex; flex-direction: column; gap: .4rem; }
-.pp-label { font-size: .82rem; font-weight: 600; color: #cbd5e1; }
-.pp-req { color: #f43f5e; }
-
-.pp-input {
-  width: 100%;
-  padding: .75rem 1rem;
-  background: rgba(22, 22, 42, 0.9);
-  border: 1px solid rgba(124, 58, 237, 0.3);
-  border-radius: 12px;
-  color: #f8fafc;
-  font-size: .9rem;
-  outline: none;
-  box-sizing: border-box;
-  transition: all .2s;
-}
-.pp-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25); }
-.pp-input--search { padding-left: 2.5rem; }
-.pp-textarea { resize: vertical; min-height: 80px; }
-select.pp-input option { background: #111122; color: #f8fafc; }
-
-.pp-search-wrap { position: relative; }
-.pp-search-ico { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); font-size: .9rem; opacity: .6; pointer-events: none; }
-
-.pp-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #18182c; border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 12px; z-index: 200; max-height: 220px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-.pp-dropdown-item { padding: .75rem 1rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.05); }
-.pp-dropdown-item:hover { background: rgba(124, 58, 237, 0.2); }
-.pp-dropdown-item__name { font-weight: 600; color: #a78bfa; }
-.pp-dropdown-item__sub { font-size: .78rem; color: #94a3b8; }
-.pp-dropdown-empty { padding: .9rem 1rem; color: #64748b; font-size: .85rem; }
-
-/* Tarjeta Mascota Seleccionada */
-.pp-pet-card { display: flex; align-items: center; justify-content: space-between; background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(124, 58, 237, 0.35); border-radius: 12px; padding: .85rem 1rem; }
-.pp-pet-card__avatar { font-size: 1.6rem; background: rgba(124, 58, 237, 0.25); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-.pp-pet-card__data { flex: 1; margin: 0 1rem; }
-.pp-pet-card__title-row { display: flex; align-items: center; gap: .5rem; }
-.pp-pet-card__name { color: #f8fafc; font-size: .95rem; }
-.pp-badge { background: rgba(124, 58, 237, 0.3); color: #c4b5fd; font-size: .72rem; padding: 2px 8px; border-radius: 6px; text-transform: capitalize; }
-.pp-pet-card__sub { font-size: .8rem; color: #94a3b8; margin-top: 2px; }
-.pp-btn-clear { background: none; border: none; color: #a78bfa; font-size: .8rem; cursor: pointer; font-weight: 600; }
-.pp-btn-clear:hover { color: #f43f5e; }
-
-/* Tarjeta Lateral de Resumen */
-.pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
-.pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-.pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
-.pp-summary__status { font-size: .75rem; background: rgba(124, 58, 237, 0.2); color: #c4b5fd; padding: 3px 10px; border-radius: 12px; }
-
-.pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
-.pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-.pp-summary__pet-name { margin: 0; font-size: 1.05rem; color: #ffffff; font-weight: 700; }
-.pp-summary__pet-sub { margin: 2px 0 0; font-size: .8rem; color: #94a3b8; }
-
-.pp-summary__details { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.5rem; }
-.pp-summary__row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; }
-.pp-summary__lbl { color: #94a3b8; }
-.pp-summary__val { color: #f8fafc; font-weight: 600; text-align: right; }
-
-.pp-summary__divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin-bottom: 1.5rem; }
-
-.pp-summary__total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem; }
-.pp-summary__total-lbl { color: #cbd5e1; font-weight: 600; font-size: .95rem; }
-.pp-summary__total-val { color: #ffffff; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
-/* Mientras no haya un precio válido no se muestra un "$0 COP" engañoso */
-.pp-summary__total-val--vacio { color: #64748b; font-size: 1.05rem; font-weight: 600; letter-spacing: 0; }
-.pp-field-hint { font-size: .75rem; color: #64748b; margin: .15rem 0 0; }
-
-.pp-btn--submit {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .6rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-  color: #ffffff;
-  font-size: .95rem;
-  font-weight: 700;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
-  transition: all .2s;
-}
-.pp-btn--submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6); }
-
-.pp-summary__footer-note { text-align: center; font-size: .75rem; color: #64748b; margin-top: .8rem; }
-</style>
-
 {% if borrador %}{{ borrador|json_script:"borrador-datos" }}{% endif %}
 <script>
 (function(){
-  const input    = document.getElementById('buscar_mascota_input');
-  const hiddenId = document.getElementById('id_mascota_hidden');
-  const dropdown = document.getElementById('mascota-dropdown');
-  const boxInfo  = document.getElementById('info-mascota-box');
-  const btnClear = document.getElementById('btn_clear_pet');
-  
-  const lblAvatar  = document.getElementById('lbl_avatar');
-  const lblPetName = document.getElementById('lbl_pet_name');
-  const lblTamTxt  = document.getElementById('lbl_tamano_texto');
-  const lblPetSub  = document.getElementById('lbl_pet_sub');
+  const form      = document.getElementById('form-peluqueria');
+  const input     = document.getElementById('buscar_mascota_input');
+  const hiddenId  = document.getElementById('id_mascota_hidden');
+  const dropdown  = document.getElementById('mascota-dropdown');
+  const boxInfo   = document.getElementById('info-mascota-box');
+  const errMasc   = document.getElementById('error-mascota');
+  const errPrecio = document.getElementById('error-precio');
 
-  const inDur    = document.getElementById('id_duracion');
-  const inPrecio = document.getElementById('id_precio');
+  const inGroomer   = document.getElementById('id_groomer_id');
+  const inFechaHora = document.getElementById('id_fecha_hora');
+  const inDur       = document.getElementById('id_duracion');
+  const inPrecio    = document.getElementById('id_precio');
+  const inObs       = document.getElementById('id_observaciones');
+  const radios      = Array.from(document.querySelectorAll('input[name="servicio"]'));
+  const botones     = Array.from(document.querySelectorAll('button[form="form-peluqueria"]'));
 
-  // Resumen Lateral
   const sumAvatar  = document.getElementById('sum_avatar');
   const sumMascota = document.getElementById('sum_mascota');
   const sumRazaTam = document.getElementById('sum_raza_tamano');
@@ -326,194 +238,253 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   const sumGroomer = document.getElementById('sum_groomer');
   const sumFecha   = document.getElementById('sum_fecha');
   const sumDur     = document.getElementById('sum_duracion');
+  const sumEntrega = document.getElementById('sum_entrega');
   const sumTotal   = document.getElementById('sum_total');
+  const sumEstado  = document.getElementById('sum_estado');
+  const mbTitulo   = document.getElementById('mb_titulo');
+  const mbDetalle  = document.getElementById('mb_detalle');
 
-  const inServicio  = document.getElementById('id_servicio');
-  const inGroomer   = document.getElementById('id_groomer_id');
-  const inFechaHora = document.getElementById('id_fecha_hora');
-  const inObs       = document.getElementById('id_observaciones');
-  const formPelu    = document.getElementById('form-peluqueria');
-  const btnSubmit   = document.querySelector('button[form="form-peluqueria"]');
-
-  const AJAX_URL = "{% url 'peluqueria:buscar_mascota' %}";
-  let timer = null;
+  const AJAX_URL  = "{% url 'peluqueria:buscar_mascota' %}";
+  const LOGIN_URL = "{% url 'usuarios:login' %}";
   const DURACION_MIN = { pequeno: 60, mediano: 90, grande: 120 };
-  const EMOJIS = { perro:'🐕', gato:'🐈', ave:'🦜', roedor:'🐹', conejo:'🐇', otro:'🐾' };
+  const PRECIO_MAX_DIGITOS = 8;   // 99.999.999 COP, igual que el tope del servidor
+  let timer = null, items = [], activo = -1;
 
-  // Búsqueda AJAX
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+  function inicial(t) { return (String(t || '?').trim().charAt(0) || '?').toUpperCase(); }
+  function setValor(el, texto, vacio) { el.textContent = texto; el.classList.toggle('is-empty', !!vacio); }
+  function fechaLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  // ---------- Buscador de mascota (con teclado) ----------
   input.addEventListener('input', function(){
     clearTimeout(timer);
     const q = this.value.trim();
-    if(q.length < 2){ dropdown.style.display='none'; return; }
-    timer = setTimeout(()=>{
-      fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`)
-        .then(r=>{
-          if(r.status === 401){ window.location.href = "{% url 'usuarios:login' %}"; throw new Error('sesion'); }
+    if (q.length < 2) { cerrar(); return; }
+    timer = setTimeout(() => {
+      fetch(`${AJAX_URL}?q=${encodeURIComponent(q)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => {
+          if (r.status === 401) { window.location.href = LOGIN_URL; throw new Error('sesion'); }
           return r.json();
         })
-        .then(renderDropdown)
-        .catch(()=>{ dropdown.style.display = 'none'; });
+        .then(render)
+        .catch(cerrar);
     }, 250);
   });
 
-  function renderDropdown(items){
-    dropdown.innerHTML = '';
-    if(!items.length){
-      dropdown.innerHTML = '<div class="pp-dropdown-empty">Sin resultados.</div>';
-      dropdown.style.display = 'block'; return;
-    }
-    items.forEach(m=>{
-      const d = document.createElement('div');
-      d.className = 'pp-dropdown-item';
-      const emoji = EMOJIS[m.especie] || '🐾';
-      const nombre = document.createElement('div');
-      nombre.className = 'pp-dropdown-item__name';
-      nombre.textContent = `${emoji} ${m.nombre}`;
-      const sub = document.createElement('div');
-      sub.className = 'pp-dropdown-item__sub';
-      sub.textContent = `${m.especie_display||m.especie} · ${m.raza||'Sin raza'} · Dueño: ${m.dueno}`;
-      d.appendChild(nombre);
-      d.appendChild(sub);
-      d.addEventListener('click', ()=> seleccionar(m));
-      dropdown.appendChild(d);
-    });
-    dropdown.style.display = 'block';
+  input.addEventListener('keydown', function(e){
+    if (!dropdown.classList.contains('is-open')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); mover(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); mover(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (items[activo]) seleccionar(items[activo]); }
+    else if (e.key === 'Escape') { cerrar(); }
+  });
+
+  function render(lista){
+    items = lista; activo = lista.length ? 0 : -1;
+    dropdown.innerHTML = lista.length ? lista.map((m, i) => `
+      <div class="ag-option${i === 0 ? ' is-active' : ''}" role="option" data-i="${i}">
+        <span class="ag-avatar">${esc(inicial(m.nombre))}</span>
+        <div>
+          <div class="ag-option__name">${esc(m.nombre)} <small>${esc(m.tamano_display || '')}</small></div>
+          <div class="ag-option__sub">${esc(m.especie_display || m.especie)} · ${esc(m.raza)} · ${esc(m.dueno)}</div>
+        </div>
+      </div>`).join('') : '<div class="ag-dropdown__empty">No encontramos mascotas con ese dato.</div>';
+    dropdown.classList.add('is-open');
+    input.setAttribute('aria-expanded', 'true');
   }
 
-  // Muestra en el resumen la duración elegida en el campo (o "Por definir" si no hay ninguna)
-  function actualizarDuracionResumen(){
-    sumDur.textContent = inDur.value ? inDur.options[inDur.selectedIndex].text : 'Por definir';
+  dropdown.addEventListener('mousedown', function(e){
+    const op = e.target.closest('.ag-option');
+    if (op) { e.preventDefault(); seleccionar(items[+op.dataset.i]); }
+  });
+
+  function mover(paso){
+    if (!items.length) return;
+    activo = (activo + paso + items.length) % items.length;
+    dropdown.querySelectorAll('.ag-option').forEach((el, i) => el.classList.toggle('is-active', i === activo));
+    const el = dropdown.querySelector('.ag-option.is-active');
+    if (el) el.scrollIntoView({ block: 'nearest' });
   }
-  inDur.addEventListener('change', actualizarDuracionResumen);
+
+  function cerrar(){
+    dropdown.classList.remove('is-open');
+    input.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('click', e => { if (!e.target.closest('.ag-search')) cerrar(); });
 
   function seleccionar(m){
-    input.value    = m.nombre;
     hiddenId.value = m.id;
-    // Se sugiere la duración según el tamaño, pero el usuario puede cambiarla: lo que elija se envía y se guarda
+    input.value = '';
+    input.closest('.ag-search').hidden = true;
+    cerrar();
+    errMasc.hidden = true;
+
+    // Se sugiere la duración según el tamaño; el usuario puede cambiarla y eso es lo que se guarda
     const mins = DURACION_MIN[(m.tamano || 'pequeno').toLowerCase()] || 60;
     inDur.value = String(mins);
-    actualizarDuracionResumen();
+    actualizarDuracion();
 
-    const emoji = EMOJIS[m.especie] || '🐾';
-    lblAvatar.textContent = emoji;
-    lblPetName.textContent = m.nombre;
-    lblTamTxt.textContent = m.tamano_display || m.tamano || 'Pequeño';
-    lblPetSub.textContent = `${m.raza || 'Sin raza'} · ${m.dueno} · ${m.telefono || ''}`;
+    const tam = m.tamano_display || m.tamano || 'Pequeño';
+    document.getElementById('lbl_avatar').textContent = inicial(m.nombre);
+    document.getElementById('lbl_pet_name').textContent = m.nombre;
+    document.getElementById('lbl_tamano_texto').textContent = tam;
+    document.getElementById('lbl_pet_sub').textContent = `${m.especie_display || m.especie} · ${m.raza || 'Sin raza'} · ${m.dueno} · ${m.telefono || ''}`;
+    boxInfo.classList.add('is-visible');
 
-    boxInfo.style.display = 'flex';
-    dropdown.style.display = 'none';
-
-    sumAvatar.textContent = emoji;
+    sumAvatar.textContent = inicial(m.nombre);
     sumMascota.textContent = m.nombre;
-    sumRazaTam.textContent = `${m.raza || 'Mascota'} · ${m.tamano_display || m.tamano || 'Pequeño'}`;
+    sumRazaTam.textContent = `${m.raza || 'Mascota'} · ${tam}`;
+    actualizarEstado();
   }
 
-  if (btnClear) {
-    btnClear.addEventListener('click', function(){
-      hiddenId.value = '';
-      input.value = '';
-      boxInfo.style.display = 'none';
-      dropdown.style.display = 'none';
-      sumAvatar.textContent = '🐾';
-      sumMascota.textContent = 'Selecciona una mascota';
-      sumRazaTam.textContent = 'Especie · Raza · Tamaño';
-      inDur.value = '';
-      actualizarDuracionResumen();
-      input.focus();
-    });
-  }
-
-  // Cierra el menú al presionar la tecla Esc
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') dropdown.style.display = 'none';
+  document.getElementById('btn_clear_pet').addEventListener('click', function(){
+    hiddenId.value = '';
+    boxInfo.classList.remove('is-visible');
+    input.closest('.ag-search').hidden = false;
+    sumAvatar.textContent = '?';
+    sumMascota.textContent = 'Selecciona una mascota';
+    sumRazaTam.textContent = 'Especie · Raza · Tamaño';
+    inDur.value = '';
+    actualizarDuracion();
+    actualizarEstado();
+    input.focus();
   });
 
-  // OCULTA EL DROPDOWN AL HACER CLIC FUERA DE LA BÚSQUEDA
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.pp-search-wrap')) {
-      dropdown.style.display = 'none';
-    }
-  });
-
-  // Actualizadores de Resumen Lateral
-  inServicio.addEventListener('change', function(){
-    sumServ.textContent = this.options[this.selectedIndex].text.replace(/^[^\s]+\s/, '');
-  });
+  // ---------- Servicio, groomer, fecha y duración ----------
+  radios.forEach(r => r.addEventListener('change', function(){ setValor(sumServ, this.dataset.nombre, false); }));
 
   inGroomer.addEventListener('change', function(){
-    sumGroomer.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
+    setValor(sumGroomer, this.value ? this.options[this.selectedIndex].text : 'Por asignar', !this.value);
+    actualizarEstado();
   });
+
+  function horaTexto(d){ return d.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' }); }
+
+  function actualizarEntrega(){
+    if (!inFechaHora.value) { setValor(sumEntrega, '--:--', true); return; }
+    const mins = Number(inDur.value) || 0;
+    if (!mins) { setValor(sumEntrega, 'Según tamaño', true); return; }
+    const fin = new Date(new Date(inFechaHora.value).getTime() + mins * 60000);
+    setValor(sumEntrega, horaTexto(fin), false);
+  }
+
+  function actualizarDuracion(){
+    setValor(sumDur, inDur.value ? inDur.options[inDur.selectedIndex].text : 'Por definir', !inDur.value);
+    actualizarEntrega();
+  }
+  inDur.addEventListener('change', actualizarDuracion);
 
   inFechaHora.addEventListener('change', function(){
-    if(!this.value){ sumFecha.textContent = 'Por definir'; return; }
-    const dt = new Date(this.value);
-    sumFecha.textContent = dt.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    if (!this.value) { setValor(sumFecha, 'Por definir', true); }
+    else {
+      const dt = new Date(this.value);
+      setValor(sumFecha, dt.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + horaTexto(dt), false);
+    }
+    actualizarEntrega();
+    actualizarEstado();
   });
 
-  // Precio: solo dígitos (se ignora cualquier otro carácter), con puntos de miles, y siempre mayor a $0.
-  // Se escribe "$50.000" (sin " COP" pegado al final: con el sufijo dentro del campo no se podían borrar dígitos).
-  const PRECIO_MAX_DIGITOS = 8;   // 99.999.999 COP, igual que el tope del servidor
-  const MSG_PRECIO = 'Ingresa el precio del servicio (debe ser mayor a $0).';
-
-  function valorPrecio(){
-    return parseInt(inPrecio.value.replace(/\D/g, '') || '0', 10);
+  // Atajos de día y hora: completan el campo fecha-hora
+  let diaElegido = null, horaElegida = null;
+  function aplicarAtajos(){
+    const actual = inFechaHora.value ? inFechaHora.value.split('T') : [null, null];
+    const dia = diaElegido || actual[0] || fechaLocal(new Date());
+    const hora = horaElegida || actual[1] || '09:00';
+    inFechaHora.value = `${dia}T${hora}`;
+    inFechaHora.dispatchEvent(new Event('change'));
   }
+  document.querySelectorAll('#chips-dia .ag-chip').forEach(c => c.addEventListener('click', function(){
+    const d = new Date(); d.setDate(d.getDate() + Number(this.dataset.dias));
+    diaElegido = fechaLocal(d);
+    document.querySelectorAll('#chips-dia .ag-chip').forEach(x => x.classList.toggle('is-active', x === this));
+    aplicarAtajos();
+  }));
+  document.querySelectorAll('#chips-hora .ag-chip').forEach(c => c.addEventListener('click', function(){
+    horaElegida = this.dataset.hora;
+    document.querySelectorAll('#chips-hora .ag-chip').forEach(x => x.classList.toggle('is-active', x === this));
+    aplicarAtajos();
+  }));
+
+  // ---------- Precio ----------
+  // Solo dígitos, con puntos de miles, y siempre mayor a $0. Sin " COP" dentro del campo
+  // (con el sufijo pegado no se podían borrar dígitos).
+  function valorPrecio(){ return parseInt(inPrecio.value.replace(/\D/g, '') || '0', 10); }
 
   function formatearPrecio(){
     const digitos = inPrecio.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, PRECIO_MAX_DIGITOS);
-    if(!digitos){
-      inPrecio.value = '';
-    } else {
-      inPrecio.value = '$' + digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-    const valor = valorPrecio();
-    if(valor > 0){
+    inPrecio.value = digitos ? '$' + digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    if (valorPrecio() > 0) {
       sumTotal.textContent = inPrecio.value + ' COP';
       sumTotal.classList.remove('pp-summary__total-val--vacio');
+      errPrecio.hidden = true;
     } else {
       sumTotal.textContent = 'Por definir';
       sumTotal.classList.add('pp-summary__total-val--vacio');
     }
+    actualizarEstado();
+  }
+  inPrecio.addEventListener('input', formatearPrecio);
+
+  // ---------- Estado ----------
+  function actualizarEstado(){
+    const faltan = [];
+    if (!hiddenId.value)       faltan.push('mascota');
+    if (!inGroomer.value)      faltan.push('groomer');
+    if (!inFechaHora.value)    faltan.push('fecha y hora');
+    if (!(valorPrecio() > 0))  faltan.push('precio');
+    const lista = !faltan.length;
+    sumEstado.classList.toggle('pp-summary__status--lista', lista);
+    sumEstado.textContent = lista ? '● Lista para agendar' : '● Faltan datos';
+    sumEstado.title = lista ? '' : 'Falta: ' + faltan.join(', ');
+    mbDetalle.textContent = lista ? 'Lista para agendar' : 'Falta: ' + faltan.join(', ');
+    mbTitulo.textContent = hiddenId.value ? sumMascota.textContent : 'Nueva cita de peluquería';
+
+    document.getElementById('paso-mascota').classList.toggle('is-done', !!hiddenId.value);
+    document.getElementById('paso-servicio').classList.toggle('is-done', !!inGroomer.value);
+    document.getElementById('paso-horario').classList.toggle('is-done', !!inFechaHora.value);
+    document.getElementById('paso-precio').classList.toggle('is-done', valorPrecio() > 0);
   }
 
-  inPrecio.addEventListener('input', function(){
-    formatearPrecio();
-    this.setCustomValidity(valorPrecio() > 0 ? '' : MSG_PRECIO);
-  });
-  inPrecio.setCustomValidity(MSG_PRECIO);
-
-  // Evita enviar dos veces el formulario (doble clic) y crear citas duplicadas
-  formPelu.addEventListener('submit', function(e){
-    if(!hiddenId.value){
-      e.preventDefault();
-      input.focus();
-      alert('Busca y selecciona una mascota de la lista antes de agendar.');
-      return;
+  // ---------- Envío ----------
+  form.addEventListener('submit', function(e){
+    if (!hiddenId.value) {
+      e.preventDefault(); errMasc.hidden = false;
+      document.getElementById('paso-mascota').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus(); return;
     }
-    if(btnSubmit){ btnSubmit.disabled = true; btnSubmit.style.opacity = '.6'; }
+    if (!(valorPrecio() > 0)) {
+      e.preventDefault(); errPrecio.hidden = false; inPrecio.focus(); return;
+    }
+    // Evita doble clic (citas duplicadas)
+    botones.forEach(b => { b.disabled = true; });
   });
-  // Si el usuario vuelve con el botón "atrás", el botón debe poder usarse otra vez
-  window.addEventListener('pageshow', function(){
-    if(btnSubmit){ btnSubmit.disabled = false; btnSubmit.style.opacity = ''; }
-  });
+  window.addEventListener('pageshow', () => botones.forEach(b => { b.disabled = false; }));
 
-  // Restaura lo escrito cuando el servidor devolvió errores de validación
+  // ---------- Restaurar lo escrito si el servidor devolvió un error ----------
   const borradorEl = document.getElementById('borrador-datos');
-  if(borradorEl){
+  if (borradorEl) {
     const b = JSON.parse(borradorEl.textContent);
-    if(b.mascota){ seleccionar(b.mascota); }
-    if(b.duracion_min){ inDur.value = String(b.duracion_min); actualizarDuracionResumen(); }
-    if(b.servicio){ inServicio.value = b.servicio; inServicio.dispatchEvent(new Event('change')); }
-    if(b.groomer_id){ inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
-    if(b.fecha_hora){ inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
-    if(b.precio){ inPrecio.value = String(b.precio); inPrecio.dispatchEvent(new Event('input')); }
-    if(b.observaciones){ inObs.value = b.observaciones; }
+    if (b.mascota) { seleccionar(b.mascota); }
+    if (b.duracion_min) { inDur.value = String(b.duracion_min); actualizarDuracion(); }
+    if (b.servicio) {
+      const r = radios.find(x => x.value === b.servicio);
+      if (r) { r.checked = true; r.dispatchEvent(new Event('change')); }
+    }
+    if (b.groomer_id) { inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
+    if (b.fecha_hora) { inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
+    if (b.precio) { inPrecio.value = String(b.precio); formatearPrecio(); }
+    if (b.observaciones) { inObs.value = b.observaciones; }
   }
+  actualizarEstado();
 
   // Tras agendar con éxito: descarga automática del comprobante PDF
-  if(formPelu.dataset.descargar){
-    window.location.href = formPelu.dataset.descargar;
-  }
+  if (form.dataset.descargar) { window.location.href = form.dataset.descargar; }
 }());
 </script>
 {% endblock %}
