@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Historial clínico de {{ mascota.nombre }} · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <a href="{% url 'clinico:seleccionar_mascota_historial' %}">Historia clínica</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">{{ mascota.nombre }}</span>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <h1>Historia clínica · {{ mascota.nombre }}</h1>
+      <p class="app-content__subtitle">
+        {{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}
+        · Propietario: {{ mascota.id_dueno.nombre_completo }}
+      </p>
+
+      {% if messages %}
+      <ul class="app-messages">
+        {% for message in messages %}
+          <li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <section class="clinical-card">
+        <h2>Registrar consulta médica</h2>
+        <p class="app-content__subtitle">Cada consulta guardada aparecerá en el historial clínico de {{ mascota.nombre }}.</p>
+        <form method="post" class="app-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+          {% endif %}
+
+          <div class="form-field">
+            <label for="{{ form.anamnesis.id_for_label }}" class="form-label">Anamnesis *</label>
+            {{ form.anamnesis }}
+            {% for error in form.anamnesis.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+          </div>
+
+          <h3>Constantes vitales</h3>
+          <div class="clinical-grid">
+            <div class="form-field">
+              <label for="{{ form.peso.id_for_label }}" class="form-label">Peso (kg)</label>
+              {{ form.peso }}
+              {% for error in form.peso.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.temperatura.id_for_label }}" class="form-label">Temperatura (°C)</label>
+              {{ form.temperatura }}
+              {% for error in form.temperatura.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.frecuencia_cardiaca.id_for_label }}" class="form-label">Frecuencia cardíaca (lpm)</label>
+              {{ form.frecuencia_cardiaca }}
+              {% for error in form.frecuencia_cardiaca.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.frecuencia_respiratoria.id_for_label }}" class="form-label">Frecuencia respiratoria (rpm)</label>
+              {{ form.frecuencia_respiratoria }}
+              {% for error in form.frecuencia_respiratoria.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
+
+          <h3>Examen por sistemas</h3>
+          <div class="form-field">
+            <label for="{{ form.examen_general.id_for_label }}" class="form-label">Examen general</label>
+            {{ form.examen_general }}
+            {% for error in form.examen_general.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+          </div>
+          <div class="clinical-grid">
+            <div class="form-field">
+              <label for="{{ form.sistema_tegumentario.id_for_label }}" class="form-label">Piel y anexos</label>
+              {{ form.sistema_tegumentario }}
+              {% for error in form.sistema_tegumentario.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_cardiovascular.id_for_label }}" class="form-label">Sistema cardiovascular</label>
+              {{ form.sistema_cardiovascular }}
+              {% for error in form.sistema_cardiovascular.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_respiratorio.id_for_label }}" class="form-label">Sistema respiratorio</label>
+              {{ form.sistema_respiratorio }}
+              {% for error in form.sistema_respiratorio.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_digestivo.id_for_label }}" class="form-label">Sistema digestivo</label>
+              {{ form.sistema_digestivo }}
+              {% for error in form.sistema_digestivo.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_genitourinario.id_for_label }}" class="form-label">Sistema genitourinario</label>
+              {{ form.sistema_genitourinario }}
+              {% for error in form.sistema_genitourinario.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_musculoesqueletico.id_for_label }}" class="form-label">Sistema musculoesquelético</label>
+              {{ form.sistema_musculoesqueletico }}
+              {% for error in form.sistema_musculoesqueletico.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_nervioso.id_for_label }}" class="form-label">Sistema nervioso</label>
+              {{ form.sistema_nervioso }}
+              {% for error in form.sistema_nervioso.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.sistema_linfatico.id_for_label }}" class="form-label">Sistema linfático</label>
+              {{ form.sistema_linfatico }}
+              {% for error in form.sistema_linfatico.errors %}<p class="app-form__field-error">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
+
+          <div class="app-form__actions">
+            <a href="{% url 'clinico:seleccionar_mascota_historial' %}" class="btn btn--ghost">Volver a mascotas</a>
+            <button type="submit" class="btn btn--primary">Guardar consulta</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="clinical-history">
+        <h2>Consultas anteriores</h2>
+        {% if consultas %}
+          {% for consulta in consultas %}
+          <article class="clinical-card">
+            <h3>{{ consulta.fecha_consulta|date:"d/m/Y H:i" }}</h3>
+            <p class="app-content__subtitle">Registrada por {{ consulta.profesional.nombre_completo|default:consulta.profesional.username }}</p>
+            <h4>Anamnesis</h4>
+            <p>{{ consulta.anamnesis|linebreaksbr }}</p>
+
+            <h4>Constantes vitales</h4>
+            <dl class="clinical-vitals">
+              <div><dt>Peso</dt><dd>{{ consulta.peso|default_if_none:"—" }}{% if consulta.peso %} kg{% endif %}</dd></div>
+              <div><dt>Temperatura</dt><dd>{{ consulta.temperatura|default_if_none:"—" }}{% if consulta.temperatura %} °C{% endif %}</dd></div>
+              <div><dt>Frecuencia cardíaca</dt><dd>{{ consulta.frecuencia_cardiaca|default_if_none:"—" }}{% if consulta.frecuencia_cardiaca != None %} lpm{% endif %}</dd></div>
+              <div><dt>Frecuencia respiratoria</dt><dd>{{ consulta.frecuencia_respiratoria|default_if_none:"—" }}{% if consulta.frecuencia_respiratoria != None %} rpm{% endif %}</dd></div>
+            </dl>
+
+            <h4>Examen por sistemas</h4>
+            {% if consulta.examen_general %}<p><strong>General:</strong> {{ consulta.examen_general|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_tegumentario %}<p><strong>Piel y anexos:</strong> {{ consulta.sistema_tegumentario|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_cardiovascular %}<p><strong>Cardiovascular:</strong> {{ consulta.sistema_cardiovascular|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_respiratorio %}<p><strong>Respiratorio:</strong> {{ consulta.sistema_respiratorio|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_digestivo %}<p><strong>Digestivo:</strong> {{ consulta.sistema_digestivo|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_genitourinario %}<p><strong>Genitourinario:</strong> {{ consulta.sistema_genitourinario|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_musculoesqueletico %}<p><strong>Musculoesquelético:</strong> {{ consulta.sistema_musculoesqueletico|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_nervioso %}<p><strong>Nervioso:</strong> {{ consulta.sistema_nervioso|linebreaksbr }}</p>{% endif %}
+            {% if consulta.sistema_linfatico %}<p><strong>Linfático:</strong> {{ consulta.sistema_linfatico|linebreaksbr }}</p>{% endif %}
+            {% if not consulta.examen_general and not consulta.sistema_tegumentario and not consulta.sistema_cardiovascular and not consulta.sistema_respiratorio and not consulta.sistema_digestivo and not consulta.sistema_genitourinario and not consulta.sistema_musculoesqueletico and not consulta.sistema_nervioso and not consulta.sistema_linfatico %}
+              <p class="app-content__subtitle">No se registraron hallazgos del examen físico.</p>
+            {% endif %}
+          </article>
+          {% endfor %}
+        {% else %}
+          <p class="app-content__subtitle">Esta mascota aún no tiene consultas registradas.</p>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+</div>
+<style>
+.clinical-card { padding: 24px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.clinical-card h3, .clinical-card h4 { margin: 20px 0 8px; }
+.clinical-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 18px; }
+.clinical-vitals { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.clinical-vitals div { padding: 12px; background: var(--surface-alt); border-radius: var(--radius-sm); }
+.clinical-vitals dt { color: var(--text-muted); font-size: 13px; }
+.clinical-vitals dd { margin: 4px 0 0; font-weight: 600; }
+</style>
+{% endblock %}

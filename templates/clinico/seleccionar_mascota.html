@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Historia clínica · Prados Pets{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Historia clínica</span>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <h1>Historia clínica</h1>
+      <p class="app-content__subtitle">Selecciona una mascota para ver su historial o registrar una consulta.</p>
+      {% if mascotas %}
+      <table class="app-table">
+        <thead>
+          <tr><th>Mascota</th><th>Especie</th><th>Propietario</th><th>Teléfono</th><th>Acción</th></tr>
+        </thead>
+        <tbody>
+          {% for mascota in mascotas %}
+          <tr>
+            <td>{{ mascota.nombre }}</td>
+            <td>{{ mascota.get_especie_display }}</td>
+            <td>{{ mascota.id_dueno.nombre_completo }}</td>
+            <td>{{ mascota.id_dueno.telefono }}</td>
+            <td><a class="btn btn--ghost btn--sm" href="{% url 'clinico:historial_clinico' mascota.id_mascota %}">Abrir historia clínica</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="app-content__subtitle">Aún no hay mascotas registradas.</p>
+      <a class="btn btn--primary" href="{% url 'registrar_mascota' %}">Registrar mascota</a>
+      {% endif %}
+    </main>
+  </div>
+</div>
+{% endblock %}
