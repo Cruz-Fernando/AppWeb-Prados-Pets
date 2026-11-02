@@ -43,6 +43,8 @@ class CitaForm(forms.ModelForm):
         self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
         self.fields["mascota"].required = True
         self.fields["hora_fin"].required = True  # SW-04: Exigir hora_fin en el formulario
+        # Opción vacía en español (la de Django 6.1 sale como "- Select an option -")
+        self.fields["veterinario"].empty_label = "Selecciona un veterinario"
 
     def clean_fecha(self):
         fecha = self.cleaned_data.get("fecha")
