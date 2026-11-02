@@ -49,7 +49,7 @@ class ReposicionForm(forms.Form):
 
 class CargaExcelForm(forms.Form):
     archivo_excel = forms.FileField(
-        label="Archivo Excel o CSV",
+        label="Archivo Excel",
         widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls, .csv'})
     )
 
