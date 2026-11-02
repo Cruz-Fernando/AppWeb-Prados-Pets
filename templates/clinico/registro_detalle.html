@@ -1,0 +1,143 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}{{ r.numero }} · {{ mascota.nombre }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'clinico:seleccionar_mascota_historial' %}">Historia clínica</a>
+  <span class="app-topbar__sep">/</span>
+  <a href="{% url 'clinico:historial_clinico' mascota.id_mascota %}">{{ mascota.nombre }}</a>
+  <span class="app-topbar__sep">/</span>
+  <span class="app-topbar__current">{{ r.numero }}</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="t-{{ tipo.color|default:'gray' }}">
+  <div class="cl-head">
+    <div class="cl-head__text">
+      <span class="cl-eyebrow">{% include "clinico/_icono.html" with nombre=tipo.icono size=14 %} {{ r.get_tipo_display }} · {{ r.numero }}</span>
+      <h1>{{ r.motivo }}</h1>
+      <p class="app-content__subtitle">
+        {{ mascota.nombre }} · {{ r.fecha_atencion|date:"l d \d\e F Y, H:i" }} · {{ r.profesional.nombre_completo|default:r.profesional.username }}
+      </p>
+    </div>
+    <div class="cl-head__actions">
+      <a href="{% url 'clinico:historial_clinico' mascota.id_mascota %}" class="btn btn--ghost">{% include "clinico/_icono.html" with nombre="volver" size=16 %} Historia</a>
+      {% if puede_editar %}
+      <a href="{% url 'clinico:editar_registro' r.pk %}" class="btn btn--ghost">{% include "clinico/_icono.html" with nombre="editar" size=16 %} Editar</a>
+      <button type="button" class="btn btn--rose" onclick="document.getElementById('modal-anular').showModal()">{% include "clinico/_icono.html" with nombre="anular" size=16 %} Anular</button>
+      {% endif %}
+      <a href="{% url 'clinico:registro_pdf' r.pk %}" class="btn btn--primary" id="btn-pdf">{% include "clinico/_icono.html" with nombre="descargar" size=16 %} Descargar PDF</a>
+    </div>
+  </div>
+
+  {% if r.anulado %}
+  <div class="cl-banner cl-banner--void">
+    {% include "clinico/_icono.html" with nombre="anular" %}
+    <span><b>Registro anulado</b> el {{ r.anulado_en|date:"d/m/Y H:i" }} por {{ r.anulado_por.nombre_completo|default:r.anulado_por.username }} · Motivo: {{ r.motivo_anulacion }}</span>
+  </div>
+  {% endif %}
+
+  <div class="cl-grid">
+    <div>
+      {% if vitales %}
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="pulso" size=16 %} Constantes vitales</h2></div>
+        <div class="cl-card__body">
+          <div class="cl-vitals">
+            {% for etq, valor in vitales %}<div class="cl-vital"><span>{{ etq }}</span><b>{{ valor }}</b></div>{% endfor %}
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if especificos %}
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre=tipo.icono size=16 %} {{ tipo.nombre }}</h2></div>
+        <div class="cl-card__body">
+          {% for titulo, filas in especificos %}
+            {% if especificos|length > 1 %}<h3 class="cl-section-label">{{ titulo }}</h3>{% endif %}
+            <dl class="cl-dl">
+              {% for etq, valor, largo in filas %}<div{% if largo %} class="is-long"{% endif %}><dt>{{ etq }}</dt><dd>{{ valor }}</dd></div>{% endfor %}
+            </dl>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {% if evaluacion or r.proximo_control %}
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="archivo" size=16 %} Evaluación y plan</h2></div>
+        <div class="cl-card__body">
+          <dl class="cl-dl">
+            {% for etq, valor in evaluacion %}<div class="is-long"><dt>{{ etq }}</dt><dd>{{ valor }}</dd></div>{% endfor %}
+            {% if r.proximo_control %}<div><dt>Próximo control</dt><dd>{{ r.proximo_control|date:"d/m/Y" }}</dd></div>{% endif %}
+          </dl>
+        </div>
+      </section>
+      {% endif %}
+    </div>
+
+    <aside class="cl-side">
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">Datos del registro</h2></div>
+        <ul class="cl-list">
+          <li><span>Número</span><b>{{ r.numero }}</b></li>
+          <li><span>Paciente</span><a href="{% url 'clinico:historial_clinico' mascota.id_mascota %}">{{ mascota.nombre }}</a></li>
+          <li><span>Propietario</span><span class="cl-list__muted">{{ mascota.id_dueno.nombre_completo }}</span></li>
+          <li><span>Profesional</span><span class="cl-list__muted">{{ r.profesional.nombre_completo|default:r.profesional.username }}</span></li>
+          {% if r.hospitalizacion %}<li><span>Hospitalización</span><a href="{% url 'clinico:hospitalizacion_detalle' r.hospitalizacion.pk %}">{{ r.hospitalizacion.numero }}</a></li>{% endif %}
+          <li><span>Creado</span><span class="cl-list__muted">{{ r.creado_en|date:"d/m/Y H:i" }}</span></li>
+          {% if r.fue_editado %}<li><span>Última edición</span><span class="cl-list__muted">{{ r.actualizado_en|date:"d/m/Y H:i" }}</span></li>{% endif %}
+          {% if r.adjunto %}<li><span>Adjunto</span><a href="{{ r.adjunto.url }}" target="_blank" rel="noopener">{% include "clinico/_icono.html" with nombre="clip" size=13 %} Abrir</a></li>{% endif %}
+        </ul>
+      </section>
+
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="reloj" size=16 %} Trazabilidad</h2></div>
+        {% if trazas %}
+        <ul class="cl-list">
+          {% for t in trazas %}
+          <li style="display:block;">
+            <div style="display:flex;justify-content:space-between;gap:8px;">
+              <span class="cl-badge{% if t.accion == 'anular' %} cl-badge--void{% elif t.accion == 'editar' %} cl-badge--warn{% elif t.accion == 'pdf' %} cl-badge--muted{% endif %}">{{ t.get_accion_display }}</span>
+              <span class="cl-list__muted">{{ t.fecha|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="cl-list__muted" style="margin-top:4px;">{{ t.usuario.nombre_completo|default:t.usuario.username|default:"—" }}</div>
+            {% if t.cambios %}
+            <ul class="cl-diff">{% for campo, v in t.cambios.items %}<li><b>{{ campo }}:</b> <del>{{ v.0 }}</del> → <ins>{{ v.1 }}</ins></li>{% endfor %}</ul>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="cl-empty-sm">Sin movimientos.</p>{% endif %}
+      </section>
+    </aside>
+  </div>
+</div>
+
+{% if puede_anular %}
+<dialog class="cl-modal" id="modal-anular">
+  <form method="post" action="{% url 'clinico:anular_registro' r.pk %}" class="cl-card">
+    {% csrf_token %}
+    <div class="cl-card__head"><h2 class="cl-card__title">Anular {{ r.numero }}</h2></div>
+    <div class="cl-card__body">
+      <p class="app-content__subtitle" style="margin-bottom:14px;">Los registros clínicos no se eliminan: quedan marcados como anulados y visibles en la historia con el motivo.</p>
+      <div class="cl-fields">{% include "clinico/_campo.html" with f=form_anular.motivo_anulacion ancho="full" %}</div>
+    </div>
+    <div class="cl-actions" style="position:static;">
+      <button type="button" class="btn btn--ghost" onclick="this.closest('dialog').close()">Cancelar</button>
+      <button type="submit" class="btn btn--rose">Anular registro</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if auto_pdf %}
+<script>
+  // Recién guardado con "Guardar y descargar PDF": inicia la descarga
+  window.addEventListener('load', function () {
+    window.location.href = document.getElementById('btn-pdf').href;
+  });
+</script>
+{% endif %}
+{% endblock %}

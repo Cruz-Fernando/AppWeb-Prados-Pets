@@ -10,13 +10,13 @@ from apps.directorio.models import Dueno, Mascota
 from apps.peluqueria.models import CitaPeluqueria
 from apps.usuarios.models import Rol
 
-from .models import ConsultaMedica
+from .models import Hospitalizacion, RegistroClinico, TrazaClinica
 
 
 class HistorialClinicoTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        rol = Rol.objects.create(nombre_rol="veterinario")
+        rol, _ = Rol.objects.get_or_create(nombre_rol="veterinario")
         cls.profesional = get_user_model().objects.create_user(
             username="veterinaria",
             password="testpass123",
@@ -37,6 +37,9 @@ class HistorialClinicoTests(TestCase):
     def setUp(self):
         self.client.force_login(self.profesional)
 
+    def _url_nuevo(self, tipo):
+        return reverse("clinico:nuevo_registro", args=[self.mascota.id_mascota, tipo])
+
     def test_lista_mascotas_permite_abrir_historia(self):
         response = self.client.get(
             reverse("clinico:seleccionar_mascota_historial")
@@ -50,59 +53,195 @@ class HistorialClinicoTests(TestCase):
             reverse("clinico:historial_clinico", args=[self.mascota.id_mascota]),
         )
 
-    def test_historial_muestra_formulario_y_estado_vacio(self):
+    def test_historial_muestra_tipos_de_registro_y_estado_vacio(self):
         response = self.client.get(
             reverse("clinico:historial_clinico", args=[self.mascota.id_mascota])
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Anamnesis")
-        self.assertContains(response, "Constantes vitales")
-        self.assertContains(response, "Examen por sistemas")
+        for nombre in ("Consulta General", "Vacunación", "Desparasitación", "Sedación",
+                       "Cirugía", "Eutanasia", "Control Post-Operatorio", "Otro procedimiento"):
+            self.assertContains(response, nombre)
+        self.assertNotContains(response, "Peluquería / Spa")
         self.assertContains(response, "Esta mascota aún no tiene consultas registradas.")
 
-    def test_consulta_se_guarda_en_historial_y_se_muestra(self):
-        response = self.client.post(
-            reverse("clinico:historial_clinico", args=[self.mascota.id_mascota]),
-            {
-                "anamnesis": "Vómito desde ayer y disminución del apetito.",
-                "peso": "8.50",
-                "temperatura": "38.5",
-                "frecuencia_cardiaca": "100",
-                "frecuencia_respiratoria": "24",
-                "examen_general": "Paciente alerta e hidratado.",
-                "sistema_digestivo": "Dolor leve a la palpación abdominal.",
-            },
-        )
+    def test_consulta_general_se_guarda_con_examen_por_sistemas_y_traza(self):
+        response = self.client.post(self._url_nuevo("consulta_general"), {
+            "fecha_atencion": "2026-11-02T09:30",
+            "motivo": "Vómito desde ayer",
+            "anamnesis": "Vómito desde ayer y disminución del apetito.",
+            "peso": "8.50",
+            "temperatura": "38.5",
+            "frecuencia_cardiaca": "100",
+            "d_sistema_digestivo": "Dolor leve a la palpación abdominal.",
+            "d_pronostico": "favorable",
+        })
 
-        self.assertRedirects(
-            response,
-            reverse("clinico:historial_clinico", args=[self.mascota.id_mascota]),
-        )
-        consulta = ConsultaMedica.objects.get(mascota=self.mascota)
-        self.assertEqual(consulta.profesional, self.profesional)
-        self.assertEqual(consulta.anamnesis, "Vómito desde ayer y disminución del apetito.")
-        self.assertEqual(str(consulta.peso), "8.50")
-        self.assertEqual(str(consulta.temperatura), "38.5")
-        self.assertEqual(consulta.sistema_digestivo, "Dolor leve a la palpación abdominal.")
+        registro = RegistroClinico.objects.get(mascota=self.mascota)
+        self.assertRedirects(response, reverse("clinico:registro_detalle", args=[registro.pk]))
+        self.assertEqual(registro.tipo, "consulta_general")
+        self.assertEqual(registro.profesional, self.profesional)
+        self.assertEqual(str(registro.temperatura), "38.5")
+        self.assertEqual(registro.detalle["sistema_digestivo"], "Dolor leve a la palpación abdominal.")
+        self.assertTrue(TrazaClinica.objects.filter(registro=registro, accion="crear").exists())
 
         historial = self.client.get(
             reverse("clinico:historial_clinico", args=[self.mascota.id_mascota])
         )
-        self.assertContains(historial, "Vómito desde ayer y disminución del apetito.")
-        self.assertContains(historial, "38.5 °C")
-        self.assertContains(historial, "Dolor leve a la palpación abdominal.")
+        self.assertContains(historial, "Vómito desde ayer")
+        self.assertContains(historial, "38,5 °C")  # formato es-co
         self.assertContains(historial, "Dra. Ana")
 
-    def test_consulta_no_se_guarda_sin_anamnesis(self):
-        response = self.client.post(
-            reverse("clinico:historial_clinico", args=[self.mascota.id_mascota]),
-            {"anamnesis": ""},
-        )
+        detalle = self.client.get(reverse("clinico:registro_detalle", args=[registro.pk]))
+        self.assertContains(detalle, "Dolor leve a la palpación abdominal.")
+        self.assertContains(detalle, "Favorable")
 
+    def test_vacunacion_exige_vacuna_y_lote(self):
+        response = self.client.post(self._url_nuevo("vacunacion"), {
+            "fecha_atencion": "2026-11-02T09:30",
+            "motivo": "Plan vacunal",
+            "d_dosis": "1",
+            "d_via": "SC",
+        })
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["form"].has_error("anamnesis", "required"))
-        self.assertFalse(ConsultaMedica.objects.exists())
+        self.assertTrue(response.context["form"].has_error("d_vacuna", "required"))
+        self.assertTrue(response.context["form"].has_error("d_lote", "required"))
+        self.assertFalse(RegistroClinico.objects.exists())
+
+    def test_vacunacion_muestra_proxima_dosis_en_proximos_eventos(self):
+        proxima = (timezone.localdate() + timedelta(days=21)).isoformat()
+        self.client.post(self._url_nuevo("vacunacion"), {
+            "fecha_atencion": "2026-11-02T09:30",
+            "motivo": "Plan vacunal cachorro",
+            "d_vacuna": "Polivalente DHPPi+L",
+            "d_lote": "A123",
+            "d_dosis": "1",
+            "d_via": "SC",
+            "d_proxima_dosis": proxima,
+        })
+        registro = RegistroClinico.objects.get()
+        self.assertEqual(registro.detalle["proxima_dosis"], proxima)
+        historial = self.client.get(
+            reverse("clinico:historial_clinico", args=[self.mascota.id_mascota])
+        )
+        self.assertContains(historial, "Vacuna: Polivalente DHPPi+L")
+
+    def test_cirugia_exige_consentimiento(self):
+        response = self.client.post(self._url_nuevo("cirugia"), {
+            "fecha_atencion": "2026-11-02T09:30",
+            "motivo": "Esterilización",
+            "d_procedimiento": "Ovariohisterectomía",
+            "d_caracter": "electiva",
+            "d_asa": "I",
+            "d_tecnica": "Abordaje por línea media.",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].has_error("d_consentimiento_firmado", "required"))
+
+    def test_eutanasia_cierra_hospitalizacion_activa(self):
+        hosp = Hospitalizacion.objects.create(mascota=self.mascota, motivo="Insuficiencia renal")
+        self.client.post(self._url_nuevo("eutanasia"), {
+            "fecha_atencion": "2026-11-02T09:30",
+            "motivo": "Insuficiencia renal terminal",
+            "d_diagnostico_base": "ERC estadio IV",
+            "d_consentimiento_firmado": "on",
+            "d_autorizado_por": "Carlos Ruiz",
+            "d_documento_autorizante": "1090000000",
+            "d_sedacion_previa": "Propofol",
+            "d_agente": "Pentobarbital 100 mg/kg IV",
+            "d_hora_fallecimiento": "09:45",
+            "d_confirmacion": "Asistolia y apnea",
+            "d_disposicion": "cremacion_individual",
+        })
+        hosp.refresh_from_db()
+        self.assertEqual(hosp.estado, "ALTA")
+        self.assertEqual(hosp.condicion_alta, "fallecido")
+        historial = self.client.get(
+            reverse("clinico:historial_clinico", args=[self.mascota.id_mascota])
+        )
+        self.assertContains(historial, "Paciente fallecido")
+
+    def test_editar_registro_guarda_diferencias_en_trazabilidad(self):
+        registro = RegistroClinico.objects.create(
+            mascota=self.mascota, tipo="otro", profesional=self.profesional,
+            motivo="Curación", detalle={"procedimiento": "Curación de herida"},
+        )
+        self.client.post(reverse("clinico:editar_registro", args=[registro.pk]), {
+            "fecha_atencion": "2026-11-02T09:30",
+            "motivo": "Curación de herida en miembro",
+            "d_procedimiento": "Curación de herida",
+            "temperatura": "39.0",
+        })
+        traza = TrazaClinica.objects.get(registro=registro, accion="editar")
+        self.assertIn("Temperatura (°C)", traza.cambios)
+        self.assertEqual(traza.cambios["Motivo de la atención"], ["Curación", "Curación de herida en miembro"])
+
+    def test_anular_registro_lo_conserva_con_motivo(self):
+        registro = RegistroClinico.objects.create(
+            mascota=self.mascota, tipo="otro", profesional=self.profesional, motivo="Error",
+        )
+        self.client.post(reverse("clinico:anular_registro", args=[registro.pk]),
+                         {"motivo_anulacion": "Mascota equivocada"})
+        registro.refresh_from_db()
+        self.assertTrue(registro.anulado)
+        self.assertEqual(registro.motivo_anulacion, "Mascota equivocada")
+        self.assertTrue(TrazaClinica.objects.filter(registro=registro, accion="anular").exists())
+
+    def test_pdfs_de_registro_e_historia(self):
+        registro = RegistroClinico.objects.create(
+            mascota=self.mascota, tipo="desparasitacion", profesional=self.profesional,
+            motivo="Plan", detalle={"producto": "Drontal", "dosis": "1 tableta",
+                                    "tipo_desparasitacion": "interna", "via": "VO"},
+        )
+        for url in (reverse("clinico:registro_pdf", args=[registro.pk]),
+                    reverse("clinico:historia_pdf", args=[self.mascota.id_mascota])):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(TrazaClinica.objects.filter(accion="pdf").count(), 2)
+
+    def test_flujo_hospitalizacion_ingreso_evolucion_alta(self):
+        response = self.client.get(reverse("clinico:hospitalizacion"))
+        self.assertContains(response, "No hay pacientes hospitalizados")
+
+        response = self.client.post(reverse("clinico:ingresar_paciente"), {
+            "mascota": self.mascota.id_mascota,
+            "motivo": "Gastroenteritis",
+            "temperatura": "39.8",
+        })
+        hosp = Hospitalizacion.objects.get()
+        self.assertRedirects(response, reverse("clinico:hospitalizacion_detalle", args=[hosp.pk]))
+        self.assertEqual(hosp.profesional_ingreso, self.profesional)
+
+        self.client.post(reverse("clinico:hospitalizacion_detalle", args=[hosp.pk]), {
+            "fecha": "2026-11-02T14:00",
+            "estado_general": "mejorando",
+            "temperatura": "38.9",
+            "medicamentos": "Maropitant 1 mg/kg SC",
+        })
+        self.assertEqual(hosp.evoluciones.count(), 1)
+
+        self.client.post(reverse("clinico:dar_alta", args=[hosp.pk]), {
+            "condicion_alta": "mejorado",
+            "resumen_alta": "Respondió a fluidoterapia.",
+        })
+        hosp.refresh_from_db()
+        self.assertEqual(hosp.estado, "ALTA")
+        self.assertIsNotNone(hosp.fecha_alta)
+
+        pdf = self.client.get(reverse("clinico:hospitalizacion_pdf", args=[hosp.pk]))
+        self.assertEqual(pdf["Content-Type"], "application/pdf")
+        acciones = set(TrazaClinica.objects.filter(mascota=self.mascota).values_list("accion", flat=True))
+        self.assertTrue({"ingreso", "evolucion", "alta", "pdf"} <= acciones)
+
+    def test_rol_sin_permiso_no_puede_registrar(self):
+        rol, _ = Rol.objects.get_or_create(nombre_rol="groomer")
+        groomer = get_user_model().objects.create_user(
+            username="groomer1", password="x", nombre_completo="Groomer", id_rol=rol,
+        )
+        self.client.force_login(groomer)
+        response = self.client.get(self._url_nuevo("consulta_general"))
+        self.assertEqual(response.status_code, 403)
 
     def test_recordatorios_vacios_sin_citas_de_vacunacion_o_bano(self):
         response = self.client.get(reverse("clinico:recordatorios"))
