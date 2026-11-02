@@ -1,10 +1,13 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
+import openpyxl
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from apps.directorio.forms import MascotaForm, VacunacionForm
@@ -242,7 +245,6 @@ def autocomplete_duenos(request):
                 'texto': texto,
             })
     return JsonResponse({'resultados': resultados})
-    return JsonResponse({'resultados': resultados})
 
 
 @login_required
@@ -325,7 +327,7 @@ def exportar_directorio_excel(request):
     return response
 
 
-@login_required     
+@login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def exportar_duenos_excel(request):
     """

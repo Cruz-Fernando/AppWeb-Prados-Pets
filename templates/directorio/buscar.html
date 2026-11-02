@@ -25,6 +25,14 @@
       <h1>Buscar dueño o mascota</h1>
       <p class="app-content__subtitle">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
 
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 8px;">
+        <a href="{% url 'lista_duenos' %}" class="btn btn--ghost">👤 Ver todos los dueños</a>
+        <a href="{% url 'lista_mascotas' %}" class="btn btn--ghost">🐾 Ver todas las mascotas</a>
+        <a href="{% url 'exportar_duenos_excel' %}" style="padding: 8px 16px; background: #10b981; border-radius: 8px; color: #fff; text-decoration: none; font-weight: 600;">📥 Exportar dueños</a>
+        <a href="{% url 'exportar_mascotas_excel' %}" style="padding: 8px 16px; background: #10b981; border-radius: 8px; color: #fff; text-decoration: none; font-weight: 600;">📥 Exportar mascotas</a>
+        <a href="{% url 'exportar_directorio_excel' %}" style="padding: 8px 16px; background: #6366f1; border-radius: 8px; color: #fff; text-decoration: none; font-weight: 600;">📥 Exportar todo (2 hojas)</a>
+      </div>
+
       {% if messages %}
       <ul class="app-messages">
         {% for message in messages %}
