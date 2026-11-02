@@ -1,0 +1,78 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}Hospitalización{% endblock %}
+{% block migas %}<span class="app-topbar__current">Hospitalización</span>{% endblock %}
+
+{% block contenido %}
+<div class="cl-head">
+  <div class="cl-head__text">
+    <h1>Hospitalización</h1>
+    <p class="app-content__subtitle">Pacientes internados, rondas de evolución y egresos.</p>
+  </div>
+  {% if puede_registrar %}
+  <div class="cl-head__actions">
+    <a href="{% url 'clinico:ingresar_paciente' %}" class="btn btn--primary">{% include "clinico/_icono.html" with nombre="mas" size=16 %} Ingresar paciente</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="cl-kpis">
+  <div class="cl-card cl-kpi"><div class="cl-kpi__n">{{ pacientes|length }}</div><div class="cl-kpi__l">Internados ahora</div></div>
+  <div class="cl-card cl-kpi"><div class="cl-kpi__n" style="color:#FCA5A5;">{{ criticos }}</div><div class="cl-kpi__l">Pronóstico grave</div></div>
+  <div class="cl-card cl-kpi"><div class="cl-kpi__n">{{ egresos|length }}</div><div class="cl-kpi__l">Egresos (30 días)</div></div>
+</div>
+
+{% if pacientes %}
+<div class="cl-ward">
+  {% for p in pacientes %}
+  <a class="cl-bed {% if p.pronostico == 'grave' %}t-rose{% else %}t-hosp{% endif %}" href="{% url 'clinico:hospitalizacion_detalle' p.pk %}">
+    <div class="cl-bed__top">
+      <span class="cl-avatar cl-avatar--sm">{{ p.mascota.nombre|slice:":1"|upper }}</span>
+      <div style="min-width:0;flex:1;">
+        <div class="cl-bed__name">{{ p.mascota.nombre }}</div>
+        <div class="cl-bed__sub">{{ p.mascota.get_especie_display }} · {{ p.mascota.id_dueno.nombre_completo }}</div>
+      </div>
+      {% if p.area %}<span class="cl-badge cl-badge--muted">{{ p.area }}</span>{% endif %}
+    </div>
+    <div class="cl-bed__reason">{{ p.motivo }}</div>
+    <div class="cl-bed__foot">
+      <span>{{ p.numero }} · Día {{ p.dias_estancia }}</span>
+      {% if p.horas_sin_evolucion >= 12 %}
+        <span class="cl-badge cl-badge--warn">{% include "clinico/_icono.html" with nombre="reloj" size=11 %} {{ p.horas_sin_evolucion }} h sin evolución</span>
+      {% else %}
+        <span>{{ p.n_evol }} evolucion{{ p.n_evol|pluralize:"es" }}</span>
+      {% endif %}
+      {% if p.pronostico %}<span class="cl-badge {% if p.pronostico == 'grave' %}cl-badge--crit{% elif p.pronostico == 'reservado' %}cl-badge--warn{% else %}cl-badge--ok{% endif %}">{{ p.get_pronostico_display }}</span>{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="cl-card cl-card__body" style="text-align:center;padding:48px 20px;">
+  <span class="cl-ico t-hosp" style="width:52px;height:52px;border-radius:50%;margin-bottom:12px;">{% include "clinico/_icono.html" with nombre="hospital" size=24 %}</span>
+  <h2 style="font-size:16px;margin:0 0 6px;">No hay pacientes hospitalizados</h2>
+  <p class="app-content__subtitle" style="margin:0;">Cuando ingreses una mascota para observación o tratamiento aparecerá aquí.</p>
+</div>
+{% endif %}
+
+{% if egresos %}
+<section class="cl-card" style="margin-top:22px;">
+  <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="salida" size=16 %} Egresos recientes</h2></div>
+  <div style="overflow-x:auto;">
+    <table class="cl-log">
+      <thead><tr><th>Paciente</th><th>Motivo</th><th>Estancia</th><th>Condición</th><th style="text-align:right;">Epicrisis</th></tr></thead>
+      <tbody>
+        {% for h in egresos %}
+        <tr>
+          <td><a href="{% url 'clinico:hospitalizacion_detalle' h.pk %}"><b>{{ h.mascota.nombre }}</b></a><div class="cl-list__muted" style="font-size:12px;">{{ h.numero }}</div></td>
+          <td>{{ h.motivo }}</td>
+          <td>{{ h.fecha_ingreso|date:"d/m" }} → {{ h.fecha_alta|date:"d/m" }} · {{ h.dias_estancia }} d</td>
+          <td><span class="cl-badge {% if h.condicion_alta == 'fallecido' %}cl-badge--muted{% else %}cl-badge--ok{% endif %}">{{ h.get_condicion_alta_display|default:"Alta" }}</span></td>
+          <td style="text-align:right;"><a href="{% url 'clinico:hospitalizacion_pdf' h.pk %}" class="btn btn--ghost btn--sm">{% include "clinico/_icono.html" with nombre="descargar" size=14 %} PDF</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

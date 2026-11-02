@@ -41,6 +41,12 @@ class MascotaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Django 6.1 pone la opción vacía en inglés ("- Select an option -") porque esa cadena
+        # no está traducida en es-co; se reemplaza por un texto propio en español.
+        self.fields['especie'].choices = [('', 'Selecciona la especie')] + list(Mascota.ESPECIE_CHOICES)
+        self.fields['tamano'].choices = [('', 'Selecciona el tamaño')] + list(Mascota.TAMANO_CHOICES)
+        self.fields['sexo'].choices = [('', 'Selecciona el sexo')] + list(Mascota.SEXO_CHOICES)
+
         if self.instance and self.instance.pk:
             self.fields['buscar_dueno'].initial = (
                 f"{self.instance.id_dueno.nombre_completo} "
@@ -49,7 +55,6 @@ class MascotaForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        # Si el campo oculto id_dueno quedó vacío, lanzar error descriptivo
         if not cleaned.get('id_dueno'):
             self.add_error('buscar_dueno', 'Debes seleccionar un dueño de la lista de sugerencias.')
         return cleaned

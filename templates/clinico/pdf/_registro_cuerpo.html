@@ -1,0 +1,23 @@
+{% comment %}Cuerpo de un registro clínico. Variables: r, tipo, vitales, evaluacion, especificos{% endcomment %}
+{% if vitales %}
+<h3>Constantes vitales</h3>
+<table class="vit"><tr>
+  {% for etq, valor in vitales %}<td><div class="et">{{ etq }}</div><div class="va"><b>{{ valor }}</b></div></td>{% endfor %}
+</tr></table>
+{% endif %}
+
+{% if r.anamnesis %}<h3>Anamnesis</h3><p class="texto">{{ r.anamnesis|linebreaksbr }}</p>{% endif %}
+
+{% for titulo, filas in especificos %}
+  <h3>{{ titulo }}</h3>
+  <table class="grid">
+    {% for etq, valor, largo in filas %}
+    <tr><td style="width:34%;" class="et">{{ etq }}</td><td class="va">{{ valor|linebreaksbr }}</td></tr>
+    {% endfor %}
+  </table>
+{% endfor %}
+
+{% for etq, valor in evaluacion %}{% if etq != "Anamnesis" %}
+  <h3>{{ etq }}</h3><p class="texto">{{ valor|linebreaksbr }}</p>
+{% endif %}{% endfor %}
+{% if r.proximo_control %}<h3>Próximo control</h3><p class="texto">{{ r.proximo_control|date:"d/m/Y" }}</p>{% endif %}

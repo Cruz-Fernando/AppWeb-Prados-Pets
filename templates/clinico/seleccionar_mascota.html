@@ -1,0 +1,52 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}Historia clínica{% endblock %}
+{% block migas %}<span class="app-topbar__current">Historia clínica</span>{% endblock %}
+
+{% block contenido %}
+<div class="cl-head">
+  <div class="cl-head__text">
+    <h1>Historia clínica</h1>
+    <p class="app-content__subtitle">Selecciona una mascota para ver su historial o registrar una atención.</p>
+  </div>
+</div>
+
+<form method="get" class="cl-search" role="search">
+  <input type="search" name="q" value="{{ q }}" class="cl-input" placeholder="Nombre, código, dueño o teléfono…" aria-label="Buscar mascota">
+  <button type="submit" class="btn btn--ghost">Buscar</button>
+</form>
+
+{% if mascotas %}
+<div class="cl-card cl-card__body--flush" style="overflow-x:auto;">
+  <table class="cl-log">
+    <thead>
+      <tr><th>Mascota</th><th>Propietario</th><th>Registros</th><th>Última atención</th><th style="text-align:right;">Acción</th></tr>
+    </thead>
+    <tbody>
+      {% for m in mascotas %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="cl-avatar cl-avatar--sm">{{ m.nombre|slice:":1"|upper }}</span>
+            <div>
+              <strong>{{ m.nombre }}</strong>
+              {% if m.id_mascota in internados %}<span class="cl-badge cl-badge--live">Internado</span>{% endif %}
+              <div class="cl-list__muted" style="font-size:12px;">{{ m.get_especie_display }}{% if m.raza %} · {{ m.raza }}{% endif %} · {{ m.codigo_mascota }}</div>
+            </div>
+          </div>
+        </td>
+        <td>{{ m.id_dueno.nombre_completo }}<div class="cl-list__muted" style="font-size:12px;">{{ m.id_dueno.telefono }}</div></td>
+        <td>{{ m.total_registros }}</td>
+        <td>{% if m.ultima_atencion %}{{ m.ultima_atencion|date:"d/m/Y" }}{% else %}<span class="cl-list__muted">—</span>{% endif %}</td>
+        <td style="text-align:right;"><a class="btn btn--ghost btn--sm" href="{% url 'clinico:historial_clinico' m.id_mascota %}">Abrir historia clínica</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif q %}
+<p class="app-content__subtitle">No hay mascotas que coincidan con “{{ q }}”.</p>
+{% else %}
+<p class="app-content__subtitle">Aún no hay mascotas registradas.</p>
+<a class="btn btn--primary" href="{% url 'registrar_mascota' %}">Registrar mascota</a>
+{% endif %}
+{% endblock %}

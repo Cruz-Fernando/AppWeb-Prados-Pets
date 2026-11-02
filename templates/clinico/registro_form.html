@@ -1,0 +1,106 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}{% if registro %}Editar {{ registro.numero }}{% else %}{{ tipo.nombre }}{% endif %} · {{ mascota.nombre }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'clinico:seleccionar_mascota_historial' %}">Historia clínica</a>
+  <span class="app-topbar__sep">/</span>
+  <a href="{% url 'clinico:historial_clinico' mascota.id_mascota %}">{{ mascota.nombre }}</a>
+  <span class="app-topbar__sep">/</span>
+  <span class="app-topbar__current">{% if registro %}Editar {{ registro.numero }}{% else %}{{ tipo.nombre }}{% endif %}</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="t-{{ tipo.color }}">
+  <div class="cl-head">
+    <div class="cl-head__text">
+      <span class="cl-eyebrow">{% include "clinico/_icono.html" with nombre=tipo.icono size=14 %} {{ tipo.nombre }}</span>
+      <h1>{% if registro %}Editar {{ registro.numero }}{% else %}Nuevo registro · {{ mascota.nombre }}{% endif %}</h1>
+      <p class="app-content__subtitle">
+        {{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}
+        · {{ mascota.codigo_mascota }} · Propietario: {{ mascota.id_dueno.nombre_completo }}
+      </p>
+    </div>
+  </div>
+
+  {% if fallecido %}
+  <div class="cl-banner cl-banner--dead">{% include "clinico/_icono.html" with nombre="corazon" %}<span>Esta mascota tiene registrado un fallecimiento. Verifica que el paciente sea el correcto.</span></div>
+  {% endif %}
+  {% if registro %}
+  <div class="cl-banner cl-banner--info">{% include "clinico/_icono.html" with nombre="reloj" %}<span>Cada cambio queda guardado en la trazabilidad con el valor anterior, el nuevo, tu usuario y la hora.</span></div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="cl-card" novalidate>
+    {% csrf_token %}
+    {% for e in form.non_field_errors %}<div class="cl-banner cl-banner--void" style="margin:16px 20px 0;">{{ e }}</div>{% endfor %}
+
+    <!-- 1. Datos de la atención -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">1</span> Datos de la atención</h2>
+      <div class="cl-fields">
+        {% include "clinico/_campo.html" with f=form.fecha_atencion ancho="third" %}
+        {% if form.hospitalizacion %}{% include "clinico/_campo.html" with f=form.hospitalizacion ancho="third" %}{% endif %}
+        {% include "clinico/_campo.html" with f=form.motivo ancho="full" %}
+      </div>
+    </section>
+
+    <!-- 2. Constantes vitales -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">2</span> Constantes vitales</h2>
+      <div class="cl-fields cl-fields--vitals">
+        {% include "clinico/_campo.html" with f=form.peso %}
+        {% include "clinico/_campo.html" with f=form.temperatura %}
+        {% include "clinico/_campo.html" with f=form.frecuencia_cardiaca %}
+        {% include "clinico/_campo.html" with f=form.frecuencia_respiratoria %}
+        {% include "clinico/_campo.html" with f=form.tllc %}
+        {% include "clinico/_campo.html" with f=form.mucosas %}
+        {% include "clinico/_campo.html" with f=form.condicion_corporal %}
+        {% include "clinico/_campo.html" with f=form.hidratacion %}
+      </div>
+    </section>
+
+    {% if tipo.usa_evaluacion %}
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">3</span> Anamnesis</h2>
+      <div class="cl-fields">{% include "clinico/_campo.html" with f=form.anamnesis ancho="full" %}</div>
+    </section>
+    {% endif %}
+
+    <!-- Datos propios del tipo -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}4{% else %}3{% endif %}</span> {{ tipo.nombre }}</h2>
+      {% for titulo, items in form.grupos_especificos %}
+        {% if titulo %}<h3 class="cl-subtitle">{{ titulo }}</h3>{% endif %}
+        <div class="cl-fields">
+          {% for bf, c in items %}{% include "clinico/_campo.html" with f=bf ancho=c.ancho %}{% endfor %}
+        </div>
+      {% endfor %}
+    </section>
+
+    <!-- Diagnóstico y plan -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}5{% else %}4{% endif %}</span> {% if tipo.usa_evaluacion %}Diagnóstico y plan{% else %}Indicaciones{% endif %}</h2>
+      <div class="cl-fields">
+        {% if tipo.usa_evaluacion %}
+          {% include "clinico/_campo.html" with f=form.diagnostico_presuntivo %}
+          {% include "clinico/_campo.html" with f=form.diagnostico_definitivo %}
+          {% include "clinico/_campo.html" with f=form.tratamiento %}
+          {% include "clinico/_campo.html" with f=form.prescripcion %}
+        {% endif %}
+        {% include "clinico/_campo.html" with f=form.recomendaciones ancho="full" %}
+        {% include "clinico/_campo.html" with f=form.proximo_control ancho="third" %}
+        {% include "clinico/_campo.html" with f=form.adjunto ancho="third" %}
+        {% include "clinico/_campo.html" with f=form.observaciones ancho="full" %}
+      </div>
+    </section>
+
+    <div class="cl-actions">
+      <a href="{% if registro %}{% url 'clinico:registro_detalle' registro.pk %}{% else %}{% url 'clinico:historial_clinico' mascota.id_mascota %}{% endif %}" class="btn btn--ghost">Cancelar</a>
+      {% if not registro %}
+      <button type="submit" name="guardar_pdf" value="1" class="btn btn--ghost">
+        {% include "clinico/_icono.html" with nombre="descargar" size=16 %} Guardar y descargar PDF
+      </button>
+      {% endif %}
+      <button type="submit" class="btn btn--primary">{% if registro %}Guardar cambios{% else %}Guardar en historia clínica{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -181,13 +181,6 @@ def editar_mascota(request, mascota_id):
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def buscar_directorio(request):
-    """
-    HU05 — "Como recepcionista, quiero buscar un dueño o mascota,
-    para atenderlo rápidamente."
-
-    Sirve tanto la página completa (para GET normal / sin JS) como
-    respuestas JSON para la búsqueda en tiempo real vía fetch().
-    """
     q = request.GET.get('q', '').strip()
     duenos = Dueno.objects.none()
     mascotas = Mascota.objects.none()
@@ -224,6 +217,10 @@ def buscar_directorio(request):
                     'dueno_nombre': m.id_dueno.nombre_completo,
                     'dueno_telefono': m.id_dueno.telefono,
                     'url_edicion': reverse('editar_mascota', args=[m.id_mascota]),
+                    'url_historial_clinico': reverse(
+                        'clinico:historial_clinico',
+                        args=[m.id_mascota],
+                    ),
                 }
                 for m in mascotas
             ],

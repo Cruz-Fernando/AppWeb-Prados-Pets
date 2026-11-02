@@ -120,7 +120,7 @@
       <div class="pp-card pp-card--summary">
         <div class="pp-summary__header">
           <span class="pp-summary__title">RESUMEN DE LA CITA</span>
-          <span class="pp-summary__status">● Lista para guardar</span>
+          <span class="pp-summary__status" id="sum_estado" role="status" aria-live="polite">● Faltan datos</span>
         </div>
 
         <div class="pp-summary__pet-box">
@@ -271,7 +271,9 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .pp-card--summary { display: flex; flex-direction: column; justify-content: space-between; background: #131326; border-color: rgba(124, 58, 237, 0.3); }
 .pp-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
 .pp-summary__title { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: #94a3b8; }
-.pp-summary__status { font-size: .75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 3px 10px; border-radius: 12px; }
+/* Por defecto (faltan datos) en ámbar; pasa a verde solo cuando la cita está completa */
+.pp-summary__status { font-size: .75rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 3px 10px; border-radius: 12px; transition: background .2s, color .2s; }
+.pp-summary__status--lista { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 
 .pp-summary__pet-box { display: flex; align-items: center; gap: 1rem; background: rgba(22, 22, 42, 0.6); padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
 .pp-summary__pet-avatar { font-size: 1.8rem; width: 46px; height: 46px; background: rgba(124, 58, 237, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
@@ -331,6 +333,7 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   const sumServ       = document.getElementById('sum_servicio');
   const sumFecha      = document.getElementById('sum_fecha');
   const sumHorario    = document.getElementById('sum_horario');
+  const sumEstado     = document.getElementById('sum_estado');
 
   const inVet    = document.getElementById('id_veterinario');
   const inServ   = document.getElementById('id_tipo_servicio');
@@ -397,6 +400,7 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     // Actualizar Panel Lateral
     sumMascota.textContent   = `${m.nombre_mascota} [${m.codigo}]`;
     sumDuenoInfo.textContent = `${m.dueno} · ${m.telefono}`;
+    actualizarEstado();
   }
 
   function limpiar() {
@@ -404,7 +408,35 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     badge.style.display = 'none'; badge.innerHTML = '';
     sumMascota.textContent = 'Selecciona una mascota';
     sumDuenoInfo.textContent = 'Dueño · Teléfono';
+    actualizarEstado();
     input.focus();
+  }
+
+  // El badge del resumen solo dice "Lista para guardar" cuando están los datos obligatorios.
+  // Si falta algo, se queda en "Faltan datos" y el detalle va en el tooltip (title).
+  function actualizarEstado() {
+    const faltan = [];
+    if (!hidden.value)                 faltan.push('mascota');
+    if (!inVet || !inVet.value)        faltan.push('veterinario');
+    if (!inServ || !inServ.value)      faltan.push('tipo de servicio');
+    if (!inFecha || !inFecha.value)    faltan.push('fecha');
+    if (!inHoraIn || !inHoraIn.value)  faltan.push('hora de inicio');
+    if (!inHoraFn || !inHoraFn.value)  faltan.push('hora de fin');
+
+    const rangoInvalido = !faltan.length && inHoraFn.value <= inHoraIn.value;
+    const lista = !faltan.length && !rangoInvalido;
+
+    sumEstado.classList.toggle('pp-summary__status--lista', lista);
+    if (lista) {
+      sumEstado.textContent = '● Lista para guardar';
+      sumEstado.removeAttribute('title');
+    } else if (rangoInvalido) {
+      sumEstado.textContent = '● Revisa el horario';
+      sumEstado.title = 'La hora de fin debe ser posterior a la de inicio';
+    } else {
+      sumEstado.textContent = '● Faltan datos';
+      sumEstado.title = 'Falta: ' + faltan.join(', ');
+    }
   }
 
   function cerrar() { dropdown.style.display = 'none'; }
@@ -425,12 +457,14 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   if (inVet) {
     inVet.addEventListener('change', function() {
       sumVet.textContent = this.value ? this.options[this.selectedIndex].text : 'Por asignar';
+      actualizarEstado();
     });
   }
 
   if (inServ) {
     inServ.addEventListener('change', function() {
       sumServ.textContent = this.value ? this.options[this.selectedIndex].text : 'Por definir';
+      actualizarEstado();
     });
   }
 
@@ -441,9 +475,10 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     inFecha.setAttribute('min', hoy);
 
     inFecha.addEventListener('change', function() {
-      if (!this.value) { sumFecha.textContent = 'Por definir'; return; }
+      if (!this.value) { sumFecha.textContent = 'Por definir'; actualizarEstado(); return; }
       const [yyyy, mm, dd] = this.value.split('-');
       sumFecha.textContent = `${dd}/${mm}/${yyyy}`;
+      actualizarEstado();
     });
   }
 
@@ -457,10 +492,18 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     } else {
       sumHorario.textContent = '--:--';
     }
+    actualizarEstado();
   }
 
   if (inHoraIn) inHoraIn.addEventListener('change', actualizarHorario);
   if (inHoraFn) inHoraFn.addEventListener('change', actualizarHorario);
+
+  // Si el servidor devolvió el formulario con valores (p. ej. tras un error de validación),
+  // el resumen debe reflejarlos desde el inicio y no quedarse en "Por definir".
+  if (inVet && inVet.value)   sumVet.textContent  = inVet.options[inVet.selectedIndex].text;
+  if (inServ && inServ.value) sumServ.textContent = inServ.options[inServ.selectedIndex].text;
+  if (inFecha && inFecha.value) inFecha.dispatchEvent(new Event('change'));
+  actualizarHorario(); // también calcula el estado inicial del badge
 }());
 
 // Tras agendar con éxito: descarga automática del comprobante PDF

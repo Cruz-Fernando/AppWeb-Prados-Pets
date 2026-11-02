@@ -1,0 +1,38 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}Alta · {{ mascota.nombre }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'clinico:hospitalizacion' %}">Hospitalización</a>
+  <span class="app-topbar__sep">/</span>
+  <a href="{% url 'clinico:hospitalizacion_detalle' h.pk %}">{{ h.numero }}</a>
+  <span class="app-topbar__sep">/</span>
+  <span class="app-topbar__current">Alta</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="t-green">
+  <div class="cl-head">
+    <div class="cl-head__text">
+      <span class="cl-eyebrow">{% include "clinico/_icono.html" with nombre="salida" size=14 %} Egreso · {{ h.numero }}</span>
+      <h1>Dar de alta a {{ mascota.nombre }}</h1>
+      <p class="app-content__subtitle">Ingresó el {{ h.fecha_ingreso|date:"d/m/Y H:i" }} · {{ h.dias_estancia }} día{{ h.dias_estancia|pluralize }} de estancia · {{ h.motivo }}</p>
+    </div>
+  </div>
+
+  <form method="post" class="cl-card" novalidate>
+    {% csrf_token %}
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">1</span> Epicrisis</h2>
+      <div class="cl-fields">
+        {% include "clinico/_campo.html" with f=form.condicion_alta %}
+        {% include "clinico/_campo.html" with f=form.proximo_control %}
+        {% include "clinico/_campo.html" with f=form.resumen_alta ancho="full" %}
+        {% include "clinico/_campo.html" with f=form.indicaciones_alta ancho="full" %}
+      </div>
+    </section>
+    <div class="cl-actions">
+      <a href="{% url 'clinico:hospitalizacion_detalle' h.pk %}" class="btn btn--ghost">Cancelar</a>
+      <button type="submit" class="btn btn--primary">Confirmar alta</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

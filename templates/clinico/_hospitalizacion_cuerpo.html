@@ -1,0 +1,180 @@
+<style>
+    /* Estilos específicos para el módulo clínico adaptados al tema oscuro */
+    .hosp-wrapper {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    .hosp-card {
+        background-color: var(--bg-surface, #1e1e2d);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        margin-top: 24px;
+        border: 1px solid var(--border-color, #2b2b40);
+    }
+    .hosp-header {
+        padding: 20px 24px;
+        background-color: var(--bg-surface-header, #1b1b29);
+        border-bottom: 1px solid var(--border-color, #2b2b40);
+        color: var(--text-primary, #ffffff);
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .hosp-table {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-secondary, #a1a5b7);
+    }
+    .hosp-table th {
+        text-align: left;
+        padding: 16px 24px;
+        background-color: var(--bg-surface-header, #1b1b29);
+        color: var(--text-muted, #6c6e86);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+    .hosp-table td {
+        padding: 16px 24px;
+        border-bottom: 1px dashed var(--border-color, #2b2b40);
+        vertical-align: middle;
+    }
+    .hosp-table tbody tr:hover {
+        background-color: var(--bg-hover, #232334);
+    }
+    .mascota-name {
+        color: var(--text-primary, #ffffff);
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: block;
+        margin-bottom: 2px;
+    }
+    .mascota-breed {
+        font-size: 0.8rem;
+        color: var(--text-muted, #6c6e86);
+    }
+    .badge-internado {
+        background-color: rgba(255, 199, 0, 0.15);
+        color: #ffc700;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+        letter-spacing: 0.3px;
+    }
+    .action-btn {
+        background: transparent;
+        border: 1px solid var(--border-color, #323248);
+        color: var(--text-secondary, #a1a5b7);
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: 6px;
+    }
+    .action-btn:hover {
+        background-color: var(--border-color, #323248);
+        color: #ffffff;
+    }
+    .action-btn.success {
+        border-color: rgba(80, 205, 137, 0.4);
+        color: #50cd89;
+    }
+    .action-btn.success:hover {
+        background-color: #50cd89;
+        color: #ffffff;
+    }
+    .empty-state {
+        padding: 80px 20px;
+        text-align: center;
+        color: var(--text-muted, #6c6e86);
+    }
+    .empty-state svg {
+        margin-bottom: 20px;
+        color: #323248;
+    }
+    .empty-state h3 {
+        color: var(--text-primary, #ffffff);
+        margin-bottom: 10px;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="app-content hosp-wrapper">
+    <!-- Encabezado reutilizando tus clases del Dashboard -->
+    <div class="app-section-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0;">
+        <div>
+            <h2>Módulo de Hospitalización</h2>
+            <p>Gestión y monitoreo clínico de pacientes internados</p>
+        </div>
+        <a href="{% url 'clinico:ingresar_paciente' %}" class="btn btn--primary" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Ingresar Paciente
+        </a>
+    </div>
+
+    <!-- Tarjeta de Contenido Principal -->
+    <div class="hosp-card">
+        <div class="hosp-header">
+            Pacientes en Tratamiento Activo
+        </div>
+        
+        {% if pacientes %}
+        <div style="overflow-x: auto;">
+            <table class="hosp-table">
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Propietario</th>
+                        <th>Motivo de Ingreso</th>
+                        <th>Fecha de Ingreso</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pacientes %}
+                    <tr>
+                        <td>
+                            <span class="mascota-name">{{ p.mascota.nombre }}</span>
+                            <span class="mascota-breed">{{ p.mascota.get_especie_display }} - {{ p.mascota.raza|default:"Mestizo" }}</span>
+                        </td>
+                        <td>{{ p.mascota.id_dueno.nombre_completo }}</td>
+                        <td>{{ p.motivo }}</td>
+                        <td>{{ p.fecha_ingreso|date:"d M Y, h:i a" }}</td>
+                        <td><span class="badge-internado">Internado</span></td>
+                        <td style="text-align: right;">
+                            <button class="action-btn" title="Ver Evolución Clínica">Historial</button>
+                            <button class="action-btn success" title="Registrar Alta Médica">Dar de Alta</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Estado Vacío Estilizado -->
+        <div class="empty-state">
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                <line x1="12" y1="6" x2="12" y2="10"></line>
+                <line x1="10" y1="8" x2="14" y2="8"></line>
+            </svg>
+            <h3>No hay pacientes hospitalizados</h3>
+            <p>Cuando ingreses una mascota al sistema para observación clínica, aparecerá en esta lista.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

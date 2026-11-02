@@ -1,0 +1,246 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}Historia clínica de {{ mascota.nombre }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'clinico:seleccionar_mascota_historial' %}">Historia clínica</a>
+  <span class="app-topbar__sep">/</span>
+  <span class="app-topbar__current">{{ mascota.nombre }}</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="cl-head">
+  <div class="cl-head__text">
+    <span class="cl-eyebrow">{% include "clinico/_icono.html" with nombre="archivo" size=14 %} Historia clínica</span>
+    <h1>Historia clínica · {{ mascota.nombre }}</h1>
+  </div>
+  <div class="cl-head__actions">
+    <a href="{% url 'clinico:historia_pdf' mascota.id_mascota %}" class="btn btn--ghost">
+      {% include "clinico/_icono.html" with nombre="descargar" size=16 %} Historia completa (PDF)
+    </a>
+    {% if puede_registrar and not hosp_activa and not fallecido %}
+    <a href="{% url 'clinico:ingresar_paciente' %}?mascota={{ mascota.id_mascota }}" class="btn btn--ghost">
+      {% include "clinico/_icono.html" with nombre="hospital" size=16 %} Hospitalizar
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Ficha del paciente -->
+<section class="cl-card cl-patient">
+  <span class="cl-avatar">{{ mascota.nombre|slice:":1"|upper }}</span>
+  <div style="min-width:0;">
+    <h2 class="cl-patient__name">{{ mascota.nombre }}</h2>
+    <div class="cl-patient__meta">
+      <span>{{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}</span>
+      {% if mascota.sexo %}<span>{{ mascota.get_sexo_display }}</span>{% endif %}
+      {% if mascota.fecha_nacimiento %}<span>{{ mascota.fecha_nacimiento|timesince }}</span>{% endif %}
+      {% if mascota.color %}<span>{{ mascota.color }}</span>{% endif %}
+      <span>Código <b>{{ mascota.codigo_mascota }}</b></span>
+    </div>
+    <div class="cl-patient__meta">
+      <span>Propietario: <b>{{ mascota.id_dueno.nombre_completo }}</b></span>
+      <span>{{ mascota.id_dueno.telefono }}</span>
+    </div>
+  </div>
+  <div class="cl-patient__stats">
+    <div class="cl-stat"><span class="cl-stat__n">{{ total }}</span><span class="cl-stat__l">Registros</span></div>
+    <div class="cl-stat"><span class="cl-stat__n">{{ n_hospitalizaciones }}</span><span class="cl-stat__l">Hospitalizaciones</span></div>
+    <div class="cl-stat"><span class="cl-stat__n">{% if ultimo_peso %}{{ ultimo_peso.peso|floatformat:"-2" }}{% elif mascota.peso %}{{ mascota.peso|floatformat:"-2" }}{% else %}—{% endif %}</span><span class="cl-stat__l">Peso (kg)</span></div>
+  </div>
+</section>
+
+{% if fallecido %}
+<div class="cl-banner cl-banner--dead" style="margin-top:18px;">
+  {% include "clinico/_icono.html" with nombre="corazon" %}
+  <span>Paciente fallecido. La historia queda disponible para consulta y trazabilidad.</span>
+</div>
+{% elif hosp_activa %}
+<div class="cl-banner cl-banner--hosp" style="margin-top:18px;">
+  {% include "clinico/_icono.html" with nombre="hospital" %}
+  <span><b>Internado</b> desde {{ hosp_activa.fecha_ingreso|date:"d/m/Y H:i" }} · {{ hosp_activa.motivo }}</span>
+  <a href="{% url 'clinico:hospitalizacion_detalle' hosp_activa.pk %}" class="btn btn--ghost btn--sm">Ver hospitalización</a>
+</div>
+{% endif %}
+
+<!-- Nuevo registro -->
+{% if puede_registrar %}
+<section class="cl-card" style="margin-top:18px;">
+  <div class="cl-card__head">
+    <h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="mas" %} Nuevo registro clínico</h2>
+  </div>
+  <div class="cl-card__body">
+    <div class="cl-types">
+      {% for t in tipos %}
+      <a class="cl-type t-{{ t.color }}" href="{% url 'clinico:nuevo_registro' mascota.id_mascota t.clave %}{% if hosp_activa %}?hosp={{ hosp_activa.pk }}{% endif %}">
+        <span class="cl-ico">{% include "clinico/_icono.html" with nombre=t.icono %}</span>
+        <span>{{ t.nombre }}<small title="{{ t.descripcion }}">{{ t.descripcion }}</small></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<div class="cl-grid" style="margin-top:18px;">
+  <!-- Línea de tiempo / trazabilidad -->
+  <section class="cl-card">
+    <div class="cl-card__head">
+      <nav class="cl-tabs" aria-label="Vista">
+        <a href="?vista=linea" class="cl-tab{% if vista != 'traza' %} is-active{% endif %}">Línea de tiempo</a>
+        <a href="?vista=traza" class="cl-tab{% if vista == 'traza' %} is-active{% endif %}">Trazabilidad</a>
+      </nav>
+    </div>
+
+    {% if vista == 'traza' %}
+      {% if trazas %}
+      <div style="overflow-x:auto;">
+        <table class="cl-log">
+          <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+          <tbody>
+          {% for t in trazas %}
+            <tr>
+              <td style="white-space:nowrap;">{{ t.fecha|date:"d/m/Y H:i" }}</td>
+              <td>{{ t.usuario.nombre_completo|default:t.usuario.username|default:"—" }}{% if t.ip %}<div class="cl-list__muted" style="font-size:11px;">{{ t.ip }}</div>{% endif %}</td>
+              <td><span class="cl-badge{% if t.accion == 'anular' %} cl-badge--void{% elif t.accion == 'editar' %} cl-badge--warn{% elif t.accion == 'pdf' %} cl-badge--muted{% endif %}">{{ t.get_accion_display }}</span></td>
+              <td>
+                {% if t.registro %}<a href="{% url 'clinico:registro_detalle' t.registro.pk %}">{{ t.descripcion }}</a>
+                {% elif t.hospitalizacion %}<a href="{% url 'clinico:hospitalizacion_detalle' t.hospitalizacion.pk %}">{{ t.descripcion }}</a>
+                {% else %}{{ t.descripcion }}{% endif %}
+                {% if t.cambios %}
+                <ul class="cl-diff">
+                  {% for campo, valores in t.cambios.items %}
+                  <li><b>{{ campo }}:</b> <del>{{ valores.0 }}</del> → <ins>{{ valores.1 }}</ins></li>
+                  {% endfor %}
+                </ul>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="cl-empty-sm">Todavía no hay acciones registradas para esta mascota.</p>
+      {% endif %}
+
+    {% else %}
+      <div class="cl-filters">
+        <a href="?vista=linea" class="cl-chip{% if not filtro %} is-active{% endif %}">Todo</a>
+        {% for t, n in tipos_con_conteo %}
+          {% if n %}<a href="?vista=linea&tipo={{ t.clave }}" class="cl-chip t-{{ t.color }}{% if filtro == t.clave %} is-active{% endif %}">{{ t.nombre }} <b>{{ n }}</b></a>{% endif %}
+        {% endfor %}
+        {% if n_hospitalizaciones %}
+          <a href="?vista=linea&tipo=hospitalizacion" class="cl-chip t-hosp{% if filtro == 'hospitalizacion' %} is-active{% endif %}">Hospitalización <b>{{ n_hospitalizaciones }}</b></a>
+        {% endif %}
+      </div>
+
+      {% if eventos %}
+      <ol class="cl-timeline">
+        {% for e in eventos %}
+          {% if e.clase == 'registro' %}
+          {% with r=e.obj t=e.tipo %}
+          <li class="cl-event t-{{ t.color|default:'gray' }}{% if r.anulado %} is-void{% endif %}">
+            <span class="cl-ico">{% include "clinico/_icono.html" with nombre=t.icono %}</span>
+            <a class="cl-event__box" href="{% url 'clinico:registro_detalle' r.pk %}">
+              <div class="cl-event__top">
+                <span class="cl-event__type">{{ r.get_tipo_display }} · {{ r.numero }}</span>
+                <span class="cl-event__date">{{ r.fecha_atencion|date:"d M Y · H:i" }}</span>
+              </div>
+              <div class="cl-event__title">{{ r.motivo }}</div>
+              {% if e.resumen %}<div class="cl-event__sub">{{ e.resumen|truncatechars:140 }}</div>{% endif %}
+              <div class="cl-event__foot">
+                <span>{{ r.profesional.nombre_completo|default:r.profesional.username }}</span>
+                {% if r.peso %}<span>{{ r.peso|floatformat:"-2" }} kg</span>{% endif %}
+                {% if r.temperatura %}<span>{{ r.temperatura }} °C</span>{% endif %}
+                {% if r.hospitalizacion %}<span class="cl-badge cl-badge--live">{{ r.hospitalizacion.numero }}</span>{% endif %}
+                {% if r.adjunto %}<span>{% include "clinico/_icono.html" with nombre="clip" size=12 %} Adjunto</span>{% endif %}
+                {% if r.anulado %}<span class="cl-badge cl-badge--void">Anulado</span>{% elif r.fue_editado %}<span class="cl-badge cl-badge--muted">Editado</span>{% endif %}
+              </div>
+            </a>
+          </li>
+          {% endwith %}
+
+          {% elif e.clase == 'hospitalizacion' %}
+          {% with h=e.obj %}
+          <li class="cl-event t-hosp">
+            <span class="cl-ico">{% include "clinico/_icono.html" with nombre="hospital" %}</span>
+            <a class="cl-event__box" href="{% url 'clinico:hospitalizacion_detalle' h.pk %}">
+              <div class="cl-event__top">
+                <span class="cl-event__type">Hospitalización · {{ h.numero }}</span>
+                <span class="cl-event__date">{{ h.fecha_ingreso|date:"d M Y · H:i" }}</span>
+              </div>
+              <div class="cl-event__title">{{ h.motivo }}</div>
+              <div class="cl-event__sub">
+                {% if h.activa %}Internado · {{ h.dias_estancia }} día{{ h.dias_estancia|pluralize }}
+                {% else %}{{ h.dias_estancia }} día{{ h.dias_estancia|pluralize }} · Egreso {{ h.fecha_alta|date:"d/m/Y" }} · {{ h.get_condicion_alta_display|default:"Alta" }}{% endif %}
+              </div>
+              <div class="cl-event__foot">
+                <span>{{ h.n_evol }} evolucion{{ h.n_evol|pluralize:"es" }}</span>
+                {% if h.activa %}<span class="cl-badge cl-badge--live">Activa</span>{% endif %}
+              </div>
+            </a>
+          </li>
+          {% endwith %}
+
+          {% else %}
+          {% with c=e.obj %}
+          <li class="cl-event t-violet">
+            <span class="cl-ico">{% include "clinico/_icono.html" with nombre="estetoscopio" %}</span>
+            <div class="cl-event__box">
+              <div class="cl-event__top">
+                <span class="cl-event__type">Consulta (formato anterior)</span>
+                <span class="cl-event__date">{{ c.fecha_consulta|date:"d M Y · H:i" }}</span>
+              </div>
+              <div class="cl-event__title">{{ c.anamnesis|truncatechars:120 }}</div>
+              <div class="cl-event__foot">
+                <span>{{ c.profesional.nombre_completo|default:c.profesional.username }}</span>
+                {% if c.peso %}<span>{{ c.peso|floatformat:"-2" }} kg</span>{% endif %}
+                {% if c.temperatura %}<span>{{ c.temperatura }} °C</span>{% endif %}
+              </div>
+            </div>
+          </li>
+          {% endwith %}
+          {% endif %}
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="cl-empty-sm">{% if filtro %}No hay registros de este tipo.{% else %}Esta mascota aún no tiene consultas registradas.{% endif %}</p>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <!-- Panel lateral -->
+  <aside class="cl-side">
+    <section class="cl-card">
+      <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="calendario" size=16 %} Próximos eventos</h2></div>
+      {% if proximos %}
+      <ul class="cl-list">
+        {% for p in proximos %}
+        <li>
+          <a href="{% url 'clinico:registro_detalle' p.registro.pk %}" style="color:var(--text);">{{ p.texto }}</a>
+          <span class="cl-list__muted">{% if p.dias == 0 %}Hoy{% elif p.dias == 1 %}Mañana{% else %}{{ p.fecha|date:"d/m/Y" }}{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="cl-empty-sm">Sin vacunas, desparasitaciones ni controles programados.</p>
+      {% endif %}
+    </section>
+
+    <section class="cl-card">
+      <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="pulso" size=16 %} Últimas constantes</h2></div>
+      {% if ultimo_peso %}
+      <ul class="cl-list">
+        <li><span>Fecha</span><span class="cl-list__muted">{{ ultimo_peso.fecha_atencion|date:"d/m/Y" }}</span></li>
+        <li><span>Peso</span><b>{{ ultimo_peso.peso|floatformat:"-2" }} kg</b></li>
+        {% if ultimo_peso.temperatura %}<li><span>Temperatura</span><b>{{ ultimo_peso.temperatura }} °C</b></li>{% endif %}
+        {% if ultimo_peso.frecuencia_cardiaca %}<li><span>F. cardíaca</span><b>{{ ultimo_peso.frecuencia_cardiaca }} lpm</b></li>{% endif %}
+        {% if ultimo_peso.frecuencia_respiratoria %}<li><span>F. respiratoria</span><b>{{ ultimo_peso.frecuencia_respiratoria }} rpm</b></li>{% endif %}
+        {% if ultimo_peso.condicion_corporal %}<li><span>Cond. corporal</span><b>{{ ultimo_peso.get_condicion_corporal_display }}</b></li>{% endif %}
+      </ul>
+      {% else %}
+      <p class="cl-empty-sm">Aún no hay constantes registradas.</p>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{% block titulo %}Documento clínico{% endblock %} · Prados Pets</title>
+<style>
+  @page {
+    size: letter; margin: 1.6cm 1.5cm 2cm 1.5cm;
+    @frame pie { -pdf-frame-content: pie; bottom: .7cm; margin-left: 1.5cm; margin-right: 1.5cm; height: .9cm; }
+  }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1f2937; line-height: 1.35; }
+  h1 { font-size: 15pt; color: #4c1d95; margin: 0; }
+  h2 { font-size: 10pt; color: #5b21b6; text-transform: uppercase; letter-spacing: .5pt;
+       border-bottom: 1px solid #ddd6fe; padding-bottom: 2pt; margin: 12pt 0 6pt; }
+  h3 { font-size: 9.5pt; color: #374151; margin: 8pt 0 3pt; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { vertical-align: top; padding: 3pt 5pt; }
+  .cab td { padding: 0; }
+  .cab .num { text-align: right; font-size: 9pt; color: #6b7280; }
+  .cab .num b { font-size: 12pt; color: #111827; }
+  .marca { font-size: 15pt; font-weight: bold; color: #5b21b6; }
+  .marca-sub { font-size: 8.5pt; color: #6b7280; }
+  .linea { border-bottom: 2.5pt solid #7c3aed; margin: 6pt 0 10pt; }
+  .ficha { background-color: #f5f3ff; border: 1px solid #ddd6fe; }
+  .ficha td { padding: 4pt 7pt; }
+  .et { font-size: 7.5pt; color: #6b7280; text-transform: uppercase; }
+  .va { font-size: 9.5pt; color: #111827; }
+  .grid td { border-bottom: 1px solid #f3f4f6; }
+  .vit td { border: 1px solid #e5e7eb; text-align: center; padding: 4pt; }
+  .texto { margin: 0 0 6pt; }
+  .lista th { background-color: #ede9fe; color: #4c1d95; font-size: 8pt; text-align: left; border: 1px solid #ddd6fe; }
+  .lista td { border: 1px solid #e5e7eb; font-size: 8.5pt; }
+  .anulado { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 6pt; margin: 6pt 0; }
+  .aviso { background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; padding: 6pt; margin: 6pt 0; }
+  .tipo { color: #7c3aed; font-weight: bold; font-size: 8.5pt; text-transform: uppercase; }
+  .bloque { border: 1px solid #e5e7eb; padding: 6pt 8pt; margin-bottom: 8pt; }
+  .firma { margin-top: 36pt; }
+  .firma td { text-align: center; font-size: 8.5pt; color: #4b5563; }
+  .firma .raya { border-top: 1px solid #111827; padding-top: 3pt; }
+  #pie { font-size: 7.5pt; color: #9ca3af; }
+  .muted { color: #6b7280; }
+</style>
+</head>
+<body>
+  <div id="pie">
+    <table><tr>
+      <td>Prados Pets · Documento clínico confidencial · Generado {{ fecha_generacion|date:"d/m/Y H:i" }} por {{ generado_por.nombre_completo|default:generado_por.username }}</td>
+      <td style="text-align:right;">Página <pdf:pagenumber> de <pdf:pagecount></td>
+    </tr></table>
+  </div>
+
+  <table class="cab"><tr>
+    <td style="width:60pt;"><img src="{% static 'img/Logo_PradosPets.png' %}" width="52" height="52"></td>
+    <td><div class="marca">Prados Pets</div><div class="marca-sub">Clínica Veterinaria · Cúcuta, Colombia</div></td>
+    <td class="num">{% block encabezado_derecha %}{% endblock %}</td>
+  </tr></table>
+  <div class="linea"></div>
+
+  <table class="ficha">
+    <tr>
+      <td style="width:25%;"><div class="et">Paciente</div><div class="va"><b>{{ mascota.nombre }}</b></div></td>
+      <td style="width:25%;"><div class="et">Especie / raza</div><div class="va">{{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}</div></td>
+      <td style="width:25%;"><div class="et">Sexo / edad</div><div class="va">{{ mascota.get_sexo_display|default:"—" }}{% if mascota.fecha_nacimiento %} · {{ mascota.fecha_nacimiento|timesince }}{% endif %}</div></td>
+      <td style="width:25%;"><div class="et">Código</div><div class="va">{{ mascota.codigo_mascota }}</div></td>
+    </tr>
+    <tr>
+      <td colspan="2"><div class="et">Propietario</div><div class="va">{{ dueno.nombre_completo }}</div></td>
+      <td><div class="et">Teléfono</div><div class="va">{{ dueno.telefono }}</div></td>
+      <td><div class="et">Color</div><div class="va">{{ mascota.color|default:"—" }}</div></td>
+    </tr>
+  </table>
+
+  {% block contenido %}{% endblock %}
+</body>
+</html>

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Registrar Mascota · Prados Pets{% endblock %}
+{% block title %}{% if mascota %}Editar Mascota{% else %}Registrar Mascota{% endif %} · Prados Pets{% endblock %}
 
 {% block body %}
 <div class="app-shell">
@@ -21,13 +21,18 @@
         <span class="app-topbar__sep">›</span>
         <span class="app-topbar__current">Directorio</span>
         <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Registrar Mascota</span>
+        <span class="app-topbar__current">{% if mascota %}Editar Mascota{% else %}Registrar Mascota{% endif %}</span>
       </div>
     </header>
     <main class="app-content app-content--narrow">
 
+    {% if mascota %}
+    <h1>Editar Mascota</h1>
+    <p class="app-content__subtitle">Actualiza los datos de {{ mascota.nombre }}. El código de la mascota no cambia.</p>
+    {% else %}
     <h1>Registrar Nueva Mascota</h1>
     <p class="app-content__subtitle">Completa los datos. El código de mascota se genera automáticamente.</p>
+    {% endif %}
 
     {% if messages %}
     <ul class="app-messages">
@@ -37,23 +42,39 @@
     </ul>
     {% endif %}
 
+    {% if form.non_field_errors %}
+    <ul class="app-messages">
+      {% for error in form.non_field_errors %}
+        <li class="app-messages__item app-messages__item--error">{{ error }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
     <form method="POST" class="app-form" id="form-mascota" novalidate>
       {% csrf_token %}
 
-      {# ── Código único (solo lectura, generado automático) ────────── #}
+      {# ── Código único (solo lectura) ─────────────────────────────── #}
       <div class="form-field">
         <label for="id_codigo_preview" class="form-label">
           Código de mascota
           <span class="badge badge--codigo">🔖 Identificador único</span>
         </label>
+        {% if mascota %}
+        {# Al editar se muestra el código REAL ya guardado, sin animación #}
+        <div class="codigo-badge codigo-badge--fijo" id="id_codigo_preview" title="Código asignado a esta mascota; no se puede modificar">
+          <span class="codigo-badge__chars">{{ mascota.codigo_mascota }}</span>
+        </div>
+        <p class="app-form__hint">Este código ya fue asignado y no se puede cambiar.</p>
+        {% else %}
         <div class="codigo-badge" id="id_codigo_preview" title="Este código se genera automáticamente al guardar">
           <span class="codigo-badge__prefix">M-</span>
           <span class="codigo-badge__chars" id="codigo-chars">????</span>
         </div>
         <p class="app-form__hint">Generado al guardar. Sirve para diferenciar mascotas con el mismo nombre.</p>
+        {% endif %}
       </div>
 
-      {# ── Propietario (autocomplete) ───────────────────────────────── #}
+      {# ── Propietario (autocomplete) ─────────────────────────────────── #}
       <div class="form-field">
         <label for="buscar_dueno" class="form-label">Propietario *</label>
 
@@ -81,7 +102,7 @@
         {% endif %}
       </div>
 
-      {# ── Nombre ──────────────────────────────────────────────────── #}
+      {# ── Nombre ────────────────────────────────────────────────────── #}
       <div class="form-field">
         <label for="id_nombre" class="form-label">Nombre *</label>
         {{ form.nombre }}
@@ -90,7 +111,7 @@
         {% endif %}
       </div>
 
-      {# ── Especie y Raza ──────────────────────────────────────────── #}
+      {# ── Especie y Raza ────────────────────────────────────────────── #}
       <div class="form-row-2">
         <div class="form-field">
           <label for="id_especie" class="form-label">Especie *</label>
@@ -105,7 +126,7 @@
         </div>
       </div>
 
-      {# ── Sexo y Tamaño ───────────────────────────────────────────── #}
+      {# ── Sexo y Tamaño ─────────────────────────────────────────────── #}
       <div class="form-row-2">
         <div class="form-field">
           <label for="id_sexo" class="form-label">Sexo</label>
@@ -123,23 +144,40 @@
         {{ form.color }}
       </div>
 
-      {# ── Fecha de Nacimiento ─────────────────────────────────────── #}
-      <div class="form-field">
-        <label for="id_fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
-        {{ form.fecha_nacimiento }}
+      {# ── Fecha de Nacimiento y Peso ──────────────────────────────── #}
+      <div class="form-row-2">
+        <div class="form-field">
+          <label for="id_fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
+          {{ form.fecha_nacimiento }}
+          {% if form.fecha_nacimiento.errors %}
+            {% for e in form.fecha_nacimiento.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          {% endif %}
+        </div>
+        <div class="form-field">
+          <label for="id_peso" class="form-label">Peso (kg)</label>
+          {{ form.peso }}
+          {% if form.peso.errors %}
+            {% for e in form.peso.errors %}<p class="app-form__field-error">{{ e }}</p>{% endfor %}
+          {% endif %}
+        </div>
       </div>
 
       <div class="app-form__actions">
+        {% if mascota %}
+        <a href="{% url 'buscar_directorio' %}" class="btn btn--ghost">Cancelar</a>
+        <button type="submit" class="btn btn--primary" id="btn-guardar">Guardar Cambios</button>
+        {% else %}
         <a href="{% url 'usuarios:dashboard' %}" class="btn btn--ghost">Cancelar</a>
         <a href="{% url 'registrar_dueno' %}" class="btn btn--ghost">+ Nuevo Dueño</a>
         <button type="submit" class="btn btn--primary" id="btn-guardar">Guardar Mascota</button>
+        {% endif %}
       </div>
     </form>
   </main>
 </div>
 
 <style>
-/* ── Código badge ─────────────────────────────────────────────── */
+/* ── Código badge ───────────────────────────────────────────────────── */
 .badge--codigo {
   margin-left: 8px;
   background: rgba(167,139,250,.15);
@@ -174,12 +212,19 @@
   color: var(--text-muted);
 }
 
+/* Al editar: el código real va fijo, sin parpadeo ni borde punteado de "pendiente" */
+.codigo-badge--fijo {
+  animation: none;
+  border-style: solid;
+  user-select: text;
+}
+
 @keyframes blinkCode {
   0%, 100% { opacity: 1; }
   50%       { opacity: .55; }
 }
 
-/* ── Layout del form ──────────────────────────────────────────── */
+/* ── Layout del form ─────────────────────────────────────────────────── */
 .form-field {
   display: flex;
   flex-direction: column;
@@ -200,6 +245,33 @@
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-top: 18px;
+}
+
+/* Dentro de una fila de 2 columnas el espacio superior lo da la fila, no cada campo.
+   Antes solo la columna derecha lo tenía (la izquierda es :first-child) y su etiqueta quedaba más abajo. */
+.form-row-2 > .form-field { margin-top: 0; }
+
+/* La hoja global estila text/email/select/textarea pero no date ni number:
+   se igualan para que la fecha de nacimiento y el peso no salgan en blanco. */
+.app-form input[type="date"],
+.app-form input[type="number"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--surface-alt);
+  width: 100%;
+  color-scheme: dark;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.app-form input[type="date"]:focus,
+.app-form input[type="number"]:focus {
+  border-color: var(--accent);
+  background: #1d1530;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+  outline: none;
 }
 
 .app-form__input {
@@ -224,7 +296,7 @@
   border-color: var(--error-border);
 }
 
-/* ── Autocomplete ─────────────────────────────────────────────── */
+/* ── Autocomplete ───────────────────────────────────────────────────── */
 .autocomplete-wrap {
   position: relative;
 }
@@ -294,30 +366,33 @@
 (function () {
   'use strict';
 
-  /* ── Código de mascota animado ──────────────────────────────── */
+  /* ── Código de mascota animado ────────────────────────────────────────────── */
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   function randomCode() {
     let s = '';
     for (let i = 0; i < 4; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
     return s;
   }
-  // Animación de "barajeo" antes de guardar — puramente visual, el código real lo genera Django
+  // Animación de "barajeo" antes de guardar — puramente visual, el código real lo genera Django.
+  // Solo existe al REGISTRAR: al editar la mascota ya tiene su código real y no hay elemento #codigo-chars.
   const codigoEl = document.getElementById('codigo-chars');
   let shuffleTimer;
   function startShuffle() {
+    if (!codigoEl) return;
     shuffleTimer = setInterval(() => {
       codigoEl.textContent = randomCode();
     }, 80);
   }
   function stopShuffle(code) {
+    if (!codigoEl) return;
     clearInterval(shuffleTimer);
     codigoEl.textContent = code;
     codigoEl.style.animation = 'none';
     codigoEl.style.color = 'var(--success)';
   }
-  startShuffle(); // Empieza barajeo al cargar — se detiene si el servidor devuelve un código real
+  startShuffle(); // Empieza barajeo al cargar (solo al registrar)
 
-  /* ── Autocomplete de dueño ──────────────────────────────────── */
+  /* ── Autocomplete de dueño ────────────────────────────────────────────── */
   const txtDueno = document.getElementById('buscar_dueno');
   const hiddenId  = document.getElementById('id_dueno_hidden');
   const lista      = document.getElementById('autocomplete-list');
@@ -420,7 +495,7 @@
     if (!e.target.closest('#autocomplete-wrap')) cerrarLista();
   });
 
-  /* ── Validación en submit ────────────────────────────────────── */
+  /* ── Validación en submit ────────────────────────────────────────────────── */
   document.getElementById('form-mascota').addEventListener('submit', function (e) {
     if (!hiddenId.value) {
       e.preventDefault();

@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Buscar · Prados Pets{% endblock %}
 
 {% block body %}
+<link rel="stylesheet" href="{% static 'css/buscar.css' %}?v=1">
+
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
 
@@ -21,17 +24,48 @@
       </div>
     </header>
 
-    <main class="app-content">
-      <!-- Encabezado con Botones de Accesos Rápidos a Listados y Exportación -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <h1 style="margin: 0;">Buscar dueño o mascota</h1>
-          <p class="app-content__subtitle" style="margin: 0.25rem 0 0 0;">Escribe un nombre, el nombre de una mascota o un teléfono — los resultados se actualizan mientras escribes.</p>
+    <main class="app-content bq">
+
+      <!-- Encabezado + acciones -->
+      <div class="bq-head">
+        <div class="bq-head__text">
+          <h1>Buscar dueño o mascota</h1>
+          <p class="app-content__subtitle">Busca por nombre del dueño, nombre de la mascota o teléfono. Los resultados se actualizan mientras escribes.</p>
         </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <a href="{% url 'lista_duenos' %}" class="btn btn--ghost" style="white-space: nowrap;">👥 Listado de Dueños</a>
-          <a href="{% url 'lista_mascotas' %}" class="btn btn--ghost" style="white-space: nowrap;">🐾 Listado de Mascotas</a>
-          <a href="{% url 'exportar_directorio_excel' %}" class="btn btn--ghost" style="white-space: nowrap; color: #10b981; border-color: #10b981;">📊 Exportar Todo (Excel)</a>
+
+        <div class="bq-actions">
+          <a href="{% url 'lista_duenos' %}" class="btn btn--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Ver dueños
+          </a>
+          <a href="{% url 'lista_mascotas' %}" class="btn btn--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
+            Ver mascotas
+          </a>
+
+          <details class="bq-menu" id="bq-export">
+            <summary class="btn btn--export" aria-haspopup="menu">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar Excel
+              <svg class="bq-menu__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </summary>
+            <div class="bq-menu__panel" role="menu">
+              <div class="bq-menu__label">Descargar .xlsx</div>
+              <a href="{% url 'exportar_duenos_excel' %}" class="bq-menu__item" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Dueños<small>Todos los dueños registrados</small></span>
+              </a>
+              <a href="{% url 'exportar_mascotas_excel' %}" class="bq-menu__item" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
+                <span>Mascotas<small>Todas las mascotas con su dueño</small></span>
+              </a>
+              <div class="bq-menu__sep"></div>
+              <a href="{% url 'exportar_directorio_excel' %}" class="bq-menu__item" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+                <span>Directorio completo<small>Un archivo con 2 hojas</small></span>
+              </a>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -43,21 +77,33 @@
       </ul>
       {% endif %}
 
-      <form method="get" class="app-search" id="form-buscar">
-        <input
-          type="text"
-          name="q"
-          id="input-buscar"
-          class="app-input"
-          placeholder="Nombre, mascota o teléfono..."
-          value="{{ q }}"
-          autocomplete="off"
-          autofocus
-        >
-        <button type="submit" class="btn btn--ghost">Buscar</button>
+      <!-- Buscador -->
+      <form method="get" class="bq-search{% if q %} has-value{% endif %}" id="form-buscar" role="search">
+        <label for="input-buscar" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Buscar dueño o mascota</label>
+        <div class="bq-search__field">
+          <svg class="bq-search__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="search"
+            name="q"
+            id="input-buscar"
+            class="bq-search__input"
+            placeholder="Ej: Luna, Carlos Pérez o 3001234567"
+            value="{{ q }}"
+            autocomplete="off"
+            autofocus
+          >
+          <div class="bq-search__aside">
+            <span class="bq-spinner" aria-hidden="true"></span>
+            <button type="button" class="bq-search__clear" id="btn-limpiar" aria-label="Limpiar búsqueda">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <kbd class="bq-kbd" title="Presiona / para buscar">/</kbd>
+          </div>
+        </div>
+        <button type="submit" class="btn btn--primary">Buscar</button>
       </form>
 
-      <div id="resultados-buscar">
+      <div id="resultados-buscar" aria-live="polite">
         {% include "directorio/_resultados_busqueda.html" %}
       </div>
     </main>
@@ -66,68 +112,194 @@
 
 <script>
 (function () {
+  var URL_BUSCAR = '{% url "buscar_directorio" %}';
   var input = document.getElementById('input-buscar');
-  var resultados = document.getElementById('resultados-buscar');
   var form = document.getElementById('form-buscar');
+  var limpiar = document.getElementById('btn-limpiar');
+  var resultados = document.getElementById('resultados-buscar');
+  var menuExport = document.getElementById('bq-export');
   var temporizador = null;
+  var controlador = null;
 
-  // Evita el recargo de página cuando hay JS disponible
+  var ICONO_DUENO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  var ICONO_MASCOTA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>';
+  var ICONO_LUPA = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+
+  /* ---------- Eventos del buscador ---------- */
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    clearTimeout(temporizador);
     buscar(input.value.trim());
   });
 
   input.addEventListener('input', function () {
+    form.classList.toggle('has-value', input.value.length > 0);
     clearTimeout(temporizador);
     var q = input.value.trim();
-    temporizador = setTimeout(function () {
-      buscar(q);
-    }, 300);
+    temporizador = setTimeout(function () { buscar(q); }, 300);
   });
 
-  function buscar(q) {
-    var url = '{% url "buscar_directorio" %}?q=' + encodeURIComponent(q);
-    history.replaceState(null, '', url);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && input.value) { e.preventDefault(); limpiarBusqueda(); }
+  });
 
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function (resp) { return resp.json(); })
-      .then(function (data) { renderizar(q, data); })
-      .catch(function () { /* si falla el fetch, el usuario aún puede darle Enter/click en Buscar */ });
+  limpiar.addEventListener('click', limpiarBusqueda);
+
+  // Atajo: "/" enfoca el buscador
+  document.addEventListener('keydown', function (e) {
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+
+  // Cerrar menú de exportar al hacer clic fuera, con Escape o al elegir opción
+  document.addEventListener('click', function (e) {
+    if (menuExport.open && !menuExport.contains(e.target)) menuExport.open = false;
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && menuExport.open) {
+      menuExport.open = false;
+      menuExport.querySelector('summary').focus();
+    }
+  });
+  menuExport.querySelectorAll('.bq-menu__item').forEach(function (a) {
+    a.addEventListener('click', function () { menuExport.open = false; });
+  });
+
+  function limpiarBusqueda() {
+    input.value = '';
+    form.classList.remove('has-value');
+    clearTimeout(temporizador);
+    buscar('');
+    input.focus();
   }
 
-  function renderizar(q, data) {
-    var html = '';
+  /* ---------- Petición ---------- */
+  function buscar(q) {
+    var url = URL_BUSCAR + (q ? '?q=' + encodeURIComponent(q) : '');
+    history.replaceState(null, '', url);
 
+    if (!q) { renderizar('', { duenos: [], mascotas: [] }); return; }
+
+    if (controlador) controlador.abort();
+    controlador = new AbortController();
+    form.classList.add('is-loading');
+
+    fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      signal: controlador.signal
+    })
+      .then(function (resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .then(function (data) { renderizar(q, data); })
+      .catch(function (err) {
+        if (err.name === 'AbortError') return;
+        resultados.innerHTML = estadoVacio('No se pudo completar la búsqueda', 'Revisa tu conexión e inténtalo de nuevo.');
+      })
+      .finally(function () { form.classList.remove('is-loading'); });
+  }
+
+  /* ---------- Render ---------- */
+  function renderizar(q, data) {
     if (!q) {
-      resultados.innerHTML = '';
+      resultados.innerHTML = estadoInicial();
       return;
     }
 
-    if (!data.duenos.length && !data.mascotas.length) {
-      html = '<p class="app-content__subtitle">No se encontraron resultados para "' + escapeHtml(q) + '".</p>';
+    var nD = data.duenos.length;
+    var nM = data.mascotas.length;
+
+    if (!nD && !nM) {
+      resultados.innerHTML = estadoVacio(
+        'Sin resultados para “' + escapeHtml(q) + '”',
+        'Revisa la ortografía o prueba solo con una parte del nombre o del teléfono.'
+      );
+      return;
     }
 
-    if (data.duenos.length) {
-      html += '<h2 class="app-search__section-title">Dueños</h2>';
-      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th style="text-align: right;">Acciones</th></tr></thead><tbody>';
+    var html = '<p class="bq-summary"><strong>' + (nD + nM) + '</strong> resultado' + (nD + nM === 1 ? '' : 's') + ' para “' + escapeHtml(q) + '”</p>';
+
+    if (nD) {
+      html += '<section class="bq-section">'
+        + '<h2 class="bq-section__title">' + ICONO_DUENO + 'Dueños <span class="bq-count">' + nD + '</span></h2>'
+        + '<table class="app-table bq-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Acciones</th></tr></thead><tbody>';
       data.duenos.forEach(function (d) {
-        var btnEditar = d.url_edicion ? '<a href="' + d.url_edicion + '" class="btn btn--ghost" style="padding: 4px 10px; font-size: 0.85rem;">✏️ Editar</a>' : '';
-        html += '<tr><td>' + escapeHtml(d.nombre_completo) + '</td><td>' + escapeHtml(d.telefono) + '</td><td>' + escapeHtml(d.direccion) + '</td><td style="text-align: right;">' + btnEditar + '</td></tr>';
+        html += '<tr>'
+          + '<td data-label="Nombre"><span class="bq-name"><span class="bq-avatar">' + inicial(d.nombre_completo) + '</span>' + resaltar(d.nombre_completo, q) + '</span></td>'
+          + '<td data-label="Teléfono">' + (d.telefono ? resaltar(d.telefono, q) : '<span class="bq-sub">—</span>') + '</td>'
+          + '<td data-label="Dirección" class="bq-sub">' + (escapeHtml(d.direccion) || '—') + '</td>'
+          + '<td><span class="bq-row-actions">'
+          + (d.url_edicion ? '<a href="' + escapeHtml(d.url_edicion) + '" class="btn btn--ghost btn--sm">Editar</a>' : '')
+          + '</span></td>'
+          + '</tr>';
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></section>';
     }
 
-    if (data.mascotas.length) {
-      html += '<h2 class="app-search__section-title">Mascotas</h2>';
-      html += '<table class="app-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th><th style="text-align: right;">Acciones</th></tr></thead><tbody>';
+    if (nM) {
+      html += '<section class="bq-section">'
+        + '<h2 class="bq-section__title">' + ICONO_MASCOTA + 'Mascotas <span class="bq-count">' + nM + '</span></h2>'
+        + '<table class="app-table bq-table"><thead><tr><th>Nombre</th><th>Especie</th><th>Dueño</th><th>Teléfono</th><th>Acciones</th></tr></thead><tbody>';
       data.mascotas.forEach(function (m) {
-        var btnEditar = m.url_edicion ? '<a href="' + m.url_edicion + '" class="btn btn--ghost" style="padding: 4px 10px; font-size: 0.85rem;">✏️ Editar</a>' : '';
-        html += '<tr><td>' + escapeHtml(m.nombre) + '</td><td>' + escapeHtml(m.especie) + '</td><td>' + escapeHtml(m.dueno_nombre) + '</td><td>' + escapeHtml(m.dueno_telefono) + '</td><td style="text-align: right;">' + btnEditar + '</td></tr>';
+        html += '<tr>'
+          + '<td data-label="Nombre"><span class="bq-name"><span class="bq-avatar bq-avatar--pet">' + inicial(m.nombre) + '</span>' + resaltar(m.nombre, q) + '</span></td>'
+          + '<td data-label="Especie"><span class="bq-tag">' + escapeHtml(m.especie) + '</span></td>'
+          + '<td data-label="Dueño">' + resaltar(m.dueno_nombre, q) + '</td>'
+          + '<td data-label="Teléfono">' + (m.dueno_telefono ? resaltar(m.dueno_telefono, q) : '<span class="bq-sub">—</span>') + '</td>'
+          + '<td><span class="bq-row-actions">'
+          + '<a href="' + escapeHtml(m.url_edicion) + '" class="btn btn--ghost btn--sm">Editar</a>'
+          + '<a href="' + escapeHtml(m.url_historial_clinico) + '" class="btn btn--primary btn--sm">Historia clínica</a>'
+          + '</span></td>'
+          + '</tr>';
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></section>';
     }
 
     resultados.innerHTML = html;
+  }
+
+  function estadoInicial() {
+    return '<div class="bq-empty">'
+      + '<span class="bq-empty__icon">' + ICONO_LUPA + '</span>'
+      + '<h2>Empieza a escribir para buscar</h2>'
+      + '<p>Encuentra rápidamente a un dueño o a su mascota. También puedes buscar por número de teléfono.</p>'
+      + '</div>';
+  }
+
+  function estadoVacio(titulo, texto) {
+    return '<div class="bq-empty">'
+      + '<span class="bq-empty__icon">' + ICONO_LUPA + '</span>'
+      + '<h2>' + titulo + '</h2>'
+      + '<p>' + texto + '</p>'
+      + '</div>';
+  }
+
+  /* ---------- Utilidades ---------- */
+  function inicial(texto) {
+    return escapeHtml((texto || '?').trim().charAt(0).toUpperCase());
+  }
+
+  // Resalta la coincidencia (sin distinguir mayúsculas ni tildes)
+  function resaltar(texto, q) {
+    texto = texto == null ? '' : String(texto);
+    var normal = quitarTildes(texto.toLowerCase());
+    var buscado = quitarTildes((q || '').toLowerCase());
+    var i = buscado ? normal.indexOf(buscado) : -1;
+    var html = i === -1
+      ? escapeHtml(texto)
+      : escapeHtml(texto.slice(0, i))
+        + '<mark>' + escapeHtml(texto.slice(i, i + q.length)) + '</mark>'
+        + escapeHtml(texto.slice(i + q.length));
+    return '<span>' + html + '</span>'; // un solo nodo: no rompe el flex
+  }
+
+  function quitarTildes(s) {
+    return s.normalize ? s.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : s;
   }
 
   function escapeHtml(texto) {
@@ -135,6 +307,9 @@
     div.textContent = texto == null ? '' : texto;
     return div.innerHTML;
   }
+
+  // Si se llegó con ?q=..., resaltar las coincidencias del render del servidor
+  if (input.value.trim()) buscar(input.value.trim());
 })();
 </script>
 {% endblock %}

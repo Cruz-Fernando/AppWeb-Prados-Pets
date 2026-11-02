@@ -97,16 +97,23 @@
             </div>
 
             <div class="pp-field">
-              <label class="pp-label">Duración estimada</label>
-              <input type="text" id="id_duracion" placeholder="Se calcula según el tamaño" class="pp-input" readonly tabindex="-1">
+              <label class="pp-label" for="id_duracion">Duración estimada</label>
+              {# Campo real (name="duracion_min"): lo elegido se guarda y es lo que sale en el PDF #}
+              <select name="duracion_min" id="id_duracion" class="pp-input">
+                <option value="">Según el tamaño de la mascota</option>
+                {% for minutos, etiqueta in opciones_duracion %}
+                  <option value="{{ minutos }}">{{ etiqueta }}</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
 
           <!-- PRECIO -->
           <div class="pp-field">
-            <label class="pp-label">Precio <span class="pp-req">*</span></label>
-            <input type="text" name="precio" id="id_precio" value="$" required class="pp-input"
-                   inputmode="numeric" autocomplete="off">
+            <label class="pp-label" for="id_precio">Precio (COP) <span class="pp-req">*</span></label>
+            <input type="text" name="precio" id="id_precio" required class="pp-input"
+                   inputmode="numeric" autocomplete="off" maxlength="12" placeholder="Ej: $50.000">
+            <p class="pp-field-hint">Solo números, en pesos colombianos. Debe ser mayor a $0.</p>
           </div>
 
           <!-- OBSERVACIONES -->
@@ -156,7 +163,7 @@
 
         <div class="pp-summary__total-row">
           <span class="pp-summary__total-lbl">Total</span>
-          <span class="pp-summary__total-val" id="sum_total">$0 COP</span>
+          <span class="pp-summary__total-val pp-summary__total-val--vacio" id="sum_total">Por definir</span>
         </div>
 
         <button type="submit" form="form-peluqueria" class="pp-btn pp-btn--submit">
@@ -268,6 +275,9 @@ select.pp-input option { background: #111122; color: #f8fafc; }
 .pp-summary__total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem; }
 .pp-summary__total-lbl { color: #cbd5e1; font-weight: 600; font-size: .95rem; }
 .pp-summary__total-val { color: #ffffff; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+/* Mientras no haya un precio válido no se muestra un "$0 COP" engañoso */
+.pp-summary__total-val--vacio { color: #64748b; font-size: 1.05rem; font-weight: 600; letter-spacing: 0; }
+.pp-field-hint { font-size: .75rem; color: #64748b; margin: .15rem 0 0; }
 
 .pp-btn--submit {
   width: 100%;
@@ -370,13 +380,19 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     dropdown.style.display = 'block';
   }
 
+  // Muestra en el resumen la duración elegida en el campo (o "Por definir" si no hay ninguna)
+  function actualizarDuracionResumen(){
+    sumDur.textContent = inDur.value ? inDur.options[inDur.selectedIndex].text : 'Por definir';
+  }
+  inDur.addEventListener('change', actualizarDuracionResumen);
+
   function seleccionar(m){
     input.value    = m.nombre;
     hiddenId.value = m.id;
+    // Se sugiere la duración según el tamaño, pero el usuario puede cambiarla: lo que elija se envía y se guarda
     const mins = DURACION_MIN[(m.tamano || 'pequeno').toLowerCase()] || 60;
-    const durTxt = mins >= 120 ? '2 horas' : (mins === 60 ? '1 hora' : `${mins} minutos`);
-    inDur.value = durTxt;
-    sumDur.textContent = durTxt;
+    inDur.value = String(mins);
+    actualizarDuracionResumen();
 
     const emoji = EMOJIS[m.especie] || '🐾';
     lblAvatar.textContent = emoji;
@@ -402,7 +418,7 @@ select.pp-input option { background: #111122; color: #f8fafc; }
       sumMascota.textContent = 'Selecciona una mascota';
       sumRazaTam.textContent = 'Especie · Raza · Tamaño';
       inDur.value = '';
-      sumDur.textContent = 'Por definir';
+      actualizarDuracionResumen();
       input.focus();
     });
   }
@@ -434,26 +450,37 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     sumFecha.textContent = dt.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
   });
 
-  // Formateo de precio
-  const SUFIJO = ' COP';
+  // Precio: solo dígitos (se ignora cualquier otro carácter), con puntos de miles, y siempre mayor a $0.
+  // Se escribe "$50.000" (sin " COP" pegado al final: con el sufijo dentro del campo no se podían borrar dígitos).
+  const PRECIO_MAX_DIGITOS = 8;   // 99.999.999 COP, igual que el tope del servidor
+  const MSG_PRECIO = 'Ingresa el precio del servicio (debe ser mayor a $0).';
+
+  function valorPrecio(){
+    return parseInt(inPrecio.value.replace(/\D/g, '') || '0', 10);
+  }
+
   function formatearPrecio(){
-    const raw = inPrecio.value;
-    const digitos = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
-    if(!digitos){ 
-      inPrecio.value = '$'; 
-      sumTotal.textContent = '$0 COP';
-      return; 
+    const digitos = inPrecio.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, PRECIO_MAX_DIGITOS);
+    if(!digitos){
+      inPrecio.value = '';
+    } else {
+      inPrecio.value = '$' + digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
-    const num = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    inPrecio.value = '$' + num + SUFIJO;
-    sumTotal.textContent = '$' + num + ' COP';
+    const valor = valorPrecio();
+    if(valor > 0){
+      sumTotal.textContent = inPrecio.value + ' COP';
+      sumTotal.classList.remove('pp-summary__total-val--vacio');
+    } else {
+      sumTotal.textContent = 'Por definir';
+      sumTotal.classList.add('pp-summary__total-val--vacio');
+    }
   }
 
   inPrecio.addEventListener('input', function(){
     formatearPrecio();
-    this.setCustomValidity(/\d/.test(this.value) ? '' : 'Ingresa el precio del servicio.');
+    this.setCustomValidity(valorPrecio() > 0 ? '' : MSG_PRECIO);
   });
-  inPrecio.setCustomValidity('Ingresa el precio del servicio.');
+  inPrecio.setCustomValidity(MSG_PRECIO);
 
   // Evita enviar dos veces el formulario (doble clic) y crear citas duplicadas
   formPelu.addEventListener('submit', function(e){
@@ -475,6 +502,7 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   if(borradorEl){
     const b = JSON.parse(borradorEl.textContent);
     if(b.mascota){ seleccionar(b.mascota); }
+    if(b.duracion_min){ inDur.value = String(b.duracion_min); actualizarDuracionResumen(); }
     if(b.servicio){ inServicio.value = b.servicio; inServicio.dispatchEvent(new Event('change')); }
     if(b.groomer_id){ inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
     if(b.fecha_hora){ inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
