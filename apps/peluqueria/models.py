@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.core.validators import MinValueValidator
 
 from apps.directorio.models import Mascota
 
@@ -15,6 +16,12 @@ class CitaPeluqueria(models.Model):
         ('BANO',     'Solamente Baño'),
         ('CORTE',    'Corte Despuntado (Solo tijera)'),
         ('COMPLETO', 'Corte Total (Máquina y tijera)'),
+    ]
+
+    ESTADO_CHOICES = [
+        ('Programada', 'Programada'),
+        ('Realizada', 'Realizada'),
+        ('Cancelada', 'Cancelada'),
     ]
 
     # Vínculo con la mascota del directorio (null para citas antiguas, que
@@ -44,6 +51,27 @@ class CitaPeluqueria(models.Model):
         verbose_name='Groomer responsable',
     )
     creado_en           = models.DateTimeField(auto_now_add=True)
+
+    # Columnas que agregó la migración 0004_citapeluqueria_estado_and_more (rama duvan).
+    # Deben estar en el modelo: la base de datos ya las tiene y "estado" no admite NULL.
+    estado              = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='Programada',
+        verbose_name='Estado de la Cita',
+    )
+    motivo_cancelacion  = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Motivo de Cancelación',
+    )
+
+    # Cada cuántos días se recuerda el próximo baño (pantalla clínico › Recordatorios).
+    intervalo_recordatorio_dias = models.PositiveIntegerField(
+        default=30,
+        validators=[MinValueValidator(1)],
+        verbose_name='Intervalo de recordatorio (días)',
+    )
 
     class Meta:
         verbose_name        = 'Cita de Peluquería'

@@ -1,280 +1,73 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Comprobante Peluquería – {{ mascota.nombre }}</title>
-  <style>
-    @page {
-      size: A5 portrait;
-      margin: 1cm 1.2cm 1cm 1.2cm;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: Helvetica, Arial, sans-serif;
-      font-size: 10.5px;
-      color: #1e1e2d;
-      background: #ffffff;
-    }
+{% extends "agendamiento/pdf_base.html" %}
+{% block titulo %}Peluquería N.° {{ cita.pk|stringformat:"05d" }}{% endblock %}
+{% block eslogan %}Peluquería &amp; Spa{% endblock %}
+{% block tipo_doc %}Comprobante de peluquería{% endblock %}
+{% block numero %}N.° {{ cita.pk|stringformat:"05d" }}{% endblock %}
 
-    /* ─ CABECERA ─ */
-    .header {
-      background-color: #6d28d9;
-      padding: 12px 14px 10px 14px;
-      border-radius: 6px;
-      margin-bottom: 0;
-    }
-    .header table { width: 100%; border-collapse: collapse; }
-    .header td { vertical-align: middle; }
-    .brand-name {
-      font-size: 18px;
-      font-weight: bold;
-      color: #ffffff;
-      letter-spacing: 0.4px;
-    }
-    .brand-sub {
-      font-size: 8.5px;
-      color: rgba(255,255,255,0.75);
-      margin-top: 2px;
-    }
-    .doc-badge {
-      background-color: rgba(255,255,255,0.2);
-      color: #ffffff;
-      font-size: 8.5px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      text-align: right;
-      float: right;
-    }
+{% block contenido %}
+<table class="cuando"><tr>
+  <td style="width:40%;">
+    <div class="et">Fecha</div>
+    <div class="grande">{{ inicio|date:"j \d\e F" }}</div>
+    <div class="sub">{{ inicio|date:"l, Y"|capfirst }}</div>
+  </td>
+  <td style="width:28%;">
+    <div class="et">Llegada</div>
+    <div class="grande">{{ inicio|time:"H:i" }}</div>
+    <div class="sub">{{ duracion_texto }}</div>
+  </td>
+  <td class="ult">
+    <div class="et">Entrega estimada</div>
+    <div class="grande">{{ entrega|time:"H:i" }}</div>
+    <div class="sub">{% if entrega|date:"Ymd" != inicio|date:"Ymd" %}{{ entrega|date:"d/m" }}{% else %}mismo día{% endif %}</div>
+  </td>
+</tr></table>
 
-    /* ─ DIVIDER ─ */
-    .divider {
-      height: 3px;
-      background-color: #7c3aed;
-      margin-bottom: 10px;
-    }
+<table class="servicio"><tr><td>
+  <div class="et">Servicio</div>
+  <div class="nombre">{{ cita.get_servicio_display }}</div>
+  <div class="sub">Groomer: <b>{% if groomer %}{{ groomer.nombre_completo }}{% else %}Por asignar{% endif %}</b> · Tamaño {{ cita.get_tamano_display|lower }}</div>
+</td></tr></table>
 
-    /* ─ SECCIONES ─ */
-    .section-title {
-      font-size: 7.5px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #6d28d9;
-      border-bottom: 1px solid #ede9fe;
-      padding-bottom: 2px;
-      margin-bottom: 6px;
-    }
-
-    /* ─ TABLA INFO (2 cols) ─ */
-    .info-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 10px;
-    }
-    .info-table td {
-      vertical-align: top;
-      padding: 0;
-      width: 50%;
-    }
-    .info-table td:first-child { padding-right: 10px; }
-
-    /* ─ FILAS DE DATO ─ */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 0;
-    }
-    .data-table tr td {
-      padding: 2.5px 0;
-      vertical-align: top;
-    }
-    .data-lbl {
-      width: 36%;
-      color: #888888;
-      font-size: 8.5px;
-      padding-right: 4px;
-    }
-    .data-val {
-      font-weight: 600;
-      font-size: 9.5px;
-      color: #1a1a1a;
-    }
-
-    /* ─ BADGE ESPECIE ─ */
-    .badge {
-      background-color: #ede9fe;
-      color: #5b21b6;
-      border-radius: 8px;
-      padding: 1px 7px;
-      font-size: 8px;
-      font-weight: bold;
-    }
-
-    /* ─ SERVICIO ─ */
-    .service-box {
-      background-color: #faf5ff;
-      border-left: 3px solid #7c3aed;
-      padding: 7px 10px;
-      margin-bottom: 10px;
-      border-radius: 2px;
-    }
-    .service-name {
-      font-size: 12px;
-      font-weight: bold;
-      color: #5b21b6;
-      margin-bottom: 5px;
-    }
-    .service-meta {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .service-meta td {
-      font-size: 9px;
-      color: #555555;
-      width: 33%;
-      vertical-align: middle;
-    }
-    .service-meta strong { color: #1e1e2d; }
-
-    /* ─ PRECIO ─ */
-    .price-box {
-      background-color: #6d28d9;
-      border-radius: 4px;
-      padding: 7px 12px;
-      margin-bottom: 10px;
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .price-box td { vertical-align: middle; }
-    .price-lbl { color: #e0d7ff; font-size: 9.5px; }
-    .price-val {
-      color: #ffffff;
-      font-size: 16px;
-      font-weight: bold;
-      text-align: right;
-    }
-
-    /* ─ OBSERVACIONES ─ */
-    .obs-box {
-      background-color: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 4px;
-      padding: 6px 10px;
-      font-size: 9.5px;
-      color: #444444;
-      min-height: 24px;
-      margin-bottom: 10px;
-    }
-
-    /* ─ FOOTER ─ */
-    .footer {
-      border-top: 1px solid #ede9fe;
-      padding-top: 7px;
-      text-align: center;
-      font-size: 8.5px;
-      color: #aaaaaa;
-    }
-    .footer b { color: #7c3aed; }
-  </style>
-</head>
-<body>
-
-  <!-- CABECERA -->
-  <div class="header">
-    <table>
-      <tr>
-        <td>
-          <div class="brand-name">Prados Pets</div>
-          <div class="brand-sub">Clínica Veterinaria &amp; Spa Canino</div>
-        </td>
-        <td style="text-align:right;">
-          <span class="doc-badge">Comprobante de Peluquería</span>
-        </td>
-      </tr>
+<table><tr>
+  <td class="col col-izq sec">
+    <h2>Mascota</h2>
+    <table class="datos">
+      <tr><td class="k">Nombre</td><td class="v">{{ mascota.nombre|default:cita.nombre_mascota }}</td></tr>
+      {% if mascota %}
+      <tr><td class="k">Código</td><td class="v">{{ mascota.codigo_mascota }}</td></tr>
+      <tr><td class="k">Especie</td><td class="v">{{ mascota.get_especie_display }}</td></tr>
+      {% endif %}
+      <tr><td class="k">Raza</td><td class="v">{{ cita.raza|default:"No especificada" }}</td></tr>
+      {% if mascota.condicion_pelaje %}<tr><td class="k">Pelaje</td><td class="v">{{ mascota.condicion_pelaje }}</td></tr>{% endif %}
     </table>
-  </div>
-  <div class="divider"></div>
-
-  <!-- MASCOTA + PROPIETARIO -->
-  <table class="info-table">
-    <tr>
-      <td>
-        <div class="section-title">Datos de la Mascota</div>
-        <table class="data-table">
-          <tr>
-            <td class="data-lbl">Nombre</td>
-            <td class="data-val">{{ mascota.nombre }}</td>
-          </tr>
-          <tr>
-            <td class="data-lbl">Tipo</td>
-            <td class="data-val">
-              <span class="badge">{{ mascota.get_especie_display }}</span>
-            </td>
-          </tr>
-          <tr>
-            <td class="data-lbl">Raza</td>
-            <td class="data-val">{{ mascota.raza|default:"No especificada" }}</td>
-          </tr>
-          <tr>
-            <td class="data-lbl">Tamaño</td>
-            <td class="data-val">{{ cita.tamano|capfirst }}</td>
-          </tr>
-        </table>
-      </td>
-      <td>
-        <div class="section-title">Datos del Propietario</div>
-        <table class="data-table">
-          <tr>
-            <td class="data-lbl">Nombre</td>
-            <td class="data-val">{{ mascota.id_dueno.nombre_completo }}</td>
-          </tr>
-          <tr>
-            <td class="data-lbl">Teléfono</td>
-            <td class="data-val">{{ mascota.id_dueno.telefono }}</td>
-          </tr>
-          <tr>
-            <td class="data-lbl">Dirección</td>
-            <td class="data-val">{{ mascota.id_dueno.direccion|default:"-" }}</td>
-          </tr>
-          <tr>
-            <td class="data-lbl">Código</td>
-            <td class="data-val">{{ mascota.codigo_mascota }}</td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-
-  <!-- SERVICIO -->
-  <div class="section-title">Servicio Agendado</div>
-  <div class="service-box">
-    <div class="service-name">{{ cita.get_servicio_display }}</div>
-    <table class="service-meta">
-      <tr>
-        <td>Fecha: <strong>{{ cita.fecha_hora|date:"d/m/Y" }}</strong></td>
-        <td>Hora: <strong>{{ cita.fecha_hora|date:"H:i" }}</strong></td>
-        <td>Duración: <strong>{{ cita.duracion_estimada_min }} min</strong></td>
-      </tr>
+  </td>
+  <td class="col col-der sec">
+    <h2>Propietario</h2>
+    <table class="datos">
+      {% if dueno %}
+      <tr><td class="k">Nombre</td><td class="v">{{ dueno.nombre_completo }}</td></tr>
+      <tr><td class="k">Teléfono</td><td class="v">{{ dueno.telefono }}</td></tr>
+      <tr><td class="k">Dirección</td><td class="v">{{ dueno.direccion|default:"—" }}</td></tr>
+      {% else %}
+      <tr><td class="v" colspan="2">Sin datos del propietario</td></tr>
+      {% endif %}
     </table>
-  </div>
+  </td>
+</tr></table>
 
-  <!-- PRECIO -->
-  <table class="price-box">
-    <tr>
-      <td class="price-lbl">Total a pagar</td>
-      <td class="price-val">{{ cita.precio_formateado }}</td>
-    </tr>
-  </table>
+<h2 style="margin-top:8pt;">Observaciones</h2>
+<div class="nota">{{ cita.observaciones|default:"Sin observaciones adicionales."|linebreaksbr }}</div>
 
-  <!-- OBSERVACIONES -->
-  <div class="section-title">Observaciones</div>
-  <div class="obs-box">{{ cita.observaciones|default:"Sin observaciones adicionales." }}</div>
+<table class="total" style="margin-top:10pt;"><tr>
+  <td>Total a pagar<br><span style="font-size:7pt; color:#F3E3FA;">Valor del servicio en pesos colombianos</span></td>
+  <td class="monto">{{ precio_formateado }}</td>
+</tr></table>
 
-  <!-- FOOTER -->
-  <div class="footer">
-    Gracias por confiar en <b>Prados Pets</b> para el cuidado de {{ mascota.nombre }}.
-    Este comprobante es válido como recibo de agendamiento.
-  </div>
+<h2 style="margin-top:8pt;">Recomendaciones</h2>
+<table class="reco">
+  {% for r in recomendaciones %}<tr><td class="p">•</td><td>{{ r }}</td></tr>{% endfor %}
+</table>
 
-</body>
-</html>
+<p class="sub" style="margin-top:9pt; text-align:center;">Gracias por confiar en {{ clinica.nombre }} el cuidado de {{ mascota.nombre|default:cita.nombre_mascota }}.</p>
+{% endblock %}
