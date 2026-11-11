@@ -320,12 +320,13 @@ class HistorialClinicoTests(TestCase):
         self.assertFalse(response.context["banos_programados"])
 
     def test_cita_pasada_se_convierte_en_siguiente_fecha_segun_su_intervalo(self):
+        # Hace 40 días con intervalo de 20: los ciclos caen en -20 y en hoy.
         hoy = timezone.localdate()
         Cita.objects.create(
             mascota=self.mascota,
             veterinario=self.profesional,
             tipo_servicio="vacunacion",
-            fecha=hoy - timedelta(days=50),
+            fecha=hoy - timedelta(days=40),
             hora_inicio=time(9, 0),
             hora_fin=time(9, 30),
             intervalo_recordatorio_dias=20,
@@ -345,6 +346,28 @@ class HistorialClinicoTests(TestCase):
         )
         self.assertEqual(response.context["recordatorios_hoy"], [recordatorio])
         self.assertContains(response, 'id="reminder-modal"')
+
+    def test_cita_pasada_fuera_de_ciclo_salta_al_siguiente_ciclo_futuro(self):
+        # Hace 50 días con intervalo de 20: los ciclos caen en -30, -10 y +10,
+        # así que el próximo recordatorio es dentro de 10 días (no hoy).
+        hoy = timezone.localdate()
+        Cita.objects.create(
+            mascota=self.mascota,
+            veterinario=self.profesional,
+            tipo_servicio="vacunacion",
+            fecha=hoy - timedelta(days=50),
+            hora_inicio=time(9, 0),
+            hora_fin=time(9, 30),
+            intervalo_recordatorio_dias=20,
+        )
+
+        response = self.client.get(reverse("clinico:recordatorios"))
+
+        self.assertEqual(response.status_code, 200)
+        recordatorio = response.context["vacunas_programadas"][0]
+        self.assertEqual(recordatorio["fecha_recordatorio"], hoy + timedelta(days=10))
+        self.assertEqual(recordatorio["fecha_siguiente"], hoy + timedelta(days=30))
+        self.assertEqual(response.context["recordatorios_hoy"], [])
 
     def test_modal_avisa_vacuna_y_bano_cuando_intervalo_cae_hoy(self):
         hoy = timezone.localdate()
@@ -382,7 +405,8 @@ class HistorialClinicoTests(TestCase):
             username="admin_recordatorios",
             password="testpass123",
             nombre_completo="Administrador",
-            id_rol=Rol.objects.create(nombre_rol="administrador"),
+            # El rol ya existe: lo crea la migración usuarios.0002_seed_roles.
+            id_rol=Rol.objects.get_or_create(nombre_rol="administrador")[0],
         )
         self.client.force_login(admin)
         hoy = timezone.localdate()
