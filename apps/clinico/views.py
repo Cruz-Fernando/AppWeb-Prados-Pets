@@ -30,16 +30,8 @@ from .models import (
     TrazaClinica,
 )
 from .pdf import render_pdf
+from .recordatorios import calcular_recordatorios
 from .registros import TIPOS, obtener_tipo
-
-
-def _fechas_recordatorio(fecha_base, intervalo_dias, hoy):
-    fecha_recordatorio = fecha_base
-    if fecha_recordatorio < hoy:
-        dias_transcurridos = (hoy - fecha_recordatorio).days
-        ciclos = (dias_transcurridos + intervalo_dias - 1) // intervalo_dias
-        fecha_recordatorio += timedelta(days=ciclos * intervalo_dias)
-    return fecha_recordatorio, fecha_recordatorio + timedelta(days=intervalo_dias)
 
 
 @login_required
@@ -90,69 +82,13 @@ def recordatorios(request):
         messages.success(request, 'El intervalo del recordatorio fue actualizado.')
         return redirect('clinico:recordatorios')
 
-    citas_vacunacion = Cita.objects.select_related(
-        'mascota',
-        'mascota__id_dueno',
-    ).filter(
-        tipo_servicio='vacunacion',
-    ).exclude(estado='cancelada').order_by('fecha', 'hora_inicio')
-    citas_bano = CitaPeluqueria.objects.select_related(
-        'mascota',
-        'mascota__id_dueno',
-    ).filter(
-        mascota__isnull=False,
-        servicio='BANO',
-    ).order_by('fecha_hora')
-
-    vacunas_programadas = []
-    recordatorios_hoy = []
-    for cita in citas_vacunacion:
-        fecha_recordatorio, fecha_siguiente = _fechas_recordatorio(
-            cita.fecha,
-            cita.intervalo_recordatorio_dias,
-            hoy,
-        )
-        recordatorio = {
-            'cita_id': cita.pk,
-            'mascota': cita.mascota,
-            'servicio': cita.get_tipo_servicio_display(),
-            'fecha_recordatorio': fecha_recordatorio,
-            'fecha_siguiente': fecha_siguiente,
-            'intervalo_dias': cita.intervalo_recordatorio_dias,
-            'tipo': 'Vacunación',
-        }
-        vacunas_programadas.append(recordatorio)
-        if fecha_recordatorio == hoy:
-            recordatorios_hoy.append(recordatorio)
-
-    banos_programados = []
-    for cita in citas_bano:
-        fecha_base = timezone.localdate(cita.fecha_hora)
-        fecha_recordatorio, fecha_siguiente = _fechas_recordatorio(
-            fecha_base,
-            cita.intervalo_recordatorio_dias,
-            hoy,
-        )
-        recordatorio = {
-            'cita_id': cita.pk,
-            'mascota': cita.mascota,
-            'servicio': cita.get_servicio_display(),
-            'fecha_recordatorio': fecha_recordatorio,
-            'fecha_siguiente': fecha_siguiente,
-            'intervalo_dias': cita.intervalo_recordatorio_dias,
-            'tipo': 'Baño',
-        }
-        banos_programados.append(recordatorio)
-        if fecha_recordatorio == hoy:
-            recordatorios_hoy.append(recordatorio)
-
-    vacunas_programadas.sort(key=lambda item: item['fecha_recordatorio'])
-    banos_programados.sort(key=lambda item: item['fecha_recordatorio'])
+    # Una sola regla para la pantalla y el panel principal (apps/clinico/recordatorios.py)
+    datos = calcular_recordatorios(hoy)
 
     return render(request, 'clinico/recordatorios.html', {
-        'vacunas_programadas': vacunas_programadas,
-        'banos_programados': banos_programados,
-        'recordatorios_hoy': recordatorios_hoy,
+        'vacunas_programadas': datos['vacunas'],
+        'banos_programados': datos['banos'],
+        'recordatorios_hoy': datos['hoy'],
         'puede_editar_intervalos': puede_editar_intervalos,
     })
 

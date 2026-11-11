@@ -67,8 +67,9 @@ class CancelarCitaRF05Tests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        rol_vet = Rol.objects.create(nombre_rol="veterinario")
-        rol_rec = Rol.objects.create(nombre_rol="recepcion")
+        rol_vet, _ = Rol.objects.get_or_create(nombre_rol="veterinario")
+        # En la clínica la recepción la hace el rol «auxiliar» («recepcion» no existe)
+        rol_rec, _ = Rol.objects.get_or_create(nombre_rol="auxiliar")
         cls.vet = User.objects.create_user(
             username="vet", password="x", id_rol=rol_vet, nombre_completo="Dra. Vet"
         )

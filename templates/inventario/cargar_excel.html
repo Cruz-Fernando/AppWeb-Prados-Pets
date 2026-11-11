@@ -86,6 +86,19 @@
             </div>
           </div>
         {% endif %}
+
+        {% if avisos %}
+          <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.12);">
+            <h3 style="color: #fcd34d; font-size: 1.05rem; font-weight: 600; margin-bottom: 12px;">
+              Cargadas, pero revisa estas filas ({{ avisos|length }})
+            </h3>
+            <ul style="margin: 0; padding: 10px 14px 10px 30px; color: #e2e8f0; font-size: 0.875rem; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px;">
+              {% for item in avisos %}
+                <li style="padding: 3px 0;">Fila {{ item.fila }}: {{ item.aviso }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
       </div>
     </main>
   </div>

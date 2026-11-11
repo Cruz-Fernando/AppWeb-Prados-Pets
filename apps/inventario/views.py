@@ -7,12 +7,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction, models
+from django.contrib.staticfiles import finders
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView
 
 from apps.usuarios.permissions import rol_requerido
+from .carga_excel import procesar_catalogo
 from .forms import ProductoForm, ReposicionForm, CargaExcelForm
 from .models import Producto, Medicamento, Servicio, StockLote, MovimientoInventario, CategoriaProducto
 
@@ -111,151 +113,25 @@ def registrar_reposicion(request):
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def cargar_catalogo_excel(request):
-    errores = []
-    exitos = 0
+    """PB-13 / RF09: carga masiva del catálogo desde la plantilla de Excel."""
+    errores, avisos, exitos = [], [], 0
 
     if request.method == 'POST':
         form = CargaExcelForm(request.POST, request.FILES)
         if form.is_valid():
-            archivo = request.FILES['archivo_excel']
-            
-            try:
-                wb = openpyxl.load_workbook(archivo, data_only=True)
-                sheet = wb.active
-            except Exception as e:
-                messages.error(request, f"Error al abrir el archivo Excel: {str(e)}")
-                return render(request, 'inventario/cargar_excel.html', {'form': form, 'errores': errores, 'exitos': exitos})
-
-            for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-                if not any(row):
-                    continue
-
-                tipo = str(row[0] or '').strip().upper()
-                codigo = str(row[1] or '').strip()
-                nombre = str(row[2] or '').strip()
-                descripcion = str(row[3] or '').strip()
-                precio_raw = row[4]
-                stock_min_raw = row[5]
-
-                if not tipo or tipo not in ('PRODUCTO', 'MEDICAMENTO', 'SERVICIO'):
-                    errores.append({'fila': row_idx, 'error': f"Tipo inválido ('{tipo}'). Debe ser PRODUCTO, MEDICAMENTO o SERVICIO."})
-                    continue
-
-                if not codigo:
-                    errores.append({'fila': row_idx, 'error': "El campo 'Código' es obligatorio."})
-                    continue
-
-                if not nombre:
-                    errores.append({'fila': row_idx, 'error': "El campo 'Nombre' es obligatorio."})
-                    continue
-
-                try:
-                    precio = float(precio_raw)
-                    if precio < 0:
-                        raise ValueError
-                except (ValueError, TypeError):
-                    errores.append({'fila': row_idx, 'error': f"Precio inválido ('{precio_raw}'). Debe ser un número mayor o igual a 0."})
-                    continue
-
-                try:
-                    with transaction.atomic():
-                        if tipo == 'SERVICIO':
-                            if Servicio.objects.filter(codigo=codigo).exists():
-                                errores.append({'fila': row_idx, 'error': f"El servicio con código '{codigo}' ya existe."})
-                                continue
-
-                            Servicio.objects.create(
-                                codigo=codigo,
-                                nombre=nombre,
-                                descripcion=descripcion,
-                                precio=precio,
-                            )
-                            exitos += 1
-
-                        elif tipo in ('PRODUCTO', 'MEDICAMENTO'):
-                            if Producto.objects.filter(codigo=codigo).exists():
-                                errores.append({'fila': row_idx, 'error': f"El producto/medicamento con código '{codigo}' ya existe."})
-                                continue
-
-                            try:
-                                stock_min = int(stock_min_raw) if stock_min_raw is not None else 5
-                            except (ValueError, TypeError):
-                                stock_min = 5
-
-                            producto = Producto.objects.create(
-                                codigo=codigo,
-                                nombre=nombre,
-                                descripcion=descripcion,
-                                precio_venta=precio,
-                                stock_minimo=stock_min,
-                            )
-
-                            if tipo == 'MEDICAMENTO':
-                                principio = str(row[6] or '').strip() if len(row) > 6 else ''
-                                concentracion = str(row[7] or '').strip() if len(row) > 7 else ''
-                                presentacion = str(row[8] or '').strip() if len(row) > 8 else ''
-                                receta_val = str(row[9] or '').strip().upper() in ('SI', 'S', 'TRUE', '1') if len(row) > 9 else False
-
-                                Medicamento.objects.create(
-                                    producto=producto,
-                                    principio_activo=principio,
-                                    concentracion=concentracion,
-                                    presentacion=presentacion,
-                                    requiere_receta=receta_val,
-                                )
-
-                            num_lote = str(row[10] or '').strip() if len(row) > 10 else ''
-                            fecha_venc_raw = row[11] if len(row) > 11 else None
-                            cant_lote_raw = row[12] if len(row) > 12 else None
-
-                            if num_lote and cant_lote_raw is not None:
-                                cant_lote = int(cant_lote_raw)
-                                fecha_venc = None
-                                
-                                if isinstance(fecha_venc_raw, datetime):
-                                    fecha_venc = fecha_venc_raw.date()
-                                elif isinstance(fecha_venc_raw, str) and fecha_venc_raw.strip():
-                                    fecha_venc = datetime.strptime(fecha_venc_raw.strip(), "%Y-%m-%d").date()
-
-                                StockLote.objects.create(
-                                    producto=producto,
-                                    numero_lote=num_lote,
-                                    fecha_vencimiento=fecha_venc,
-                                    cantidad=cant_lote,
-                                )
-
-                                producto.stock_actual += cant_lote
-                                producto.save()
-
-                                MovimientoInventario.objects.create(
-                                    producto=producto,
-                                    tipo='ENTRADA_COMPRA',
-                                    cantidad=cant_lote,
-                                    precio_unitario_historico=precio,
-                                    monto_total=precio * cant_lote,
-                                    usuario=request.user,
-                                    observacion=f"Carga inicial Excel - Lote {num_lote}"
-                                )
-
-                            exitos += 1
-
-                except Exception as ex:
-                    if not any(e['fila'] == row_idx for e in errores):
-                        errores.append({'fila': row_idx, 'error': f"Error al guardar registro: {str(ex)}"})
-
-            if exitos > 0:
-                messages.success(request, f"Se cargaron exitosamente {exitos} registros en el catálogo.")
-            if not errores and exitos == 0:
-                messages.warning(request, "El archivo no contenía datos válidos para procesar.")
-
+            exitos, errores, avisos = procesar_catalogo(request.FILES['archivo_excel'], request.user)
+            if exitos:
+                messages.success(request, f"Se cargaron {exitos} registros en el catálogo.")
+            if errores:
+                messages.warning(request, f"{len(errores)} fila(s) no se cargaron. Corrígelas y vuelve a subir solo esas filas.")
+            if not exitos and not errores:
+                messages.warning(request, "El archivo no tenía filas con datos.")
     else:
         form = CargaExcelForm()
 
-    return render(
-        request,
-        'inventario/cargar_excel.html',
-        {'form': form, 'errores': errores, 'exitos': exitos}
-    )
+    return render(request, 'inventario/cargar_excel.html', {
+        'form': form, 'errores': errores, 'avisos': avisos, 'exitos': exitos,
+    })
 
 
 @login_required
@@ -317,8 +193,19 @@ def exportar_inventario_excel(request):
 @login_required
 def descargar_plantilla_excel(request):
     """
-    Genera un archivo .xlsx formateado con ejemplos para la carga masiva.
+    Entrega la plantilla oficial (static/plantillas/Plantilla_Carga_Inventario_PradosPets.xlsx,
+    con hoja de instrucciones, listas desplegables y 41 ejemplos). Si no está, genera una básica.
     """
+    ruta = finders.find('plantillas/Plantilla_Carga_Inventario_PradosPets.xlsx')
+    if ruta:
+        with open(ruta, 'rb') as fh:
+            response = HttpResponse(
+                fh.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            )
+        response['Content-Disposition'] = 'attachment; filename="Plantilla_Carga_Inventario_PradosPets.xlsx"'
+        return response
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Plantilla Catálogo"
