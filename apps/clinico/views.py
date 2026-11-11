@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 from apps.agendamiento.models import Cita
 from apps.directorio.models import Mascota
 from apps.peluqueria.models import CitaPeluqueria
+from apps.usuarios.permissions import rol_requerido
 
 from . import presentacion
 from .forms import (
@@ -33,8 +34,14 @@ from .pdf import render_pdf
 from .recordatorios import calcular_recordatorios
 from .registros import TIPOS, obtener_tipo
 
+# La historia clínica es información sensible: solo la consulta el personal
+# que ve el módulo en el menú lateral. Antes bastaba con iniciar sesión.
+ROLES_CLINICO = ('administrador', 'veterinario', 'auxiliar')
+ROLES_RECORDATORIOS = ROLES_CLINICO + ('groomer',)
+
 
 @login_required
+@rol_requerido(*ROLES_RECORDATORIOS)
 def recordatorios(request):
     hoy = timezone.localdate()
     puede_editar_intervalos = (
@@ -181,6 +188,7 @@ def _fallecido(mascota):
 # ===========================================================================
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def seleccionar_mascota_historial(request):
     q = request.GET.get('q', '').strip()
     mascotas = (
@@ -262,6 +270,7 @@ def _proximos_eventos(mascota):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def historial_clinico(request, mascota_id):
     mascota = get_object_or_404(Mascota.objects.select_related('id_dueno'), id_mascota=mascota_id)
     vista = request.GET.get('vista', 'linea')
@@ -295,6 +304,7 @@ def historial_clinico(request, mascota_id):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def nuevo_registro(request, mascota_id, tipo):
     mascota = get_object_or_404(Mascota.objects.select_related('id_dueno'), id_mascota=mascota_id)
     definicion = obtener_tipo(tipo)
@@ -341,6 +351,7 @@ def nuevo_registro(request, mascota_id, tipo):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def registro_detalle(request, pk):
     registro = get_object_or_404(
         RegistroClinico.objects.select_related('mascota__id_dueno', 'profesional', 'anulado_por',
@@ -363,6 +374,7 @@ def registro_detalle(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def editar_registro(request, pk):
     registro = get_object_or_404(RegistroClinico.objects.select_related('mascota__id_dueno'), pk=pk)
     if not puede_editar(request.user, registro):
@@ -413,6 +425,7 @@ def editar_registro(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 @require_POST
 def anular_registro(request, pk):
     registro = get_object_or_404(RegistroClinico, pk=pk)
@@ -435,6 +448,7 @@ def anular_registro(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def registro_pdf(request, pk):
     registro = get_object_or_404(
         RegistroClinico.objects.select_related('mascota__id_dueno', 'profesional', 'anulado_por'), pk=pk)
@@ -451,6 +465,7 @@ def registro_pdf(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def historia_pdf(request, mascota_id):
     mascota = get_object_or_404(Mascota.objects.select_related('id_dueno'), id_mascota=mascota_id)
     incluir_anulados = request.GET.get('anulados') == '1'
@@ -482,6 +497,7 @@ def historia_pdf(request, mascota_id):
 # ===========================================================================
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def hospitalizacion_lista(request):
     activos = (Hospitalizacion.objects.filter(estado='ACTIVO')
                .select_related('mascota__id_dueno', 'profesional_ingreso')
@@ -506,6 +522,7 @@ def hospitalizacion_lista(request):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def ingresar_paciente(request):
     if not puede_registrar(request.user):
         return _sin_permiso(request, 'Solo médicos veterinarios o administradores pueden ingresar pacientes.')
@@ -531,6 +548,7 @@ def ingresar_paciente(request):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def hospitalizacion_detalle(request, pk):
     hosp = get_object_or_404(
         Hospitalizacion.objects.select_related('mascota__id_dueno', 'profesional_ingreso', 'profesional_alta'),
@@ -563,6 +581,7 @@ def hospitalizacion_detalle(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def dar_alta(request, pk):
     hosp = get_object_or_404(Hospitalizacion.objects.select_related('mascota__id_dueno'), pk=pk)
     if not puede_registrar(request.user):
@@ -588,6 +607,7 @@ def dar_alta(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def hospitalizacion_pdf(request, pk):
     hosp = get_object_or_404(
         Hospitalizacion.objects.select_related('mascota__id_dueno', 'profesional_ingreso', 'profesional_alta'),

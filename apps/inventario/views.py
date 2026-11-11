@@ -11,6 +11,7 @@ from django.contrib.staticfiles import finders
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView
 
 from apps.usuarios.permissions import rol_requerido
@@ -18,7 +19,14 @@ from .carga_excel import procesar_catalogo
 from .forms import ProductoForm, ReposicionForm, CargaExcelForm
 from .models import Producto, Medicamento, Servicio, StockLote, MovimientoInventario, CategoriaProducto
 
+# Mismos roles que ven el módulo en el menú lateral. Antes bastaba con iniciar
+# sesión: un groomer o un domiciliario podía crear productos y mover stock
+# escribiendo la dirección a mano.
+ROLES_INVENTARIO = ('administrador', 'veterinario', 'auxiliar')
+solo_inventario = method_decorator(rol_requerido(*ROLES_INVENTARIO), name='dispatch')
 
+
+@solo_inventario
 class InventarioListView(LoginRequiredMixin, ListView):
     model = Producto
     template_name = 'inventario/inventario_list.html'
@@ -50,6 +58,7 @@ class InventarioListView(LoginRequiredMixin, ListView):
         return context
 
 
+@solo_inventario
 class ProductoCreateView(LoginRequiredMixin, CreateView):
     model = Producto
     form_class = ProductoForm
@@ -74,6 +83,7 @@ class ProductoCreateView(LoginRequiredMixin, CreateView):
 
 
 @login_required
+@rol_requerido(*ROLES_INVENTARIO)
 def registrar_reposicion(request):
     if request.method == 'POST':
         form = ReposicionForm(request.POST)
@@ -111,7 +121,7 @@ def registrar_reposicion(request):
 
 
 @login_required
-@rol_requerido('administrador', 'veterinario', 'recepcionista')
+@rol_requerido(*ROLES_INVENTARIO)
 def cargar_catalogo_excel(request):
     """PB-13 / RF09: carga masiva del catálogo desde la plantilla de Excel."""
     errores, avisos, exitos = [], [], 0
@@ -135,6 +145,7 @@ def cargar_catalogo_excel(request):
 
 
 @login_required
+@rol_requerido(*ROLES_INVENTARIO)
 def exportar_inventario_excel(request):
     """
     Genera un archivo .xlsx con el listado actual de productos en inventario.
@@ -191,6 +202,7 @@ def exportar_inventario_excel(request):
 
 
 @login_required
+@rol_requerido(*ROLES_INVENTARIO)
 def descargar_plantilla_excel(request):
     """
     Entrega la plantilla oficial (static/plantillas/Plantilla_Carga_Inventario_PradosPets.xlsx,
@@ -247,6 +259,7 @@ def descargar_plantilla_excel(request):
     return response
 
 
+@solo_inventario
 class KardexListView(LoginRequiredMixin, ListView):
     model = MovimientoInventario
     template_name = 'inventario/kardex.html'
