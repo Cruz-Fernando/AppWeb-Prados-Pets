@@ -4,6 +4,7 @@
 
 {% block body %}
 <link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
@@ -96,6 +97,13 @@
               </label>
               {% endfor %}
             </div>
+          </div>
+
+          <!-- PB-17: lo que este servicio descuenta del inventario -->
+          <div class="ag-field ins-previa" id="insumos-previa" aria-live="polite">
+            <span class="ag-label">Se descontará del inventario</span>
+            <ul class="ins-previa__lista" id="insumos-previa-lista"></ul>
+            <p class="ag-hint" id="insumos-previa-vacio">Este servicio no tiene insumos configurados. Configúralos en <a href="{% url 'inventario:insumos_peluqueria' %}">Inventario › Insumos por servicio</a>.</p>
           </div>
 
           <div class="ag-field">
@@ -213,6 +221,7 @@
 </div>
 
 {% if borrador %}{{ borrador|json_script:"borrador-datos" }}{% endif %}
+{{ insumos_previa|json_script:"insumos-previa-datos" }}
 <script>
 (function(){
   const form      = document.getElementById('form-peluqueria');
@@ -249,6 +258,28 @@
   const DURACION_MIN = { pequeno: 60, mediano: 90, grande: 120 };
   const PRECIO_MAX_DIGITOS = 8;   // 99.999.999 COP, igual que el tope del servidor
   let timer = null, items = [], activo = -1;
+
+  // ---------- PB-17: vista previa de los insumos que se descuentan ----------
+  const INSUMOS = JSON.parse(document.getElementById('insumos-previa-datos').textContent || '{}');
+  const listaIns = document.getElementById('insumos-previa-lista');
+  const vacioIns = document.getElementById('insumos-previa-vacio');
+  let tamanoMascota = '';
+  function pintarInsumos(){
+    const marcado = radios.find(r => r.checked);
+    const reglas = INSUMOS[marcado ? marcado.value : ''] || {};
+    const porProducto = {};
+    (reglas[''] || []).forEach(i => { porProducto[i.producto] = i; });
+    if (tamanoMascota) (reglas[tamanoMascota] || []).forEach(i => { porProducto[i.producto] = i; });
+    const lista = Object.values(porProducto);
+    listaIns.innerHTML = lista.map(i => {
+      const falta = i.cantidad > i.disponible;
+      return `<li class="${falta ? 'is-falta' : ''}"><span>${esc(i.cantidad)} × ${esc(i.nombre)}</span>`
+           + `<span class="ins-tag${falta ? ' ins-tag--agotado' : (i.disponible - i.cantidad <= 2 ? ' ins-tag--bajo' : '')}">`
+           + `${falta ? 'No alcanza · ' : ''}${esc(i.disponible)} disp.</span></li>`;
+    }).join('');
+    listaIns.hidden = !lista.length;
+    vacioIns.hidden = !!lista.length;
+  }
 
   function esc(t) {
     return String(t == null ? '' : t).replace(/[&<>"']/g, c => (
@@ -330,6 +361,8 @@
     inDur.value = String(mins);
     actualizarDuracion();
 
+    tamanoMascota = (m.tamano || 'pequeno').toUpperCase();
+    pintarInsumos();
     const tam = m.tamano_display || m.tamano || 'Pequeño';
     document.getElementById('lbl_avatar').textContent = inicial(m.nombre);
     document.getElementById('lbl_pet_name').textContent = m.nombre;
@@ -352,12 +385,14 @@
     sumRazaTam.textContent = 'Especie · Raza · Tamaño';
     inDur.value = '';
     actualizarDuracion();
+    tamanoMascota = '';
+    pintarInsumos();
     actualizarEstado();
     input.focus();
   });
 
   // ---------- Servicio, groomer, fecha y duración ----------
-  radios.forEach(r => r.addEventListener('change', function(){ setValor(sumServ, this.dataset.nombre, false); }));
+  radios.forEach(r => r.addEventListener('change', function(){ setValor(sumServ, this.dataset.nombre, false); pintarInsumos(); }));
 
   inGroomer.addEventListener('change', function(){
     setValor(sumGroomer, this.value ? this.options[this.selectedIndex].text : 'Por asignar', !this.value);
@@ -481,6 +516,7 @@
     if (b.precio) { inPrecio.value = String(b.precio); formatearPrecio(); }
     if (b.observaciones) { inObs.value = b.observaciones; }
   }
+  pintarInsumos();
   actualizarEstado();
 
   // Tras agendar con éxito: descarga automática del comprobante PDF
