@@ -93,6 +93,12 @@ class CitaPeluqueria(models.Model):
         groomer_nombre = self.groomer.nombre_completo if self.groomer else 'Sin asignar'
         return f"Cita Peluquería: {self.nombre_mascota} — {self.get_servicio_display()} ({groomer_nombre})"
 
+    @property
+    def insumos_usados(self):
+        """Insumos que se descontaron del inventario con esta cita (PB-17)."""
+        return (self.movimientos_inventario.filter(tipo='SALIDA_PELUQUERIA')
+                .select_related('producto').order_by('pk'))
+
     def save(self, *args, **kwargs):
         # La comisión se recalcula siempre a partir del precio.
         self.comision_groomer = Decimal(self.precio or 0) * COMISION_GROOMER_PORCENTAJE

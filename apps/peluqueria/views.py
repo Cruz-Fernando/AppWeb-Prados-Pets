@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,9 +14,11 @@ from django.utils.text import slugify
 
 from apps.agendamiento.recomendaciones import RECOMENDACIONES_PELUQUERIA
 from apps.directorio.models import Mascota
+from apps.inventario.services import StockInsuficiente, avisos_stock_bajo
 from apps.usuarios.permissions import rol_requerido
 from config.pdf import render_pdf
 
+from .insumos import descontar_insumos_cita, vista_previa
 from .models import CitaPeluqueria
 
 Usuario = get_user_model()
@@ -155,6 +158,7 @@ def panel_peluqueria(request):
         'cita_creada': cita_creada,
         'ahora_min': timezone.localtime().strftime('%Y-%m-%dT%H:%M'),
         'borrador': request.session.pop('peluqueria_borrador', None),
+        'insumos_previa': vista_previa(),
     })
 
 
@@ -247,6 +251,30 @@ def guardar_cita(request):
             mascota,
         )
 
+    # 8. PB-17: se crea la cita y se descuentan sus insumos en una sola operación.
+    #    Si un insumo no alcanza, no se agenda nada y se explica cuál falta.
+    try:
+        with transaction.atomic():
+            cita, movimientos = _crear_cita_con_insumos(request, mascota, servicio, fecha_hora,
+                                                        duracion_min, precio, groomer)
+    except StockInsuficiente as error:
+        return _rechazar(
+            request,
+            f'{error} Repón el producto en Inventario o ajusta los insumos del servicio antes de agendar.',
+            mascota,
+        )
+
+    # Mostrar el mensaje de éxito y redireccionar pasando el parámetro ?descargar=ID
+    messages.success(request, f'Cita agendada exitosamente para {mascota.nombre}.')
+    if movimientos:
+        messages.info(request, 'Se descontó del inventario: '
+                      + ', '.join(f'{m.cantidad} × {m.producto.nombre}' for m in movimientos) + '.')
+    for aviso in avisos_stock_bajo(movimientos):
+        messages.warning(request, aviso)
+    return redirect(reverse('peluqueria:panel_peluqueria') + f'?descargar={cita.pk}')
+
+
+def _crear_cita_con_insumos(request, mascota, servicio, fecha_hora, duracion_min, precio, groomer):
     cita = CitaPeluqueria.objects.create(
         mascota=mascota,
         nombre_mascota=mascota.nombre,
@@ -259,10 +287,7 @@ def guardar_cita(request):
         observaciones=(request.POST.get('observaciones') or '').strip(),
         groomer=groomer,
     )
-
-    # Mostrar el mensaje de éxito y redireccionar pasando el parámetro ?descargar=ID
-    messages.success(request, f'Cita agendada exitosamente para {mascota.nombre}.')
-    return redirect(reverse('peluqueria:panel_peluqueria') + f'?descargar={cita.pk}')
+    return cita, descontar_insumos_cita(cita, request.user)
 
 
 @login_required

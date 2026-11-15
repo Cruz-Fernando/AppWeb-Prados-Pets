@@ -146,8 +146,10 @@ class StockLote(models.Model):
 class MovimientoInventario(models.Model):
     TIPO_MOVIMIENTO = [
         ('ENTRADA_COMPRA', 'Entrada por Compra / Reposición'),
+        ('ENTRADA_DEVOLUCION', 'Entrada por Devolución (anulación o cancelación)'),
         ('SALIDA_VENTA', 'Salida por Venta'),
         ('SALIDA_CLINICA', 'Salida por Uso en Consulta Clínica'),
+        ('SALIDA_PELUQUERIA', 'Salida por Servicio de Peluquería'),
         ('AJUSTE_MERMA', 'Ajuste / Pérdida / Vencimiento'),
     ]
 
@@ -161,6 +163,23 @@ class MovimientoInventario(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     observacion = models.CharField(max_length=255, blank=True, null=True)
     consulta_medica_id = models.IntegerField(null=True, blank=True)
+
+    # PB-17 / RF10: de dónde salió el descuento automático.
+    # Todos admiten NULL o tienen valor por defecto EN LA BASE (db_default), para
+    # que el código que aún no los conoce (otra rama o el despliegue) pueda seguir
+    # guardando movimientos en la base compartida sin error.
+    registro_clinico = models.ForeignKey(
+        'clinico.RegistroClinico', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='movimientos_inventario', verbose_name="Registro clínico",
+    )
+    cita_peluqueria = models.ForeignKey(
+        'peluqueria.CitaPeluqueria', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='movimientos_inventario', verbose_name="Cita de peluquería",
+    )
+    # Lotes de los que salió (o a los que volvió) la mercancía: [{"lote": id, "numero": "L1", "cantidad": 2}]
+    lotes = models.JSONField(null=True, blank=True, verbose_name="Lotes afectados")
+    # True cuando la salida ya se devolvió al inventario (anulación o cancelación)
+    devuelto = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         verbose_name = "Movimiento de Inventario"
@@ -206,3 +225,43 @@ class DetalleVenta(models.Model):
 
     def __str__(self):
         return f"{self.cantidad} x {self.producto.nombre}"
+
+
+class InsumoServicio(models.Model):
+    """
+    Insumos que gasta cada servicio de peluquería (PB-17 / RF10).
+
+    Al agendar el servicio se descuentan del inventario. Si el tamaño se deja
+    vacío, el insumo aplica a mascotas de cualquier tamaño.
+    """
+    SERVICIOS = [
+        ('BANO', 'Solamente Baño'),
+        ('CORTE', 'Corte Despuntado (Solo tijera)'),
+        ('COMPLETO', 'Corte Total (Máquina y tijera)'),
+    ]
+    TAMANOS = [
+        ('', 'Todos los tamaños'),
+        ('PEQUENO', 'Pequeño (1 - 10 kg)'),
+        ('MEDIANO', 'Mediano (11 - 25 kg)'),
+        ('GRANDE', 'Grande (Más de 25 kg)'),
+    ]
+
+    servicio = models.CharField(max_length=20, choices=SERVICIOS, verbose_name="Servicio")
+    tamano = models.CharField(max_length=10, choices=TAMANOS, blank=True, default='',
+                              verbose_name="Tamaño de la mascota")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='usos_en_servicios',
+                                 verbose_name="Producto")
+    cantidad = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)],
+                                           verbose_name="Cantidad por servicio")
+
+    class Meta:
+        verbose_name = "Insumo por servicio"
+        verbose_name_plural = "Insumos por servicio"
+        ordering = ['servicio', 'tamano', 'producto__nombre']
+        constraints = [
+            models.UniqueConstraint(fields=['servicio', 'tamano', 'producto'],
+                                    name='uniq_insumo_servicio_tamano_producto'),
+        ]
+
+    def __str__(self):
+        return f"{self.get_servicio_display()} · {self.cantidad} × {self.producto.nombre}"

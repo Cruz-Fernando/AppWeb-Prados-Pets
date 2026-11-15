@@ -17,6 +17,18 @@
   </table>
 {% endfor %}
 
+{% with insumos=r.insumos_usados %}{% if insumos %}
+<h3>Medicamentos e insumos usados</h3>
+<table class="lista">
+  <tr><th style="width:18%;">Código</th><th>Producto</th><th style="width:28%;">Lote</th><th style="width:12%;">Cantidad</th></tr>
+  {% for m in insumos %}
+  <tr><td>{{ m.producto.codigo }}</td><td>{{ m.producto.nombre }}{% if m.devuelto %} (devuelto){% endif %}</td>
+      <td>{% for l in m.lotes %}{{ l.numero }} ×{{ l.cantidad }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+      <td>{{ m.cantidad }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}{% endwith %}
+
 {% for etq, valor in evaluacion %}{% if etq != "Anamnesis" %}
   <h3>{{ etq }}</h3><p class="texto">{{ valor|linebreaksbr }}</p>
 {% endif %}{% endfor %}

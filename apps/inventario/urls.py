@@ -11,4 +11,7 @@ urlpatterns = [
     path('exportar-excel/', views.exportar_inventario_excel, name='exportar_excel'),
     path('descargar-plantilla/', views.descargar_plantilla_excel, name='descargar_plantilla'),
     path('kardex/', views.KardexListView.as_view(), name='kardex'),
+    # PB-17: descuento automático del stock
+    path('buscar-producto/', views.buscar_producto, name='buscar_producto'),
+    path('insumos-peluqueria/', views.insumos_peluqueria, name='insumos_peluqueria'),
 ]

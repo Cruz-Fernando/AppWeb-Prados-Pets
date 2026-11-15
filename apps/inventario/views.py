@@ -8,16 +8,18 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction, models
 from django.contrib.staticfiles import finders
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView
 
 from apps.usuarios.permissions import rol_requerido
 from .carga_excel import procesar_catalogo
 from .forms import ProductoForm, ReposicionForm, CargaExcelForm
-from .models import Producto, Medicamento, Servicio, StockLote, MovimientoInventario, CategoriaProducto
+from .models import Producto, Medicamento, Servicio, StockLote, MovimientoInventario, CategoriaProducto, InsumoServicio
+from .services import disponibilidad
 
 # Mismos roles que ven el módulo en el menú lateral. Antes bastaba con iniciar
 # sesión: un groomer o un domiciliario podía crear productos y mover stock
@@ -265,3 +267,89 @@ class KardexListView(LoginRequiredMixin, ListView):
     template_name = 'inventario/kardex.html'
     context_object_name = 'movimientos'
     paginate_by = 20
+
+
+# ---------------------------------------------------------------------------
+# PB-17 / RF10 · Descuento automático del stock
+# ---------------------------------------------------------------------------
+
+def _producto_a_dict(producto):
+    disponible, vencidas = disponibilidad(producto)
+    proximo = (producto.lotes.filter(cantidad__gt=0, fecha_vencimiento__gte=timezone.localdate())
+               .order_by('fecha_vencimiento').first())
+    return {
+        'id': producto.pk,
+        'codigo': producto.codigo,
+        'nombre': producto.nombre,
+        'es_medicamento': hasattr(producto, 'medicamento'),
+        'disponible': disponible,
+        'vencidas': vencidas,
+        'stock_minimo': producto.stock_minimo,
+        'proximo_vence': proximo.fecha_vencimiento.strftime('%d/%m/%Y') if proximo else '',
+    }
+
+
+@login_required
+@rol_requerido(*ROLES_INVENTARIO)
+def buscar_producto(request):
+    """AJAX: productos activos por nombre o código, con las unidades que se pueden usar."""
+    q = (request.GET.get('q') or '').strip()
+    if len(q) < 2:
+        return JsonResponse([], safe=False)
+    productos = (Producto.objects.filter(activo=True)
+                 .filter(models.Q(nombre__icontains=q) | models.Q(codigo__icontains=q))
+                 .select_related('medicamento').order_by('nombre')[:12])
+    return JsonResponse([_producto_a_dict(p) for p in productos], safe=False)
+
+
+@login_required
+@rol_requerido(*ROLES_INVENTARIO)
+def insumos_peluqueria(request):
+    """Qué insumos gasta cada servicio de peluquería (se descuentan al agendar la cita)."""
+    if request.method == 'POST':
+        if 'eliminar' in request.POST:
+            InsumoServicio.objects.filter(pk=request.POST.get('eliminar')).delete()
+            messages.success(request, 'Insumo quitado del servicio.')
+            return redirect('inventario:insumos_peluqueria')
+
+        servicio = request.POST.get('servicio', '')
+        tamano = request.POST.get('tamano', '')
+        producto_id = (request.POST.get('producto') or '').strip()
+        cantidad = (request.POST.get('cantidad') or '').strip()
+        producto = Producto.objects.filter(pk=producto_id, activo=True).first() if producto_id.isdigit() else None
+
+        errores = []
+        if servicio not in dict(InsumoServicio.SERVICIOS):
+            errores.append('Elige el servicio de peluquería.')
+        if tamano not in dict(InsumoServicio.TAMANOS):
+            errores.append('El tamaño elegido no es válido.')
+        if producto is None:
+            errores.append('Elige un producto activo del inventario.')
+        if not cantidad.isdigit() or not (1 <= int(cantidad) <= 99):
+            errores.append('La cantidad por servicio debe ser un número entero entre 1 y 99.')
+        if errores:
+            for e in errores:
+                messages.error(request, e)
+            return redirect('inventario:insumos_peluqueria')
+
+        insumo, creado = InsumoServicio.objects.update_or_create(
+            servicio=servicio, tamano=tamano, producto=producto,
+            defaults={'cantidad': int(cantidad)},
+        )
+        messages.success(request, ('Insumo agregado: ' if creado else 'Cantidad actualizada: ') + str(insumo) + '.')
+        return redirect('inventario:insumos_peluqueria')
+
+    grupos = []
+    insumos = InsumoServicio.objects.select_related('producto').order_by('producto__nombre')
+    for clave, nombre in InsumoServicio.SERVICIOS:
+        filas = [i for i in insumos if i.servicio == clave]
+        for i in filas:
+            i.disponible = disponibilidad(i.producto)[0]
+        grupos.append({'clave': clave, 'nombre': nombre, 'insumos': filas})
+
+    return render(request, 'inventario/insumos_peluqueria.html', {
+        'grupos': grupos,
+        'servicios': InsumoServicio.SERVICIOS,
+        'tamanos': InsumoServicio.TAMANOS,
+        'productos': Producto.objects.filter(activo=True).order_by('nombre'),
+    })
