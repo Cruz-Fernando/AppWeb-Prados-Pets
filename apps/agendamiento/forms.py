@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Cita
+from .models import Cita, hora_fin_por_defecto
 
 
 class CitaForm(forms.ModelForm):
@@ -42,7 +42,8 @@ class CitaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
         self.fields["mascota"].required = True
-        self.fields["hora_fin"].required = True  # SW-04: Exigir hora_fin en el formulario
+        # BUG-04: si se deja vacía, se asume hora de inicio + 30 min
+        self.fields["hora_fin"].required = False
         # Opción vacía en español (la de Django 6.1 sale como "- Select an option -")
         self.fields["veterinario"].empty_label = "Selecciona un veterinario"
 
@@ -60,6 +61,8 @@ class CitaForm(forms.ModelForm):
         fecha = cleaned.get("fecha")
         hora_inicio = cleaned.get("hora_inicio")
         hora_fin = cleaned.get("hora_fin")
+        if hora_inicio and not hora_fin:
+            hora_fin = cleaned["hora_fin"] = hora_fin_por_defecto(hora_inicio)
 
         # 1. Validar que hora_fin sea estrictamente mayor a hora_inicio
         if hora_inicio and hora_fin and hora_fin <= hora_inicio:

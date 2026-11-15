@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 from apps.agendamiento.models import Cita
 from apps.directorio.models import Mascota
 from apps.peluqueria.models import CitaPeluqueria
+from apps.usuarios.permissions import rol_requerido
 
 from . import presentacion
 from .forms import (
@@ -30,19 +31,17 @@ from .models import (
     TrazaClinica,
 )
 from .pdf import render_pdf
+from .recordatorios import calcular_recordatorios
 from .registros import TIPOS, obtener_tipo
 
-
-def _fechas_recordatorio(fecha_base, intervalo_dias, hoy):
-    fecha_recordatorio = fecha_base
-    if fecha_recordatorio < hoy:
-        dias_transcurridos = (hoy - fecha_recordatorio).days
-        ciclos = (dias_transcurridos + intervalo_dias - 1) // intervalo_dias
-        fecha_recordatorio += timedelta(days=ciclos * intervalo_dias)
-    return fecha_recordatorio, fecha_recordatorio + timedelta(days=intervalo_dias)
+# La historia clínica es información sensible: solo la consulta el personal
+# que ve el módulo en el menú lateral. Antes bastaba con iniciar sesión.
+ROLES_CLINICO = ('administrador', 'veterinario', 'auxiliar')
+ROLES_RECORDATORIOS = ROLES_CLINICO + ('groomer',)
 
 
 @login_required
+@rol_requerido(*ROLES_RECORDATORIOS)
 def recordatorios(request):
     hoy = timezone.localdate()
     puede_editar_intervalos = (
@@ -90,69 +89,13 @@ def recordatorios(request):
         messages.success(request, 'El intervalo del recordatorio fue actualizado.')
         return redirect('clinico:recordatorios')
 
-    citas_vacunacion = Cita.objects.select_related(
-        'mascota',
-        'mascota__id_dueno',
-    ).filter(
-        tipo_servicio='vacunacion',
-    ).exclude(estado='cancelada').order_by('fecha', 'hora_inicio')
-    citas_bano = CitaPeluqueria.objects.select_related(
-        'mascota',
-        'mascota__id_dueno',
-    ).filter(
-        mascota__isnull=False,
-        servicio='BANO',
-    ).order_by('fecha_hora')
-
-    vacunas_programadas = []
-    recordatorios_hoy = []
-    for cita in citas_vacunacion:
-        fecha_recordatorio, fecha_siguiente = _fechas_recordatorio(
-            cita.fecha,
-            cita.intervalo_recordatorio_dias,
-            hoy,
-        )
-        recordatorio = {
-            'cita_id': cita.pk,
-            'mascota': cita.mascota,
-            'servicio': cita.get_tipo_servicio_display(),
-            'fecha_recordatorio': fecha_recordatorio,
-            'fecha_siguiente': fecha_siguiente,
-            'intervalo_dias': cita.intervalo_recordatorio_dias,
-            'tipo': 'Vacunación',
-        }
-        vacunas_programadas.append(recordatorio)
-        if fecha_recordatorio == hoy:
-            recordatorios_hoy.append(recordatorio)
-
-    banos_programados = []
-    for cita in citas_bano:
-        fecha_base = timezone.localdate(cita.fecha_hora)
-        fecha_recordatorio, fecha_siguiente = _fechas_recordatorio(
-            fecha_base,
-            cita.intervalo_recordatorio_dias,
-            hoy,
-        )
-        recordatorio = {
-            'cita_id': cita.pk,
-            'mascota': cita.mascota,
-            'servicio': cita.get_servicio_display(),
-            'fecha_recordatorio': fecha_recordatorio,
-            'fecha_siguiente': fecha_siguiente,
-            'intervalo_dias': cita.intervalo_recordatorio_dias,
-            'tipo': 'Baño',
-        }
-        banos_programados.append(recordatorio)
-        if fecha_recordatorio == hoy:
-            recordatorios_hoy.append(recordatorio)
-
-    vacunas_programadas.sort(key=lambda item: item['fecha_recordatorio'])
-    banos_programados.sort(key=lambda item: item['fecha_recordatorio'])
+    # Una sola regla para la pantalla y el panel principal (apps/clinico/recordatorios.py)
+    datos = calcular_recordatorios(hoy)
 
     return render(request, 'clinico/recordatorios.html', {
-        'vacunas_programadas': vacunas_programadas,
-        'banos_programados': banos_programados,
-        'recordatorios_hoy': recordatorios_hoy,
+        'vacunas_programadas': datos['vacunas'],
+        'banos_programados': datos['banos'],
+        'recordatorios_hoy': datos['hoy'],
         'puede_editar_intervalos': puede_editar_intervalos,
     })
 
@@ -245,6 +188,7 @@ def _fallecido(mascota):
 # ===========================================================================
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def seleccionar_mascota_historial(request):
     q = request.GET.get('q', '').strip()
     mascotas = (
@@ -326,6 +270,7 @@ def _proximos_eventos(mascota):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def historial_clinico(request, mascota_id):
     mascota = get_object_or_404(Mascota.objects.select_related('id_dueno'), id_mascota=mascota_id)
     vista = request.GET.get('vista', 'linea')
@@ -359,6 +304,7 @@ def historial_clinico(request, mascota_id):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def nuevo_registro(request, mascota_id, tipo):
     mascota = get_object_or_404(Mascota.objects.select_related('id_dueno'), id_mascota=mascota_id)
     definicion = obtener_tipo(tipo)
@@ -405,6 +351,7 @@ def nuevo_registro(request, mascota_id, tipo):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def registro_detalle(request, pk):
     registro = get_object_or_404(
         RegistroClinico.objects.select_related('mascota__id_dueno', 'profesional', 'anulado_por',
@@ -427,6 +374,7 @@ def registro_detalle(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def editar_registro(request, pk):
     registro = get_object_or_404(RegistroClinico.objects.select_related('mascota__id_dueno'), pk=pk)
     if not puede_editar(request.user, registro):
@@ -477,6 +425,7 @@ def editar_registro(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 @require_POST
 def anular_registro(request, pk):
     registro = get_object_or_404(RegistroClinico, pk=pk)
@@ -499,6 +448,7 @@ def anular_registro(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def registro_pdf(request, pk):
     registro = get_object_or_404(
         RegistroClinico.objects.select_related('mascota__id_dueno', 'profesional', 'anulado_por'), pk=pk)
@@ -515,6 +465,7 @@ def registro_pdf(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def historia_pdf(request, mascota_id):
     mascota = get_object_or_404(Mascota.objects.select_related('id_dueno'), id_mascota=mascota_id)
     incluir_anulados = request.GET.get('anulados') == '1'
@@ -546,6 +497,7 @@ def historia_pdf(request, mascota_id):
 # ===========================================================================
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def hospitalizacion_lista(request):
     activos = (Hospitalizacion.objects.filter(estado='ACTIVO')
                .select_related('mascota__id_dueno', 'profesional_ingreso')
@@ -570,6 +522,7 @@ def hospitalizacion_lista(request):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def ingresar_paciente(request):
     if not puede_registrar(request.user):
         return _sin_permiso(request, 'Solo médicos veterinarios o administradores pueden ingresar pacientes.')
@@ -595,6 +548,7 @@ def ingresar_paciente(request):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def hospitalizacion_detalle(request, pk):
     hosp = get_object_or_404(
         Hospitalizacion.objects.select_related('mascota__id_dueno', 'profesional_ingreso', 'profesional_alta'),
@@ -627,6 +581,7 @@ def hospitalizacion_detalle(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def dar_alta(request, pk):
     hosp = get_object_or_404(Hospitalizacion.objects.select_related('mascota__id_dueno'), pk=pk)
     if not puede_registrar(request.user):
@@ -652,6 +607,7 @@ def dar_alta(request, pk):
 
 
 @login_required
+@rol_requerido(*ROLES_CLINICO)
 def hospitalizacion_pdf(request, pk):
     hosp = get_object_or_404(
         Hospitalizacion.objects.select_related('mascota__id_dueno', 'profesional_ingreso', 'profesional_alta'),

@@ -50,14 +50,17 @@ class ReposicionForm(forms.Form):
 class CargaExcelForm(forms.Form):
     archivo_excel = forms.FileField(
         label="Archivo Excel",
-        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls, .csv'})
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx'})
     )
 
     def clean_archivo_excel(self):
         archivo = self.cleaned_data.get('archivo_excel')
         if archivo:
-            if not archivo.name.endswith(('.xlsx', '.xls', '.csv')):
-                raise forms.ValidationError("El archivo seleccionado debe tener extensión .xlsx, .xls o .csv")
+            # openpyxl solo lee .xlsx: .xls y .csv fallaban al abrirse con un error técnico
+            if not archivo.name.lower().endswith('.xlsx'):
+                raise forms.ValidationError("El archivo debe ser .xlsx. Descarga la plantilla y guárdala como «Libro de Excel (.xlsx)».")
+            if archivo.size > 5 * 1024 * 1024:
+                raise forms.ValidationError("El archivo pesa más de 5 MB. Divide la carga en varios archivos.")
         return archivo
 
 

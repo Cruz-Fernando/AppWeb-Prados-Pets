@@ -10,7 +10,9 @@ from apps.usuarios.models import Rol
 class GestionMascotasTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        rol = Rol.objects.create(nombre_rol="recepcion")
+        # En la clínica la recepción la hace el rol «auxiliar» (sembrado por
+        # la migración usuarios.0002_seed_roles); «recepcion» no existe.
+        rol, _ = Rol.objects.get_or_create(nombre_rol="auxiliar")
         cls.usuario = get_user_model().objects.create_user(
             username="recepcion",
             password="test-password",

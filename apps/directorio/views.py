@@ -1,9 +1,13 @@
+import re
+
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
@@ -15,6 +19,37 @@ from apps.usuarios.permissions import rol_requerido
 from .models import Dueno, Mascota
 
 
+def _validar_dueno(nombre, telefono, direccion, correo):
+    """
+    Revisa en el servidor los datos del propietario (el navegador también los
+    pide, pero esa revisión se puede saltar). Devuelve (telefono_limpio, errores).
+    """
+    errores = []
+    if not nombre:
+        errores.append('El nombre del propietario es obligatorio.')
+    elif len(nombre) > 150:
+        errores.append('El nombre no puede tener más de 150 caracteres.')
+
+    telefono_limpio = re.sub(r'[\s\-().]', '', telefono)
+    if not telefono_limpio:
+        errores.append('El teléfono es obligatorio.')
+    elif not re.fullmatch(r'\+?\d{7,15}', telefono_limpio):
+        errores.append('El teléfono solo debe tener números (entre 7 y 15 dígitos). Ejemplo: 3001234567.')
+
+    if not direccion:
+        errores.append('La dirección es obligatoria.')
+    elif len(direccion) > 255:
+        errores.append('La dirección no puede tener más de 255 caracteres.')
+
+    if correo:
+        try:
+            validate_email(correo)
+        except ValidationError:
+            errores.append('El correo no es válido. Ejemplo: propietario@email.com.')
+    return telefono_limpio, errores
+
+
+
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def registrar_dueno(request):
@@ -23,6 +58,17 @@ def registrar_dueno(request):
         telefono = request.POST.get('telefono', '').strip()
         direccion = request.POST.get('direccion', '').strip()
         correo = request.POST.get('correo', '').strip()
+
+        telefono, errores = _validar_dueno(nombre, telefono, direccion, correo)
+        if errores:
+            for error in errores:
+                messages.error(request, error)
+            return render(request, 'directorio/dueno_form.html', {
+                'nombre': nombre,
+                'telefono': telefono,
+                'direccion': direccion,
+                'correo': correo,
+            })
 
         try:
             dueno = Dueno(
@@ -67,6 +113,19 @@ def editar_dueno(request, dueno_id):
         telefono = request.POST.get('telefono', '').strip()
         direccion = request.POST.get('direccion', '').strip()
         correo = request.POST.get('correo', '').strip()
+
+        telefono, errores = _validar_dueno(nombre, telefono, direccion, correo)
+        if errores:
+            for error in errores:
+                messages.error(request, error)
+            return render(request, 'directorio/dueno_form.html', {
+                'dueno': dueno,
+                'nombre': nombre,
+                'telefono': telefono,
+                'direccion': direccion,
+                'correo': correo,
+                'es_edicion': True,
+            })
 
         try:
             dueno.nombre_completo = nombre

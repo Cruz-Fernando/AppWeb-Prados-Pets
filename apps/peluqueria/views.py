@@ -13,11 +13,15 @@ from django.utils.text import slugify
 
 from apps.agendamiento.recomendaciones import RECOMENDACIONES_PELUQUERIA
 from apps.directorio.models import Mascota
+from apps.usuarios.permissions import rol_requerido
 from config.pdf import render_pdf
 
 from .models import CitaPeluqueria
 
 Usuario = get_user_model()
+
+# Mismos roles que ven «Peluquería» en el menú lateral.
+ROLES_PELUQUERIA = ('administrador', 'groomer', 'auxiliar')
 
 # Duración sugerida del servicio según el tamaño de la mascota (minutos).
 DURACION_POR_TAMANO = {'PEQUENO': 60, 'MEDIANO': 90, 'GRANDE': 120}
@@ -126,6 +130,7 @@ def _rechazar(request, mensaje, mascota=None):
 
 
 @login_required
+@rol_requerido(*ROLES_PELUQUERIA)
 def panel_peluqueria(request):
 
     groomers = Usuario.objects.filter(
@@ -154,6 +159,7 @@ def panel_peluqueria(request):
 
 
 @login_required
+@rol_requerido(*ROLES_PELUQUERIA)
 def buscar_mascota(request):
     """AJAX: busca mascotas y devuelve especie/tipo."""
     q = request.GET.get('q', '').strip()
@@ -170,6 +176,7 @@ def buscar_mascota(request):
 
 
 @login_required
+@rol_requerido(*ROLES_PELUQUERIA)
 def guardar_cita(request):
     if request.method != 'POST':
         return redirect('peluqueria:panel_peluqueria')
@@ -259,6 +266,7 @@ def guardar_cita(request):
 
 
 @login_required
+@rol_requerido(*ROLES_PELUQUERIA)
 def comprobante_pdf(request, pk):
     """Comprobante de la cita de peluquería con la marca de Prados Pets."""
     cita = get_object_or_404(CitaPeluqueria.objects.select_related('groomer', 'mascota__id_dueno'), pk=pk)

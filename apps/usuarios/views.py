@@ -69,8 +69,13 @@ class LoginSeguroView(LoginView):
 
 @login_required
 def dashboard(request):
+    # Import local: evita una importación circular entre apps al arrancar.
+    from apps.clinico.recordatorios import calcular_recordatorios
+
     context = {
         "es_administrador": request.user.es_administrador,
+        # PB-14: los recordatorios del día aparecen solos al entrar al sistema
+        "recordatorios_hoy": calcular_recordatorios()["hoy"],
     }
     return render(request, "usuarios/dashboard.html", context)
 
