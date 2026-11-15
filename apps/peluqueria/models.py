@@ -1,8 +1,13 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
 
 from apps.directorio.models import Mascota
+
+# Comisión del groomer sobre el precio del servicio (regla de la rama Abel).
+COMISION_GROOMER_PORCENTAJE = Decimal('0.40')
 
 
 class CitaPeluqueria(models.Model):
@@ -73,6 +78,12 @@ class CitaPeluqueria(models.Model):
         verbose_name='Intervalo de recordatorio (días)',
     )
 
+    # Columnas que agregó la migración 0007 de la rama Abel. La base compartida
+    # (Supabase) ya las tiene y NO admiten NULL: si faltan en el modelo, guardar
+    # una cita de peluquería da error 500 (IntegrityError en condicion_pelaje).
+    condicion_pelaje    = models.CharField(max_length=100, blank=True, default='')
+    comision_groomer    = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
     class Meta:
         verbose_name        = 'Cita de Peluquería'
         verbose_name_plural = 'Citas de Peluquería'
@@ -81,3 +92,11 @@ class CitaPeluqueria(models.Model):
     def __str__(self):
         groomer_nombre = self.groomer.nombre_completo if self.groomer else 'Sin asignar'
         return f"Cita Peluquería: {self.nombre_mascota} — {self.get_servicio_display()} ({groomer_nombre})"
+
+    def save(self, *args, **kwargs):
+        # La comisión se recalcula siempre a partir del precio.
+        self.comision_groomer = Decimal(self.precio or 0) * COMISION_GROOMER_PORCENTAJE
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and 'precio' in update_fields:
+            kwargs['update_fields'] = set(update_fields) | {'comision_groomer'}
+        super().save(*args, **kwargs)
