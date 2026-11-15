@@ -1,7 +1,13 @@
+from decimal import Decimal
+
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from apps.directorio.models import Mascota
+
+
+COMISION_GROOMER_PORCENTAJE = Decimal('0.40')
 
 
 class CitaPeluqueria(models.Model):
@@ -29,10 +35,12 @@ class CitaPeluqueria(models.Model):
     raza                = models.CharField(max_length=100)
     tamano              = models.CharField(max_length=10, choices=TAMANO_CHOICES, default='MEDIANO')
     servicio            = models.CharField(max_length=20, choices=SERVICIO_CHOICES, default='BANO')
+    condicion_pelaje    = models.CharField(max_length=100, blank=True, default='')
     fecha_hora          = models.DateTimeField()
     duracion_estimada_min = models.IntegerField(default=60)
     # Precio del servicio en pesos colombianos (COP), sin decimales.
     precio              = models.PositiveIntegerField(default=0)
+    comision_groomer    = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     observaciones       = models.TextField(blank=True, null=True)
     # HU21-fix: groomer responsable de la cita
     groomer             = models.ForeignKey(
@@ -53,3 +61,11 @@ class CitaPeluqueria(models.Model):
     def __str__(self):
         groomer_nombre = self.groomer.nombre_completo if self.groomer else 'Sin asignar'
         return f"Cita Peluquería: {self.nombre_mascota} — {self.get_servicio_display()} ({groomer_nombre})"
+
+    def save(self, *args, **kwargs):
+        self.comision_groomer = Decimal(self.precio) * COMISION_GROOMER_PORCENTAJE
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and 'precio' in update_fields:
+            kwargs['update_fields'] = set(update_fields) | {'comision_groomer'}
+        super().save(*args, **kwargs)
+

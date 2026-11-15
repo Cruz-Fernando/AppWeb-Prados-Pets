@@ -19,15 +19,13 @@
       </div>
     </header>
 
-    <main class="pp-layout-split">
-      <!-- COLUMNA IZQUIERDA: FORMULARIO -->
-      <div class="pp-card pp-card--form">
-        <div class="pp-card__header">
-          <div class="pp-card__icon">✂️</div>
-          <div>
-            <h2 class="pp-card__title">Peluquería &amp; Spa</h2>
-            <p class="pp-card__sub">Agendar cita de peluquería · Prados Pets</p>
-          </div>
+    <main class="ag ag--grooming">
+      <div class="ag-head">
+        <img class="ag-head__logo" src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets">
+        <div>
+          <div class="ag-eyebrow">Peluquería &amp; Spa</div>
+          <h1>Registrar servicio de peluquería</h1>
+          <p>Registra el servicio, escribe la condición del pelaje y digita la tarifa. La comisión del groomer se calcula automáticamente.</p>
         </div>
 
         {% if messages %}
@@ -66,21 +64,18 @@
             <button type="button" id="btn_clear_pet" class="pp-btn-clear">🔍 Cambiar</button>
           </div>
 
-          <!-- SERVICIO -->
-          <div class="pp-field">
-            <label class="pp-label">Tipo de servicio <span class="pp-req">*</span></label>
-            <select name="servicio" id="id_servicio" required class="pp-input">
-              <option value="BANO">🛁 Solamente Baño</option>
-              <option value="CORTE">✂️ Corte Despuntado (Solo tijera)</option>
-              <option value="COMPLETO">💈 Corte Total (Máquina y tijera)</option>
-            </select>
+          <div class="ag-field">
+            <label class="ag-label" for="id_condicion_pelaje">Condición del pelaje <span class="ag-req">*</span></label>
+            <input type="text" name="condicion_pelaje" id="id_condicion_pelaje" required
+                   maxlength="100" class="ag-input" autocomplete="off"
+                   placeholder="Ej: nudos, sucio, reseco…">
+            <p class="ag-error" id="error-condicion" hidden>Escribe la condición del pelaje.</p>
           </div>
 
-          <!-- GROOMER -->
-          <div class="pp-field">
-            <label class="pp-label">Groomer responsable <span class="pp-req">*</span></label>
-            <select name="groomer_id" id="id_groomer_id" required class="pp-input">
-              <option value="">— Selecciona un groomer —</option>
+          <div class="ag-field">
+            <label class="ag-label" for="id_groomer_id">Groomer responsable <span class="ag-req">*</span></label>
+            <select name="groomer_id" id="id_groomer_id" required>
+              <option value="">Selecciona un groomer</option>
               {% for g in groomers %}
                 <option value="{{ g.pk }}">{{ g.nombre_completo }}</option>
               {% empty %}
@@ -96,10 +91,15 @@
               <input type="datetime-local" name="fecha_hora" id="id_fecha_hora" required class="pp-input" min="{{ ahora_min }}">
             </div>
 
-            <div class="pp-field">
-              <label class="pp-label">Duración estimada</label>
-              <input type="text" id="id_duracion" placeholder="Se calcula según el tamaño" class="pp-input" readonly tabindex="-1">
-            </div>
+        <!-- 4. Tarifa y notas -->
+        <section class="ag-step" id="paso-precio">
+          <h2 class="ag-step__title"><span class="ag-step__n">4</span> Tarifa y observaciones</h2>
+          <div class="ag-field">
+            <label class="ag-label" for="id_precio">Tarifa (COP) <span class="ag-req">*</span></label>
+            <input type="text" name="precio" id="id_precio" required class="ag-input"
+                   inputmode="numeric" autocomplete="off" maxlength="12" placeholder="Ej: $50.000">
+            <p class="ag-hint">Escribe el valor del servicio en pesos colombianos.</p>
+            <p class="ag-error" id="error-precio" hidden>Ingresa la tarifa del servicio (debe ser mayor a $0).</p>
           </div>
 
           <!-- PRECIO -->
@@ -133,23 +133,20 @@
           </div>
         </div>
 
-        <div class="pp-summary__details">
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Servicio</span>
-            <span class="pp-summary__val" id="sum_servicio">Solamente baño</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Groomer</span>
-            <span class="pp-summary__val" id="sum_groomer">Por asignar</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Fecha</span>
-            <span class="pp-summary__val" id="sum_fecha">Por definir</span>
-          </div>
-          <div class="pp-summary__row">
-            <span class="pp-summary__lbl">Duración</span>
-            <span class="pp-summary__val" id="sum_duracion">Por definir</span>
-          </div>
+        <ul class="ag-ticket__rows">
+          <li><span>Servicio</span><span id="sum_servicio">Solamente Baño</span></li>
+          <li><span>Groomer</span><span id="sum_groomer" class="is-empty">Por asignar</span></li>
+          <li><span>Fecha</span><span id="sum_fecha" class="is-empty">Por definir</span></li>
+          <li><span>Duración</span><span id="sum_duracion" class="is-empty">Por definir</span></li>
+          <li><span>Entrega estimada</span><span id="sum_entrega" class="is-empty">--:--</span></li>
+          <li><span>Comisión groomer (40%)</span><span id="sum_comision" class="is-empty">Por definir</span></li>
+        </ul>
+
+        <div class="ag-perf"></div>
+
+        <div class="ag-total">
+          <span>Total</span>
+          <span class="ag-total__val pp-summary__total-val--vacio" id="sum_total">Por definir</span>
         </div>
 
         <div class="pp-summary__divider"></div>
@@ -294,19 +291,25 @@ select.pp-input option { background: #111122; color: #f8fafc; }
 {% if borrador %}{{ borrador|json_script:"borrador-datos" }}{% endif %}
 <script>
 (function(){
-  const input    = document.getElementById('buscar_mascota_input');
-  const hiddenId = document.getElementById('id_mascota_hidden');
-  const dropdown = document.getElementById('mascota-dropdown');
-  const boxInfo  = document.getElementById('info-mascota-box');
-  const btnClear = document.getElementById('btn_clear_pet');
-  
-  const lblAvatar  = document.getElementById('lbl_avatar');
-  const lblPetName = document.getElementById('lbl_pet_name');
-  const lblTamTxt  = document.getElementById('lbl_tamano_texto');
-  const lblPetSub  = document.getElementById('lbl_pet_sub');
+  const form      = document.getElementById('form-peluqueria');
+  const input     = document.getElementById('buscar_mascota_input');
+  const hiddenId  = document.getElementById('id_mascota_hidden');
+  const dropdown  = document.getElementById('mascota-dropdown');
+  const boxInfo   = document.getElementById('info-mascota-box');
+  const errMasc   = document.getElementById('error-mascota');
+  const errCondicion = document.getElementById('error-condicion');
+  const errPrecio = document.getElementById('error-precio');
 
-  const inDur    = document.getElementById('id_duracion');
-  const inPrecio = document.getElementById('id_precio');
+  const inCondicion = document.getElementById('id_condicion_pelaje');
+  const inGroomer   = document.getElementById('id_groomer_id');
+  const inFechaHora = document.getElementById('id_fecha_hora');
+  const inDur       = document.getElementById('id_duracion');
+  const inPrecio    = document.getElementById('id_precio');
+  const inObs       = document.getElementById('id_observaciones');
+  const radios      = Array.from(document.querySelectorAll('input[name="servicio"]'));
+  const botones     = Array.from(document.querySelectorAll('button[form="form-peluqueria"]'));
+  const PRECIO_MAX_DIGITOS = 8;
+  inCondicion.addEventListener('input', function(){ errCondicion.hidden = !!this.value.trim(); });
 
   // Resumen Lateral
   const sumAvatar  = document.getElementById('sum_avatar');
@@ -317,6 +320,10 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   const sumFecha   = document.getElementById('sum_fecha');
   const sumDur     = document.getElementById('sum_duracion');
   const sumTotal   = document.getElementById('sum_total');
+  const sumComision = document.getElementById('sum_comision');
+  const sumEstado  = document.getElementById('sum_estado');
+  const mbTitulo   = document.getElementById('mb_titulo');
+  const mbDetalle  = document.getElementById('mb_detalle');
 
   const inServicio  = document.getElementById('id_servicio');
   const inGroomer   = document.getElementById('id_groomer_id');
@@ -328,7 +335,7 @@ select.pp-input option { background: #111122; color: #f8fafc; }
   const AJAX_URL = "{% url 'peluqueria:buscar_mascota' %}";
   let timer = null;
   const DURACION_MIN = { pequeno: 60, mediano: 90, grande: 120 };
-  const EMOJIS = { perro:'🐕', gato:'🐈', ave:'🦜', roedor:'🐹', conejo:'🐇', otro:'🐾' };
+  let timer = null, items = [], activo = -1;
 
   // Búsqueda AJAX
   input.addEventListener('input', function(){
@@ -389,27 +396,24 @@ select.pp-input option { background: #111122; color: #f8fafc; }
 
     sumAvatar.textContent = emoji;
     sumMascota.textContent = m.nombre;
-    sumRazaTam.textContent = `${m.raza || 'Mascota'} · ${m.tamano_display || m.tamano || 'Pequeño'}`;
+    sumRazaTam.textContent = `${m.raza || 'Mascota'} · ${tam}`;
+    if (m.condicion_pelaje) { inCondicion.value = m.condicion_pelaje; }
+    actualizarEstado();
   }
 
-  if (btnClear) {
-    btnClear.addEventListener('click', function(){
-      hiddenId.value = '';
-      input.value = '';
-      boxInfo.style.display = 'none';
-      dropdown.style.display = 'none';
-      sumAvatar.textContent = '🐾';
-      sumMascota.textContent = 'Selecciona una mascota';
-      sumRazaTam.textContent = 'Especie · Raza · Tamaño';
-      inDur.value = '';
-      sumDur.textContent = 'Por definir';
-      input.focus();
-    });
-  }
-
-  // Cierra el menú al presionar la tecla Esc
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') dropdown.style.display = 'none';
+  document.getElementById('btn_clear_pet').addEventListener('click', function(){
+    hiddenId.value = '';
+    boxInfo.classList.remove('is-visible');
+    input.closest('.ag-search').hidden = false;
+    sumAvatar.textContent = '?';
+    sumMascota.textContent = 'Selecciona una mascota';
+    sumRazaTam.textContent = 'Especie · Raza · Tamaño';
+    inDur.value = '';
+    inPrecio.value = '';
+    formatearPrecio();
+    actualizarDuracion();
+    actualizarEstado();
+    input.focus();
   });
 
   // OCULTA EL DROPDOWN AL HACER CLIC FUERA DE LA BÚSQUEDA
@@ -434,24 +438,68 @@ select.pp-input option { background: #111122; color: #f8fafc; }
     sumFecha.textContent = dt.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
   });
 
-  // Formateo de precio
-  const SUFIJO = ' COP';
+  // Atajos de día y hora: completan el campo fecha-hora
+  let diaElegido = null, horaElegida = null;
+  function aplicarAtajos(){
+    const actual = inFechaHora.value ? inFechaHora.value.split('T') : [null, null];
+    const dia = diaElegido || actual[0] || fechaLocal(new Date());
+    const hora = horaElegida || actual[1] || '09:00';
+    inFechaHora.value = `${dia}T${hora}`;
+    inFechaHora.dispatchEvent(new Event('change'));
+  }
+  document.querySelectorAll('#chips-dia .ag-chip').forEach(c => c.addEventListener('click', function(){
+    const d = new Date(); d.setDate(d.getDate() + Number(this.dataset.dias));
+    diaElegido = fechaLocal(d);
+    document.querySelectorAll('#chips-dia .ag-chip').forEach(x => x.classList.toggle('is-active', x === this));
+    aplicarAtajos();
+  }));
+  document.querySelectorAll('#chips-hora .ag-chip').forEach(c => c.addEventListener('click', function(){
+    horaElegida = this.dataset.hora;
+    document.querySelectorAll('#chips-hora .ag-chip').forEach(x => x.classList.toggle('is-active', x === this));
+    aplicarAtajos();
+  }));
+
+  // ---------- Precio digitado ----------
+  function valorPrecio(){ return parseInt(inPrecio.value.replace(/\D/g, '') || '0', 10); }
+
   function formatearPrecio(){
-    const raw = inPrecio.value;
-    const digitos = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
-    if(!digitos){ 
-      inPrecio.value = '$'; 
-      sumTotal.textContent = '$0 COP';
-      return; 
+    const digitos = inPrecio.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, PRECIO_MAX_DIGITOS);
+    inPrecio.value = digitos ? '$' + digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    if (valorPrecio() > 0) {
+      sumTotal.textContent = inPrecio.value + ' COP';
+      sumTotal.classList.remove('pp-summary__total-val--vacio');
+      const comision = (valorPrecio() * 40) / 100;
+      const comisionTexto = comision.toLocaleString('es-CO', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      });
+      setValor(sumComision, '$' + comisionTexto + ' COP', false);
+      errPrecio.hidden = true;
+    } else {
+      sumTotal.textContent = 'Por definir';
+      sumTotal.classList.add('pp-summary__total-val--vacio');
+      setValor(sumComision, 'Por definir', true);
     }
     const num = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     inPrecio.value = '$' + num + SUFIJO;
     sumTotal.textContent = '$' + num + ' COP';
   }
 
-  inPrecio.addEventListener('input', function(){
-    formatearPrecio();
-    this.setCustomValidity(/\d/.test(this.value) ? '' : 'Ingresa el precio del servicio.');
+  // ---------- Envío ----------
+  form.addEventListener('submit', function(e){
+    if (!hiddenId.value) {
+      e.preventDefault(); errMasc.hidden = false;
+      document.getElementById('paso-mascota').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus(); return;
+    }
+    if (!inCondicion.value.trim()) {
+      e.preventDefault(); errCondicion.hidden = false; inCondicion.focus(); return;
+    }
+    if (!(valorPrecio() > 0)) {
+      e.preventDefault(); errPrecio.hidden = false; inPrecio.focus(); return;
+    }
+    // Evita doble clic (citas duplicadas)
+    botones.forEach(b => { b.disabled = true; });
   });
   inPrecio.setCustomValidity('Ingresa el precio del servicio.');
 
@@ -463,23 +511,11 @@ select.pp-input option { background: #111122; color: #f8fafc; }
       alert('Busca y selecciona una mascota de la lista antes de agendar.');
       return;
     }
-    if(btnSubmit){ btnSubmit.disabled = true; btnSubmit.style.opacity = '.6'; }
-  });
-  // Si el usuario vuelve con el botón "atrás", el botón debe poder usarse otra vez
-  window.addEventListener('pageshow', function(){
-    if(btnSubmit){ btnSubmit.disabled = false; btnSubmit.style.opacity = ''; }
-  });
-
-  // Restaura lo escrito cuando el servidor devolvió errores de validación
-  const borradorEl = document.getElementById('borrador-datos');
-  if(borradorEl){
-    const b = JSON.parse(borradorEl.textContent);
-    if(b.mascota){ seleccionar(b.mascota); }
-    if(b.servicio){ inServicio.value = b.servicio; inServicio.dispatchEvent(new Event('change')); }
-    if(b.groomer_id){ inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
-    if(b.fecha_hora){ inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
-    if(b.precio){ inPrecio.value = String(b.precio); inPrecio.dispatchEvent(new Event('input')); }
-    if(b.observaciones){ inObs.value = b.observaciones; }
+    if (b.groomer_id) { inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
+    if (b.fecha_hora) { inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
+    if (b.condicion_pelaje) { inCondicion.value = b.condicion_pelaje; }
+    if (b.precio) { inPrecio.value = String(b.precio); formatearPrecio(); }
+    if (b.observaciones) { inObs.value = b.observaciones; }
   }
 
   // Tras agendar con éxito: descarga automática del comprobante PDF

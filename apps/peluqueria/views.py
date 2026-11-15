@@ -20,6 +20,30 @@ Usuario = get_user_model()
 # Duración estimada del servicio según el tamaño de la mascota (minutos).
 DURACION_POR_TAMANO = {'PEQUENO': 60, 'MEDIANO': 90, 'GRANDE': 120}
 
+# Duraciones que se pueden elegir en el formulario (minutos). Es la única lista que
+# acepta el servidor: lo que se ve en pantalla es exactamente lo que se guarda y sale en el PDF.
+DURACIONES_PERMITIDAS = (30, 45, 60, 75, 90, 105, 120, 150, 180)
+
+PRECIO_MAXIMO = 99_999_999
+
+
+def _etiqueta_duracion(minutos):
+    """45 -> '45 minutos', 60 -> '1 hora', 90 -> '1 h 30 min', 120 -> '2 horas'."""
+    horas, resto = divmod(minutos, 60)
+    if not horas:
+        return f'{resto} minutos'
+    if not resto:
+        return '1 hora' if horas == 1 else f'{horas} horas'
+    return f'{horas} h {resto} min'
+
+
+OPCIONES_DURACION = [(m, _etiqueta_duracion(m)) for m in DURACIONES_PERMITIDAS]
+
+
+def _duracion_por_defecto(tamano):
+    """Duración sugerida (minutos) para el tamaño de la mascota; 60 si no tiene tamaño."""
+    return DURACION_POR_TAMANO.get((tamano or 'pequeno').upper(), 60)
+
 
 def _mascota_a_dict(m):
     """Datos de la mascota que consume el buscador (JS) de la plantilla."""
@@ -31,6 +55,7 @@ def _mascota_a_dict(m):
         'raza':            m.raza or 'No especificada',
         'tamano':          m.tamano,
         'tamano_display':  m.get_tamano_display() if m.tamano else '',
+        'condicion_pelaje': m.condicion_pelaje,
         'dueno':           m.id_dueno.nombre_completo,
         'telefono':        m.id_dueno.telefono,
     }
@@ -70,6 +95,27 @@ def _groomer_ocupado(groomer, inicio, duracion_min):
         if c.fecha_hora < fin and inicio < c_fin:
             return True
     return False
+
+
+def _guardar_borrador(request, mascota=None):
+    """Guarda en sesión lo que el usuario escribió, para devolverlo al formulario si algo falla."""
+    request.session['peluqueria_borrador'] = {
+        'mascota':       _mascota_a_dict(mascota) if mascota else None,
+        'servicio':      request.POST.get('servicio', ''),
+        'condicion_pelaje': request.POST.get('condicion_pelaje', ''),
+        'groomer_id':    request.POST.get('groomer_id', ''),
+        'fecha_hora':    request.POST.get('fecha_hora', ''),
+        'duracion_min':  request.POST.get('duracion_min', ''),
+        'precio':        request.POST.get('precio', ''),
+        'observaciones': request.POST.get('observaciones', ''),
+    }
+
+
+def _rechazar(request, mensaje, mascota=None):
+    """Muestra el error, conserva lo escrito y vuelve al formulario."""
+    messages.error(request, mensaje)
+    _guardar_borrador(request, mascota)
+    return redirect('peluqueria:panel_peluqueria')
 
 
 @login_required
@@ -197,11 +243,84 @@ def guardar_cita(request):
         # (por si tu base de datos no tiene la columna 'precio' guardada de forma persistente).
         request.session[f'precio_cita_{cita.pk}'] = precio
 
-        # Mostrar el mensaje de éxito y redireccionar pasando el parámetro ?descargar=ID
-        messages.success(request, f'Cita agendada exitosamente para {mascota.nombre}.')
-        return redirect(reverse('peluqueria:panel_peluqueria') + f'?descargar={cita.pk}')
+    # 3. Condición del pelaje
+    condicion_pelaje = (request.POST.get('condicion_pelaje') or '').strip()
+    if not condicion_pelaje:
+        return _rechazar(request, 'Escribe la condición del pelaje.', mascota)
+    if len(condicion_pelaje) > 100:
+        return _rechazar(
+            request,
+            'La condición del pelaje no puede superar 100 caracteres.',
+            mascota,
+        )
 
-    return redirect('peluqueria:panel_peluqueria')
+    # 4. Groomer: debe ser un usuario activo con rol de groomer
+    groomer = None
+    groomer_id = (request.POST.get('groomer_id') or '').strip()
+    if groomer_id.isdigit():
+        groomer = Usuario.objects.filter(
+            pk=int(groomer_id), id_rol__nombre_rol='groomer', estado='activo'
+        ).first()
+    if groomer is None:
+        return _rechazar(request, 'Selecciona un groomer activo para la cita.', mascota)
+
+    # 5. Fecha y hora (con zona horaria) y que no sea pasada
+    fecha_hora = _parsear_fecha_hora(request.POST.get('fecha_hora'))
+    if fecha_hora is None:
+        return _rechazar(request, 'Indica una fecha y hora válidas para la cita.', mascota)
+    if fecha_hora < timezone.now():
+        return _rechazar(
+            request,
+            'No se pueden agendar citas de peluquería en fechas u horas pasadas.',
+            mascota,
+        )
+
+    # 6. Duración: la que eligió el usuario (si es válida); si no eligió, la sugerida por tamaño
+    duracion_txt = (request.POST.get('duracion_min') or '').strip()
+    if duracion_txt:
+        if not duracion_txt.isdigit() or int(duracion_txt) not in DURACIONES_PERMITIDAS:
+            return _rechazar(request, 'La duración elegida no es válida.', mascota)
+        duracion_min = int(duracion_txt)
+    else:
+        duracion_min = _duracion_por_defecto(mascota.tamano)
+
+    # 7. Tarifa: valor digitado por el usuario, en pesos colombianos.
+    precio = _parsear_precio(request.POST.get('precio'))
+    if precio <= 0:
+        return _rechazar(request, 'Ingresa la tarifa del servicio (debe ser mayor a $0).', mascota)
+    if precio > PRECIO_MAXIMO:
+        return _rechazar(
+            request,
+            f'La tarifa no puede superar {_formatear_precio(PRECIO_MAXIMO)}.',
+            mascota,
+        )
+
+    # 8. El groomer no puede tener dos citas que se crucen
+    if _groomer_ocupado(groomer, fecha_hora, duracion_min):
+        return _rechazar(
+            request,
+            f'{groomer.nombre_completo} ya tiene una cita de peluquería que se cruza con ese '
+            'horario. Elige otra hora u otro groomer.',
+            mascota,
+        )
+
+    cita = CitaPeluqueria.objects.create(
+        mascota=mascota,
+        nombre_mascota=mascota.nombre,
+        raza=mascota.raza or 'No especificada',
+        tamano=(mascota.tamano or 'pequeno').upper(),
+        servicio=servicio,
+        condicion_pelaje=condicion_pelaje,
+        fecha_hora=fecha_hora,
+        duracion_estimada_min=duracion_min,
+        precio=precio,
+        observaciones=(request.POST.get('observaciones') or '').strip(),
+        groomer=groomer,
+    )
+
+    # Mostrar el mensaje de éxito y redireccionar pasando el parámetro ?descargar=ID
+    messages.success(request, f'Cita agendada exitosamente para {mascota.nombre}.')
+    return redirect(reverse('peluqueria:panel_peluqueria') + f'?descargar={cita.pk}')
 
 
 @login_required
