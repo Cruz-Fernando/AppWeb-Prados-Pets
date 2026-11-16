@@ -110,19 +110,19 @@ class Hospitalizacion(models.Model):
 
     mascota = models.ForeignKey(Mascota, on_delete=models.CASCADE, related_name='hospitalizaciones')
     motivo = models.CharField(max_length=255, verbose_name="Motivo de Ingreso")
-    
+
     # Signos Vitales y Triaje
     peso_actual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Peso (kg)")
     temperatura = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, verbose_name="Temperatura (°C)")
     frecuencia_cardiaca = models.IntegerField(null=True, blank=True, verbose_name="Frec. Cardíaca (lpm)")
     frecuencia_respiratoria = models.IntegerField(null=True, blank=True, verbose_name="Frec. Respiratoria (rpm)")
     mucosas = models.CharField(max_length=100, null=True, blank=True, verbose_name="Estado de Mucosas")
-    
+
     # Valoración
     diagnostico_presuntivo = models.TextField(blank=True, null=True, verbose_name="Diagnóstico Presuntivo")
     tratamiento_inicial = models.TextField(blank=True, null=True, verbose_name="Tratamiento Inicial")
     observaciones = models.TextField(blank=True, null=True, help_text="Notas clínicas adicionales.")
-    
+
     # Documentos
     documento_consentimiento = models.FileField(upload_to='hospitalizacion/consentimientos/', null=True, blank=True, verbose_name="Consentimiento Informado")
     examenes_adjuntos = models.FileField(upload_to='hospitalizacion/examenes/', null=True, blank=True, verbose_name="Exámenes Clínicos")
@@ -315,6 +315,11 @@ class RegistroClinico(models.Model):
         return f"RC-{self.pk:06d}" if self.pk else "RC-—"
 
     @property
+    def numero_receta(self):
+        """Número del récipe médico emitido desde este registro (PB-15)."""
+        return f"RX-{self.pk:06d}" if self.pk else "RX-—"
+
+    @property
     def definicion(self):
         return obtener_tipo(self.tipo)
 
@@ -362,3 +367,25 @@ class TrazaClinica(models.Model):
 
     def __str__(self):
         return f"{self.fecha:%d/%m/%Y %H:%M} · {self.get_accion_display()} · {self.mascota.nombre}"
+
+
+class RecetaItem(models.Model):
+    """Una línea del récipe médico de un registro clínico (PB-15 / RF07)."""
+
+    registro = models.ForeignKey(RegistroClinico, on_delete=models.CASCADE,
+                                 related_name='receta_items')
+    producto = models.ForeignKey('inventario.Producto', on_delete=models.PROTECT,
+                                 related_name='usos_en_recetas', verbose_name="Medicamento")
+    dosis = models.CharField(max_length=100, verbose_name="Dosis")
+    frecuencia = models.CharField(max_length=100, verbose_name="Frecuencia")
+    duracion = models.CharField(max_length=100, verbose_name="Duración")
+    indicaciones = models.CharField(max_length=500, blank=True, verbose_name="Indicaciones")
+    orden = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden', 'pk']
+        verbose_name = "Medicamento del récipe"
+        verbose_name_plural = "Medicamentos del récipe"
+
+    def __str__(self):
+        return f"{self.producto.nombre} · {self.dosis} · {self.frecuencia} · {self.duracion}"

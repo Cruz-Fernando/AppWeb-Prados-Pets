@@ -1,0 +1,54 @@
+{% extends "clinico/pdf/_base.html" %}
+{% block titulo %}Récipe {{ r.numero_receta }}{% endblock %}
+{% block encabezado_derecha %}<b>Récipe médico</b><br>{{ r.numero_receta }}<br>{{ r.fecha_atencion|date:"d/m/Y H:i" }}{% endblock %}
+
+{% block contenido %}
+{% if r.anulado %}
+<div class="anulado"><b>RÉCIPE ANULADO</b> el {{ r.anulado_en|date:"d/m/Y H:i" }} por {{ r.anulado_por.nombre_completo|default:r.anulado_por.username }}. Motivo: {{ r.motivo_anulacion }}</div>
+{% endif %}
+
+{% if r.diagnostico_definitivo or r.diagnostico_presuntivo %}
+<h2>Diagnóstico</h2>
+<p class="texto">{{ r.diagnostico_definitivo|default:r.diagnostico_presuntivo|linebreaksbr }}</p>
+{% endif %}
+
+<h2>Medicamentos recetados</h2>
+<table class="lista">
+  <tr>
+    <th style="width:5%;">#</th>
+    <th style="width:30%;">Medicamento</th>
+    <th style="width:17%;">Dosis</th>
+    <th style="width:17%;">Frecuencia</th>
+    <th style="width:13%;">Duración</th>
+    <th>Indicaciones</th>
+  </tr>
+  {% for i in items %}
+  <tr>
+    <td>{{ forloop.counter }}</td>
+    <td><b>{{ i.producto.nombre }}</b>{% if i.producto.medicamento %}<br><span class="muted">{{ i.producto.medicamento.principio_activo|default:"" }}{% if i.producto.medicamento.concentracion %} {{ i.producto.medicamento.concentracion }}{% endif %}{% if i.producto.medicamento.presentacion %} · {{ i.producto.medicamento.presentacion }}{% endif %}</span>{% endif %}</td>
+    <td>{{ i.dosis }}</td>
+    <td>{{ i.frecuencia }}</td>
+    <td>{{ i.duracion }}</td>
+    <td>{{ i.indicaciones|default:"—" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% if r.recomendaciones %}
+<h2>Indicaciones generales</h2>
+<p class="texto">{{ r.recomendaciones|linebreaksbr }}</p>
+{% endif %}
+{% if r.proximo_control %}<h3>Próximo control</h3><p class="texto">{{ r.proximo_control|date:"d/m/Y" }}</p>{% endif %}
+
+<p class="muted">Récipe emitido en la consulta {{ r.numero }}. No suspenda ni modifique el tratamiento sin consultar al médico veterinario.</p>
+
+<table class="firma"><tr>
+  <td style="width:45%;">
+    <div class="raya"><b>{{ r.profesional.nombre_completo|default:r.profesional.username }}</b><br>Médico veterinario responsable</div>
+  </td>
+  <td style="width:10%;"></td>
+  <td style="width:45%;">
+    <div class="raya">Recibido por el propietario<br>{{ dueno.nombre_completo }}</div>
+  </td>
+</tr></table>
+{% endblock %}

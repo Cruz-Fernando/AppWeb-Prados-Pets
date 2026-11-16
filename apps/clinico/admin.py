@@ -4,6 +4,7 @@ from .models import (
     ConsultaMedica,
     EvolucionHospitalaria,
     Hospitalizacion,
+    RecetaItem,
     RegistroClinico,
     TrazaClinica,
 )
@@ -30,8 +31,16 @@ class HospitalizacionAdmin(admin.ModelAdmin):
     inlines = [EvolucionInline]
 
 
+class RecetaItemInline(admin.TabularInline):
+    model = RecetaItem
+    extra = 0
+    fields = ("producto", "dosis", "frecuencia", "duracion", "indicaciones")
+    raw_id_fields = ("producto",)
+
+
 @admin.register(RegistroClinico)
 class RegistroClinicoAdmin(admin.ModelAdmin):
+    inlines = [RecetaItemInline]
     list_display = ("numero", "mascota", "tipo", "fecha_atencion", "profesional", "anulado")
     list_filter = ("tipo", "anulado", "fecha_atencion")
     search_fields = ("mascota__nombre", "mascota__codigo_mascota", "motivo")
