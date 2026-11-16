@@ -5,6 +5,8 @@ Reglas (las mismas que explica la hoja «Instrucciones» de la plantilla):
   - Se lee SOLO la primera hoja, aunque el archivo se haya guardado mirando otra.
   - La fila 1 debe tener los encabezados en el orden de la plantilla.
   - Cada fila se guarda o se rechaza completa (nunca a medias).
+  - Inventario simple (sin lotes): la columna CantidadLote es la cantidad
+    inicial y FechaVencimiento la fecha del producto. NumeroLote se ignora.
   - Las filas con error se informan con un mensaje en español y no se guardan;
     las demás sí.
 """
@@ -18,7 +20,7 @@ import openpyxl
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Medicamento, MovimientoInventario, Producto, Servicio, StockLote
+from .models import Medicamento, MovimientoInventario, Producto, Servicio
 
 ENCABEZADOS = [
     "Tipo", "Codigo", "Nombre", "Descripcion", "Precio", "StockMinimo",
@@ -130,7 +132,7 @@ def _validar_encabezados(fila):
 
 def _guardar_fila(fila, usuario, hoy):
     (tipo, codigo, nombre, descripcion, precio, stock_min, principio, concentracion,
-     presentacion, receta, num_lote, fecha_venc, cant_lote) = fila
+     presentacion, receta, _num_lote, fecha_venc, cant_lote) = fila
 
     tipo = _normalizar(tipo).upper()
     codigo, nombre = _texto(codigo), _texto(nombre)
@@ -157,16 +159,14 @@ def _guardar_fila(fila, usuario, hoy):
     stock_minimo = STOCK_MINIMO_DEFECTO if _texto(stock_min) == "" else _entero(stock_min, "StockMínimo")
     requiere_receta = _si_no(receta)
 
-    # Lote inicial: si se llena algo del lote, deben venir el número y la cantidad
-    num_lote = _texto(num_lote)
+    # Inventario simple: CantidadLote = cantidad inicial y FechaVencimiento = fecha
+    # del producto. NumeroLote se acepta en la plantilla pero ya no se usa.
     hay_cantidad = _texto(cant_lote) != ""
+    cantidad = _entero(cant_lote, "CantidadLote (cantidad inicial)", minimo=1) if hay_cantidad else 0
     fecha_vencimiento = _fecha(fecha_venc)
-    if (num_lote or hay_cantidad or fecha_vencimiento) and not (num_lote and hay_cantidad):
-        falta = "NumeroLote" if not num_lote else "CantidadLote"
-        raise ErrorFila(f"Para cargar el lote inicial llena NumeroLote y CantidadLote (falta {falta}).")
-    cantidad = _entero(cant_lote, "CantidadLote", minimo=1) if hay_cantidad else 0
     if fecha_vencimiento and fecha_vencimiento <= hoy:
-        raise ErrorFila(f"El lote {num_lote} venció el {fecha_vencimiento:%d/%m/%Y}; no se carga como stock disponible.")
+        raise ErrorFila(f"La fecha de vencimiento {fecha_vencimiento:%d/%m/%Y} ya pasó; "
+                        "no se carga como stock disponible.")
 
     producto = Producto.objects.create(
         codigo=codigo,
@@ -174,6 +174,8 @@ def _guardar_fila(fila, usuario, hoy):
         descripcion=descripcion,
         precio_venta=precio,
         stock_minimo=stock_minimo,
+        stock_actual=cantidad,
+        fecha_vencimiento=fecha_vencimiento,
     )
     if tipo == "MEDICAMENTO":
         Medicamento.objects.create(
@@ -185,15 +187,7 @@ def _guardar_fila(fila, usuario, hoy):
         )
 
     avisos = []
-    if num_lote:
-        StockLote.objects.create(
-            producto=producto,
-            numero_lote=num_lote,
-            fecha_vencimiento=fecha_vencimiento,
-            cantidad=cantidad,
-        )
-        producto.stock_actual += cantidad
-        producto.save(update_fields=["stock_actual", "fecha_actualizacion"])
+    if cantidad:
         MovimientoInventario.objects.create(
             producto=producto,
             tipo="ENTRADA_COMPRA",
@@ -201,10 +195,10 @@ def _guardar_fila(fila, usuario, hoy):
             precio_unitario_historico=precio,
             monto_total=precio * cantidad,
             usuario=usuario,
-            observacion=f"Carga inicial Excel - Lote {num_lote}",
+            observacion="Carga inicial desde Excel",
         )
-        if fecha_vencimiento and (fecha_vencimiento - hoy).days <= 30:
-            avisos.append(f"el lote {num_lote} vence en {(fecha_vencimiento - hoy).days} días")
+    if fecha_vencimiento and (fecha_vencimiento - hoy).days <= 30:
+        avisos.append(f"vence en {(fecha_vencimiento - hoy).days} días ({fecha_vencimiento:%d/%m/%Y})")
     return avisos
 
 

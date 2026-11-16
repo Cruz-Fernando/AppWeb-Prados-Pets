@@ -87,6 +87,9 @@ class Producto(models.Model):
     
     stock_actual = models.PositiveIntegerField(default=0)
     stock_minimo = models.PositiveIntegerField(default=5, verbose_name="Stock Mínimo")
+    # Inventario simple: cada producto tiene su cantidad y, si aplica, UNA fecha de
+    # vencimiento (la más próxima de lo que hay). Sin lotes.
+    fecha_vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de vencimiento")
     
     activo = models.BooleanField(default=True, verbose_name="Activo")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -106,6 +109,16 @@ class Producto(models.Model):
     @property
     def valor_total_inventario(self):
         return self.stock_actual * self.precio_compra
+
+    @property
+    def vencido(self):
+        from django.utils import timezone
+        return bool(self.fecha_vencimiento and self.fecha_vencimiento < timezone.localdate())
+
+    @property
+    def dias_para_vencer(self):
+        from django.utils import timezone
+        return (self.fecha_vencimiento - timezone.localdate()).days if self.fecha_vencimiento else None
 
 
 class Medicamento(models.Model):
@@ -129,6 +142,11 @@ class Medicamento(models.Model):
 
 
 class StockLote(models.Model):
+    """
+    YA NO SE USA. El inventario ahora es simple: cantidad + una fecha por producto.
+    Se conserva la tabla para no romper la base compartida ni el historial; sus
+    fechas se copiaron a Producto.fecha_vencimiento (migración 0006).
+    """
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='lotes')
     numero_lote = models.CharField(max_length=100, verbose_name="Número de Lote")
     fecha_vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de Vencimiento")
@@ -176,7 +194,7 @@ class MovimientoInventario(models.Model):
         'peluqueria.CitaPeluqueria', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='movimientos_inventario', verbose_name="Cita de peluquería",
     )
-    # Lotes de los que salió (o a los que volvió) la mercancía: [{"lote": id, "numero": "L1", "cantidad": 2}]
+    # Histórico: lotes afectados en movimientos anteriores. Ya no se llena.
     lotes = models.JSONField(null=True, blank=True, verbose_name="Lotes afectados")
     # True cuando la salida ya se devolvió al inventario (anulación o cancelación)
     devuelto = models.BooleanField(default=False, db_default=False)

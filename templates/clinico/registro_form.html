@@ -98,7 +98,7 @@
     {% if not registro %}
     <section class="cl-form-section" id="insumos">
       <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}6{% else %}5{% endif %}</span> Medicamentos e insumos usados</h2>
-      <p class="ins-intro">Lo que agregues aquí se descuenta del inventario al guardar, empezando por el lote que vence primero. Si un producto no alcanza, no se guarda nada y te avisamos cuál.</p>
+      <p class="ins-intro">Lo que agregues aquí se descuenta del inventario al guardar. Si un producto no alcanza o está vencido, no se guarda nada y te avisamos cuál.</p>
 
       <div class="ins-buscar">
         <span class="ins-buscar__icono" aria-hidden="true">
@@ -208,7 +208,7 @@
       opciones.innerHTML = resultados.map((p, i) => `
         <li class="ins-opcion${p.disponible <= 0 ? ' is-agotada' : ''}${i === activa ? ' is-activa' : ''}" role="option"
             data-i="${i}" aria-disabled="${p.disponible <= 0}" aria-selected="${i === activa}">
-          <span class="ins-opcion__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${p.vencidas ? ' · ' + p.vencidas + ' vencida(s) no se usan' : ''}</small></span>
+          <span class="ins-opcion__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${p.vencidas ? ' · vencido, no se puede usar' : ''}</small></span>
           <span>${p.es_medicamento ? '<span class="ins-tag ins-tag--med">Med.</span> ' : ''}${etiquetaStock(p)}</span>
         </li>`).join('');
     }

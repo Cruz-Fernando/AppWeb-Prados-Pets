@@ -73,7 +73,7 @@
           {% for m in insumos_usados %}
           <li>
             <span>{{ m.producto.nombre }}
-              <small>{{ m.producto.codigo }}{% if m.lotes %} · {% for l in m.lotes %}lote {{ l.numero }} ×{{ l.cantidad }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</small>
+              <small>{{ m.producto.codigo }}</small>
             </span>
             <span>
               {% if m.devuelto %}<span class="cl-badge cl-badge--muted">Devuelto</span>{% endif %}

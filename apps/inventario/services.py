@@ -1,26 +1,27 @@
 """
-Descuento automático del stock (PB-17 / RF10).
+Movimientos del inventario (simple: cada producto tiene su cantidad y una fecha).
 
-Una sola puerta para sacar y devolver mercancía del inventario, la usen la
-consulta clínica o la peluquería:
+Una sola puerta para sumar y restar unidades, la usen la consulta clínica, la
+peluquería o la pantalla de Inventario:
 
-  - descontar_stock(...)        saca unidades y deja el movimiento en el Kardex.
-  - devolver_movimientos(...)   regresa al inventario lo que salió (anulación
-                                de un registro o cancelación de una cita).
+  - descontar_stock(...)          resta unidades (consulta y peluquería, PB-17).
+  - devolver_movimientos(...)     regresa lo que salió (anulación o cancelación).
+  - registrar_entrada(...)        Añadir: suma unidades (compra o reposición).
+  - registrar_salida_manual(...)  Quitar: resta unidades con su motivo.
+  - retirar_producto(...)         saca el producto del inventario.
 
 Reglas:
-  - Nunca se deja el stock en negativo: si no alcanza, se lanza
-    StockInsuficiente y no se descuenta nada.
-  - Se sale primero del lote que vence antes (FEFO). Los lotes vencidos no se
-    usan. Las unidades sin lote (creadas a mano) se usan al final.
-  - Todo ocurre dentro de una transacción con bloqueo de fila, para que dos
-    personas guardando al mismo tiempo no descuenten la misma unidad.
+  - El stock nunca queda en negativo: si no alcanza, StockInsuficiente.
+  - Un producto vencido no se descuenta solo en consultas ni en peluquería
+    (sí se puede quitar a mano, por ejemplo para darlo de baja).
+  - Todo queda en el Kardex y ocurre con bloqueo de fila, para que dos personas
+    guardando al mismo tiempo no descuenten la misma unidad.
 """
 
 from django.db import transaction
 from django.utils import timezone
 
-from .models import MovimientoInventario, Producto, StockLote
+from .models import MovimientoInventario, Producto
 
 
 class StockInsuficiente(Exception):
@@ -31,140 +32,168 @@ class StockInsuficiente(Exception):
         self.pedido = pedido
         self.disponible = disponible
         self.vencidas = vencidas
-        mensaje = (
-            f"No hay stock suficiente de «{producto.nombre}»: pediste {pedido} "
-            f"y hay {disponible} disponible{'s' if disponible != 1 else ''}."
-        )
-        if vencidas:
-            mensaje += f" Hay {vencidas} unidad{'es' if vencidas != 1 else ''} vencida{'s' if vencidas != 1 else ''} que no se pueden usar."
+        if vencidas and not disponible:
+            mensaje = (f"«{producto.nombre}» está vencido (venció el "
+                       f"{producto.fecha_vencimiento:%d/%m/%Y}) y no se puede usar. "
+                       "Dalo de baja en Inventario o actualiza su fecha si llegó mercancía nueva.")
+        else:
+            mensaje = (f"No hay stock suficiente de «{producto.nombre}»: pediste {pedido} "
+                       f"y hay {disponible} disponible{'s' if disponible != 1 else ''}.")
         super().__init__(mensaje)
 
 
 def disponibilidad(producto, hoy=None):
     """
     Devuelve (disponible, vencidas) sin modificar nada.
-
-    disponible = unidades de lotes vigentes + unidades sin lote,
-    sin pasar nunca del stock_actual del producto.
+    Si el producto está vencido, todo su stock cuenta como vencido.
     """
     hoy = hoy or timezone.localdate()
-    lotes = list(producto.lotes.filter(cantidad__gt=0))
-    en_lotes = sum(l.cantidad for l in lotes)
-    vencidas = sum(l.cantidad for l in lotes if l.fecha_vencimiento and l.fecha_vencimiento < hoy)
-    sin_lote = max(producto.stock_actual - en_lotes, 0)
-    disponible = min(en_lotes - vencidas + sin_lote, producto.stock_actual)
-    return max(disponible, 0), vencidas
+    if producto.fecha_vencimiento and producto.fecha_vencimiento < hoy:
+        return 0, producto.stock_actual
+    return producto.stock_actual, 0
 
 
-def _orden_fefo(lote):
-    # Primero los que tienen fecha (el que vence antes), después los que no tienen fecha.
-    return (lote.fecha_vencimiento is None, lote.fecha_vencimiento or timezone.localdate(), lote.fecha_ingreso, lote.pk)
+def _movimiento(producto, tipo, cantidad, precio, usuario, observacion, **extra):
+    return MovimientoInventario.objects.create(
+        producto=producto, tipo=tipo, cantidad=cantidad,
+        precio_unitario_historico=precio, monto_total=precio * cantidad,
+        usuario=usuario, observacion=(observacion or '')[:255], **extra,
+    )
 
+
+def _costo(producto):
+    """Valor de una unidad que sale por baja: costo de compra (o precio de venta si no hay costo)."""
+    return producto.precio_compra if producto.precio_compra and producto.precio_compra > 0 else producto.precio_venta
+
+
+def _cantidad_valida(cantidad):
+    cantidad = int(cantidad)
+    if cantidad < 1:
+        raise ValueError("La cantidad debe ser 1 o más.")
+    return cantidad
+
+
+# ---------------------------------------------------------------------------
+# Descuento automático (consulta y peluquería · PB-17)
+# ---------------------------------------------------------------------------
 
 @transaction.atomic
 def descontar_stock(producto_id, cantidad, *, tipo='SALIDA_CLINICA', usuario=None,
                     observacion='', registro_clinico=None, cita_peluqueria=None):
-    """
-    Saca `cantidad` unidades del producto y registra el movimiento.
-
-    Devuelve el MovimientoInventario creado. Lanza StockInsuficiente si no alcanza.
-    """
-    cantidad = int(cantidad)
-    if cantidad < 1:
-        raise ValueError("La cantidad a descontar debe ser 1 o más.")
-
-    hoy = timezone.localdate()
+    """Resta unidades del producto y deja el movimiento. Lanza StockInsuficiente."""
+    cantidad = _cantidad_valida(cantidad)
     producto = Producto.objects.select_for_update().get(pk=producto_id)
-    lotes = list(StockLote.objects.select_for_update().filter(producto=producto, cantidad__gt=0))
-
-    en_lotes = sum(l.cantidad for l in lotes)
-    vigentes = sorted((l for l in lotes if not (l.fecha_vencimiento and l.fecha_vencimiento < hoy)), key=_orden_fefo)
-    vencidas = en_lotes - sum(l.cantidad for l in vigentes)
-    sin_lote = max(producto.stock_actual - en_lotes, 0)
-    disponible = max(min(en_lotes - vencidas + sin_lote, producto.stock_actual), 0)
+    disponible, vencidas = disponibilidad(producto)
     if cantidad > disponible:
         raise StockInsuficiente(producto, cantidad, disponible, vencidas)
 
-    usados, falta = [], cantidad
-    for lote in vigentes:
-        if not falta:
-            break
-        toma = min(lote.cantidad, falta)
-        lote.cantidad -= toma
-        lote.save(update_fields=['cantidad'])
-        usados.append({'lote': lote.pk, 'numero': lote.numero_lote, 'cantidad': toma})
-        falta -= toma
-    # Lo que falte sale de las unidades sin lote (ya se comprobó que alcanzan)
-
     producto.stock_actual -= cantidad
     producto.save(update_fields=['stock_actual', 'fecha_actualizacion'])
-
-    if usados:
-        detalle_lotes = ', '.join(f"lote {u['numero']} ×{u['cantidad']}" for u in usados)
-        observacion = f"{observacion} ({detalle_lotes})" if observacion else detalle_lotes
-
-    return MovimientoInventario.objects.create(
-        producto=producto,
-        tipo=tipo,
-        cantidad=cantidad,
-        precio_unitario_historico=producto.precio_venta,
-        monto_total=producto.precio_venta * cantidad,
-        usuario=usuario,
-        observacion=observacion[:255],
+    return _movimiento(
+        producto, tipo, cantidad, producto.precio_venta, usuario, observacion,
         registro_clinico=registro_clinico,
         cita_peluqueria=cita_peluqueria,
         consulta_medica_id=registro_clinico.pk if registro_clinico else None,
-        lotes=usados or None,
     )
 
 
 @transaction.atomic
 def devolver_movimientos(movimientos, *, usuario=None, motivo=''):
-    """
-    Regresa al inventario las salidas indicadas que aún no se hayan devuelto.
-
-    Cada unidad vuelve al mismo lote del que salió (si el lote ya no existe,
-    queda como unidad sin lote). Devuelve la lista de movimientos de entrada.
-    """
+    """Regresa al inventario las salidas indicadas que aún no se hayan devuelto."""
     entradas = []
     pendientes = (MovimientoInventario.objects.select_for_update()
                   .filter(pk__in=[m.pk for m in movimientos], devuelto=False, tipo__startswith='SALIDA'))
     for salida in pendientes:
         producto = Producto.objects.select_for_update().get(pk=salida.producto_id)
-        for usado in salida.lotes or []:
-            lote = StockLote.objects.select_for_update().filter(pk=usado.get('lote'), producto=producto).first()
-            if lote:
-                lote.cantidad += int(usado.get('cantidad') or 0)
-                lote.save(update_fields=['cantidad'])
         producto.stock_actual += salida.cantidad
         producto.save(update_fields=['stock_actual', 'fecha_actualizacion'])
-
         salida.devuelto = True
         salida.save(update_fields=['devuelto'])
 
-        texto = f"Devolución de la salida #{salida.pk}"
-        if motivo:
-            texto += f": {motivo}"
-        entradas.append(MovimientoInventario.objects.create(
-            producto=producto,
-            tipo='ENTRADA_DEVOLUCION',
-            cantidad=salida.cantidad,
-            precio_unitario_historico=salida.precio_unitario_historico,
-            monto_total=salida.monto_total,
-            usuario=usuario,
-            observacion=texto[:255],
+        texto = f"Devolución de la salida #{salida.pk}" + (f": {motivo}" if motivo else "")
+        entradas.append(_movimiento(
+            producto, 'ENTRADA_DEVOLUCION', salida.cantidad, salida.precio_unitario_historico,
+            usuario, texto,
             registro_clinico=salida.registro_clinico,
             cita_peluqueria=salida.cita_peluqueria,
             consulta_medica_id=salida.consulta_medica_id,
-            lotes=salida.lotes,
         ))
     return entradas
 
 
+# ---------------------------------------------------------------------------
+# Movimientos manuales desde la pantalla de Inventario
+# ---------------------------------------------------------------------------
+
+MOTIVOS_SALIDA = [
+    ('USO_INTERNO', 'Uso interno de la clínica'),
+    ('VENCIMIENTO', 'Vencimiento'),
+    ('DANO', 'Daño o rotura'),
+    ('PERDIDA', 'Pérdida o faltante'),
+    ('VENTA', 'Venta en mostrador'),
+    ('OTRO', 'Otro motivo'),
+]
+
+
+@transaction.atomic
+def registrar_entrada(producto_id, cantidad, *, usuario=None, costo=None, fecha_vencimiento=None, nota=''):
+    """
+    Añadir: suma unidades (compra o reposición).
+    Si se indica una fecha de vencimiento, pasa a ser la fecha del producto.
+    """
+    cantidad = _cantidad_valida(cantidad)
+    producto = Producto.objects.select_for_update().get(pk=producto_id)
+    if costo is not None:
+        producto.precio_compra = costo
+    if fecha_vencimiento:
+        producto.fecha_vencimiento = fecha_vencimiento
+    producto.stock_actual += cantidad
+    producto.save()
+    return _movimiento(producto, 'ENTRADA_COMPRA', cantidad, producto.precio_compra, usuario,
+                       nota or "Reabastecimiento de stock")
+
+
+@transaction.atomic
+def registrar_salida_manual(producto_id, cantidad, *, motivo, usuario=None, nota=''):
+    """
+    Quitar: resta unidades con su motivo (uso interno, vencimiento, daño,
+    pérdida, venta...). Aquí sí se puede quitar un producto vencido.
+    """
+    cantidad = _cantidad_valida(cantidad)
+    producto = Producto.objects.select_for_update().get(pk=producto_id)
+    if cantidad > producto.stock_actual:
+        raise StockInsuficiente(producto, cantidad, producto.stock_actual)
+
+    producto.stock_actual -= cantidad
+    producto.save(update_fields=['stock_actual', 'fecha_actualizacion'])
+    etiqueta = dict(MOTIVOS_SALIDA).get(motivo, 'Otro motivo')
+    tipo = 'SALIDA_VENTA' if motivo == 'VENTA' else 'AJUSTE_MERMA'
+    return _movimiento(producto, tipo, cantidad, _costo(producto), usuario,
+                       f"Salida manual · {etiqueta}" + (f" · {nota}" if nota else ""))
+
+
+@transaction.atomic
+def retirar_producto(producto_id, *, usuario=None, motivo='OTRO', nota=''):
+    """
+    Saca un producto del inventario. No se borra: su historial queda en el
+    Kardex y se puede reactivar. Si aún tenía unidades, se dan de baja todas.
+    Devuelve el movimiento de baja, o None si no tenía stock.
+    """
+    producto = Producto.objects.select_for_update().get(pk=producto_id)
+    movimiento = None
+    if producto.stock_actual > 0:
+        etiqueta = dict(MOTIVOS_SALIDA).get(motivo, 'Otro motivo')
+        movimiento = _movimiento(producto, 'AJUSTE_MERMA', producto.stock_actual, _costo(producto), usuario,
+                                 f"Producto retirado del inventario · {etiqueta}" + (f" · {nota}" if nota else ""))
+        producto.stock_actual = 0
+    producto.activo = False
+    producto.save(update_fields=['stock_actual', 'activo', 'fecha_actualizacion'])
+    return movimiento
+
+
 def avisos_stock_bajo(movimientos):
     """Textos para avisar qué productos quedaron en o por debajo del stock mínimo."""
-    avisos = []
-    vistos = set()
+    avisos, vistos = [], set()
     for mov in movimientos:
         if mov.producto_id in vistos:
             continue
@@ -179,10 +208,7 @@ def avisos_stock_bajo(movimientos):
 
 
 def descontar_stock_consulta(producto_id, cantidad, consulta_id, usuario=None):
-    """
-    Compatibilidad con el código anterior: descuenta por una consulta clínica.
-    Lanza ValueError si no hay stock suficiente (como antes).
-    """
+    """Compatibilidad con el código anterior. Lanza ValueError si no hay stock suficiente."""
     try:
         return descontar_stock(producto_id, cantidad, tipo='SALIDA_CLINICA', usuario=usuario,
                                observacion=f"Uso en Consulta Clínica #{consulta_id}")

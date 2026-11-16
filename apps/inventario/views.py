@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import urlencode
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -10,16 +11,24 @@ from django.db import transaction, models
 from django.contrib.staticfiles import finders
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView
 
 from apps.usuarios.permissions import rol_requerido
 from .carga_excel import procesar_catalogo
-from .forms import ProductoForm, ReposicionForm, CargaExcelForm
-from .models import Producto, Medicamento, Servicio, StockLote, MovimientoInventario, CategoriaProducto, InsumoServicio
-from .services import disponibilidad
+from .forms import ProductoForm, ReposicionForm, CargaExcelForm, SalidaManualForm, RetirarProductoForm
+from .models import Producto, Medicamento, Servicio, MovimientoInventario, CategoriaProducto, InsumoServicio
+from .services import (
+    StockInsuficiente,
+    avisos_stock_bajo,
+    disponibilidad,
+    registrar_entrada,
+    registrar_salida_manual,
+    retirar_producto,
+)
 
 # Mismos roles que ven el módulo en el menú lateral. Antes bastaba con iniciar
 # sesión: un groomer o un domiciliario podía crear productos y mover stock
@@ -35,20 +44,31 @@ class InventarioListView(LoginRequiredMixin, ListView):
     context_object_name = 'productos'
     paginate_by = 15
 
+    def ver_retirados(self):
+        return self.request.GET.get('retirados') == '1'
+
+    def get_template_names(self):
+        # La búsqueda en vivo solo pide la tabla, no la página entera
+        if self.request.GET.get('parcial') == '1':
+            return ['inventario/_tabla_productos.html']
+        return [self.template_name]
+
     def get_queryset(self):
-        queryset = Producto.objects.filter(activo=True).select_related('categoria', 'proveedor')
-        q = self.request.GET.get('q')
+        queryset = (Producto.objects.filter(activo=not self.ver_retirados())
+                    .select_related('categoria', 'proveedor', 'medicamento')
+                    .order_by('nombre', 'pk'))
+        q = (self.request.GET.get('q') or '').strip()
         categoria_id = self.request.GET.get('categoria')
-        
+
         if q:
             queryset = queryset.filter(
-                models.Q(nombre__icontains=q) | 
-                models.Q(codigo__icontains=q) | 
+                models.Q(nombre__icontains=q) |
+                models.Q(codigo__icontains=q) |
                 models.Q(codigo_barras__icontains=q)
             )
         if categoria_id:
             queryset = queryset.filter(categoria_id=categoria_id)
-            
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -57,6 +77,11 @@ class InventarioListView(LoginRequiredMixin, ListView):
         productos = Producto.objects.filter(activo=True)
         context['total_valor_inventario'] = sum(p.valor_total_inventario for p in productos)
         context['productos_bajo_stock'] = productos.filter(stock_actual__lte=models.F('stock_minimo')).count()
+        context['total_retirados'] = Producto.objects.filter(activo=False).count()
+        context['ver_retirados'] = self.ver_retirados()
+        context['q'] = (self.request.GET.get('q') or '').strip()
+        context['productos_vencidos'] = productos.filter(
+            stock_actual__gt=0, fecha_vencimiento__lt=timezone.localdate()).count()
         return context
 
 
@@ -84,42 +109,116 @@ class ProductoCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.success_url)
 
 
+def _producto_de_la_url(request, solo_activos=True):
+    producto_id = (request.GET.get('producto') or request.POST.get('producto') or '').strip()
+    if not producto_id.isdigit():
+        return None
+    filtro = {'activo': True} if solo_activos else {}
+    return Producto.objects.filter(pk=int(producto_id), **filtro).first()
+
+
 @login_required
 @rol_requerido(*ROLES_INVENTARIO)
 def registrar_reposicion(request):
+    """Añadir unidades a un producto (compra o reposición)."""
+    producto = _producto_de_la_url(request)
     if request.method == 'POST':
         form = ReposicionForm(request.POST)
         if form.is_valid():
-            producto = form.cleaned_data['producto']
-            cantidad = form.cleaned_data['cantidad']
-            nuevo_costo = form.cleaned_data.get('nuevo_precio_compra')
-            observacion = form.cleaned_data.get('observacion')
-
-            with transaction.atomic():
-                if nuevo_costo is not None:
-                    producto.precio_compra = nuevo_costo
-                
-                producto.stock_actual += cantidad
-                producto.save()
-
-                costo_aplicado = nuevo_costo if nuevo_costo is not None else producto.precio_compra
-
-                MovimientoInventario.objects.create(
-                    producto=producto,
-                    tipo='ENTRADA_COMPRA',
-                    cantidad=cantidad,
-                    precio_unitario_historico=costo_aplicado,
-                    monto_total=cantidad * costo_aplicado,
-                    usuario=request.user,
-                    observacion=observacion or "Reabastecimiento de stock"
-                )
-
-            messages.success(request, f"Stock actualizado para {producto.nombre}. Nuevo stock: {producto.stock_actual}")
-            return redirect('inventario:lista')
+            datos = form.cleaned_data
+            producto = datos['producto']
+            registrar_entrada(
+                producto.pk, datos['cantidad'], usuario=request.user,
+                costo=datos.get('nuevo_precio_compra'),
+                fecha_vencimiento=datos.get('fecha_vencimiento'),
+                nota=datos.get('observacion') or '',
+            )
+            producto.refresh_from_db()
+            messages.success(request, f"Se añadieron {datos['cantidad']} unidades a «{producto.nombre}». "
+                                      f"Stock actual: {producto.stock_actual}.")
+            return redirect(_volver_a_lista(request))
     else:
-        form = ReposicionForm()
-    
-    return render(request, 'inventario/reposicion_form.html', {'form': form})
+        form = ReposicionForm(initial={'producto': producto} if producto else None)
+
+    return render(request, 'inventario/reposicion_form.html', {
+        'form': form, 'producto': producto, 'volver': _volver_a_lista(request),
+    })
+
+
+def _volver_a_lista(request):
+    """Vuelve a la lista con la misma búsqueda que tenía el usuario."""
+    q = (request.GET.get('q') or request.POST.get('q') or '').strip()
+    destino = reverse('inventario:lista')
+    return f"{destino}?{urlencode({'q': q})}" if q else destino
+
+
+@login_required
+@rol_requerido(*ROLES_INVENTARIO)
+def registrar_salida(request):
+    """Quitar unidades a mano, con su motivo (uso interno, vencimiento, daño, pérdida, venta...)."""
+    producto = _producto_de_la_url(request)
+    if producto is None:
+        productos = Producto.objects.filter(activo=True, stock_actual__gt=0).order_by('nombre')
+        return render(request, 'inventario/salida_form.html', {
+            'productos': productos, 'volver': _volver_a_lista(request),
+        })
+
+    form = SalidaManualForm(request.POST or None, producto=producto)
+    if request.method == 'POST' and form.is_valid():
+        datos = form.cleaned_data
+        try:
+            movimiento = registrar_salida_manual(
+                producto.pk, datos['cantidad'], motivo=datos['motivo'], usuario=request.user,
+                nota=datos.get('observacion') or '',
+            )
+        except StockInsuficiente as error:
+            form.add_error('cantidad', str(error))
+        else:
+            producto.refresh_from_db()
+            motivo = dict(form.fields['motivo'].choices).get(datos['motivo'], '')
+            messages.success(request, f"Se quitaron {movimiento.cantidad} unidades de «{producto.nombre}» "
+                                      f"({motivo.lower()}). Stock actual: {producto.stock_actual}.")
+            for aviso in avisos_stock_bajo([movimiento]):
+                messages.warning(request, aviso)
+            return redirect(_volver_a_lista(request))
+
+    return render(request, 'inventario/salida_form.html', {
+        'producto': producto, 'form': form, 'volver': _volver_a_lista(request),
+    })
+
+
+@login_required
+@rol_requerido(*ROLES_INVENTARIO)
+def retirar(request, pk):
+    """Quitar un producto del inventario (no se borra: su historial queda en el Kardex)."""
+    producto = get_object_or_404(Producto, pk=pk, activo=True)
+    form = RetirarProductoForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        baja = retirar_producto(producto.pk, usuario=request.user, motivo=form.cleaned_data['motivo'],
+                                nota=form.cleaned_data.get('observacion') or '')
+        texto = f"«{producto.nombre}» se retiró del inventario."
+        if baja:
+            texto += f" Se dieron de baja sus {baja.cantidad} unidades restantes."
+        messages.success(request, texto + " Puedes reactivarlo desde la pestaña «Retirados».")
+        return redirect(_volver_a_lista(request))
+
+    return render(request, 'inventario/producto_retirar.html', {
+        'producto': producto, 'form': form,
+        'en_servicios': producto.usos_en_servicios.count(),
+        'volver': _volver_a_lista(request),
+    })
+
+
+@login_required
+@rol_requerido(*ROLES_INVENTARIO)
+@require_POST
+def reactivar(request, pk):
+    producto = get_object_or_404(Producto, pk=pk, activo=False)
+    producto.activo = True
+    producto.save(update_fields=['activo', 'fecha_actualizacion'])
+    messages.success(request, f"«{producto.nombre}» volvió al inventario con stock {producto.stock_actual}. "
+                              "Usa «Añadir» para reponerlo.")
+    return redirect(f"{reverse('inventario:lista')}?retirados=1")
 
 
 @login_required
@@ -158,7 +257,7 @@ def exportar_inventario_excel(request):
 
     headers = [
         'Código', 'Código Barras', 'Nombre', 'Categoría', 'Proveedor',
-        'Precio Compra ($)', 'Precio Venta ($)', 'Stock Actual', 'Stock Mínimo', 'Estado'
+        'Precio Compra ($)', 'Precio Venta ($)', 'Stock Actual', 'Stock Mínimo', 'Vence', 'Estado'
     ]
     ws.append(headers)
 
@@ -173,7 +272,7 @@ def exportar_inventario_excel(request):
 
     productos = Producto.objects.filter(activo=True).select_related('categoria', 'proveedor')
     for prod in productos:
-        estado = "REABASTECER" if prod.necesita_reposicion else "OK"
+        estado = "VENCIDO" if prod.vencido and prod.stock_actual else ("REABASTECER" if prod.necesita_reposicion else "OK")
         cat_nombre = prod.categoria.nombre if prod.categoria else "General"
         prov_nombre = prod.proveedor.nombre if prod.proveedor else "N/A"
         
@@ -187,6 +286,7 @@ def exportar_inventario_excel(request):
             float(prod.precio_venta),
             prod.stock_actual,
             prod.stock_minimo,
+            prod.fecha_vencimiento.strftime('%d/%m/%Y') if prod.fecha_vencimiento else '',
             estado
         ])
 
@@ -275,8 +375,6 @@ class KardexListView(LoginRequiredMixin, ListView):
 
 def _producto_a_dict(producto):
     disponible, vencidas = disponibilidad(producto)
-    proximo = (producto.lotes.filter(cantidad__gt=0, fecha_vencimiento__gte=timezone.localdate())
-               .order_by('fecha_vencimiento').first())
     return {
         'id': producto.pk,
         'codigo': producto.codigo,
@@ -285,7 +383,7 @@ def _producto_a_dict(producto):
         'disponible': disponible,
         'vencidas': vencidas,
         'stock_minimo': producto.stock_minimo,
-        'proximo_vence': proximo.fecha_vencimiento.strftime('%d/%m/%Y') if proximo else '',
+        'proximo_vence': producto.fecha_vencimiento.strftime('%d/%m/%Y') if producto.fecha_vencimiento else '',
     }
 
 

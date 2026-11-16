@@ -14,7 +14,7 @@ from django.urls import reverse
 
 from apps.usuarios.models import Rol
 
-from .models import Medicamento, MovimientoInventario, Producto, Servicio, StockLote
+from .models import Medicamento, MovimientoInventario, Producto, Servicio
 
 ENCABEZADOS = [
     "Tipo", "Codigo", "Nombre", "Descripcion", "Precio", "StockMinimo",
@@ -79,7 +79,7 @@ class CargaMasivaCatalogoTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Producto.objects.exists())
 
-    def test_carga_medicamento_producto_y_servicio_con_lote_y_kardex(self):
+    def test_carga_medicamento_producto_y_servicio_con_cantidad_fecha_y_kardex(self):
         response = self._subir(excel(
             ("MEDICAMENTO", "MED-001", "Amoxicilina 250 mg", "Antibiótico", 1800, 20,
              "Amoxicilina", "250 mg", "Caja x 10", "SI", "AMX-01", date(2027, 11, 30), 100),
@@ -97,15 +97,11 @@ class CargaMasivaCatalogoTests(TestCase):
         self.assertEqual(med.stock_actual, 100)
         self.assertEqual(med.stock_minimo, 20)
         self.assertTrue(Medicamento.objects.get(producto=med).requiere_receta)
-        self.assertEqual(
-            StockLote.objects.get(producto=med).fecha_vencimiento, date(2027, 11, 30)
-        )
+        self.assertEqual(med.fecha_vencimiento, date(2027, 11, 30))     # inventario simple: una fecha
 
         prod = Producto.objects.get(codigo="PROD-001")
         self.assertEqual(prod.stock_actual, 20)
-        self.assertEqual(
-            StockLote.objects.get(producto=prod).fecha_vencimiento, date(2028, 6, 30)
-        )
+        self.assertEqual(prod.fecha_vencimiento, date(2028, 6, 30))
 
         self.assertTrue(Servicio.objects.filter(codigo="SERV-001").exists())
         self.assertEqual(
@@ -118,14 +114,14 @@ class CargaMasivaCatalogoTests(TestCase):
             ("JUGUETE", "X-1", "Pelota", "", 5000, 1, "", "", "", "", "", None, None),
             ("PRODUCTO", "", "Sin código", "", 5000, 1, "", "", "", "", "", None, None),
             ("PRODUCTO", "PROD-2", "Precio malo", "", "$abc", 1, "", "", "", "", "", None, None),
-            ("PRODUCTO", "PROD-3", "Lote malo", "", 5000, 1, "", "", "", "", "L-1", None, "diez"),
+            ("PRODUCTO", "PROD-3", "Cantidad mala", "", 5000, 1, "", "", "", "", "", None, "diez"),
         ))
 
         self.assertEqual(response.context["exitos"], 1)
         filas_con_error = sorted(e["fila"] for e in response.context["errores"])
         self.assertEqual(filas_con_error, [3, 4, 5, 6])
         self.assertEqual(list(Producto.objects.values_list("codigo", flat=True)), ["PROD-OK"])
-        # La fila 6 falló al crear el lote: no debe quedar el producto a medias.
+        # La fila 6 tenía una cantidad inválida: no debe quedar el producto a medias.
         self.assertFalse(Producto.objects.filter(codigo="PROD-3").exists())
 
     def test_codigo_repetido_se_rechaza_sin_duplicar(self):
