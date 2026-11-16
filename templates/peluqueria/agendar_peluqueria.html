@@ -44,7 +44,7 @@
         <span class="ag-success__ico">{% include "agendamiento/_icono.html" with nombre="ok" size=22 %}</span>
         <div class="ag-success__text">
           <b>Cita agendada para {{ cita_creada.nombre_mascota }}</b>
-          <span>{{ cita_creada.get_servicio_display }} · {{ cita_creada.fecha_hora|date:"l j \d\e F, H:i" }}{% if cita_creada.groomer %} · {{ cita_creada.groomer.nombre_completo }}{% endif %}. El comprobante se está descargando.</span>
+          <span>{{ cita_creada.get_servicio_display }} · {{ cita_creada.fecha_hora|date:"l j \d\e F, H:i" }}{% if cita_creada.groomer %} · {{ cita_creada.groomer.nombre_completo }}{% endif %}. Comisión del groomer (40 %): {{ comision_formateada }}. El comprobante se está descargando.</span>
         </div>
         <a href="{{ descargar_url }}" class="btn btn--ghost">{% include "agendamiento/_icono.html" with nombre="descargar" size=16 %} Descargar de nuevo</a>
       </div>
@@ -84,7 +84,7 @@
           <h2 class="ag-step__title"><span class="ag-step__n">2</span> Servicio y groomer</h2>
           <div class="ag-field">
             <span class="ag-label">Tipo de servicio <span class="ag-req">*</span></span>
-            <div class="ag-choices ag-choices--3" role="radiogroup" aria-label="Tipo de servicio">
+            <div class="ag-choices ag-choices--3" role="radiogroup" aria-label="Baño o tipo de corte">
               {% for clave, nombre in servicios %}
               <label class="ag-choice">
                 <input type="radio" name="servicio" value="{{ clave }}" data-nombre="{{ nombre }}"{% if forloop.first %} checked{% endif %}>
@@ -157,6 +157,12 @@
         <!-- 4. Precio y notas -->
         <section class="ag-step" id="paso-precio">
           <h2 class="ag-step__title"><span class="ag-step__n">4</span> Precio y observaciones</h2>
+          <div class="ag-field">
+            <label class="ag-label" for="id_condicion_pelaje">Condición del pelaje <span class="ag-req">*</span></label>
+            <input type="text" name="condicion_pelaje" id="id_condicion_pelaje" required
+                   maxlength="100" class="ag-input" placeholder="Ej: normal, enredado, con nudos…">
+            <p class="ag-error" id="error-pelaje" hidden>Describe la condición del pelaje de la mascota.</p>
+          </div>
           <div class="ag-field">
             <label class="ag-label" for="id_precio">Precio (COP) <span class="ag-req">*</span></label>
             <input type="text" name="precio" id="id_precio" required class="ag-input"
@@ -231,11 +237,13 @@
   const boxInfo   = document.getElementById('info-mascota-box');
   const errMasc   = document.getElementById('error-mascota');
   const errPrecio = document.getElementById('error-precio');
+  const errPelaje = document.getElementById('error-pelaje');
 
   const inGroomer   = document.getElementById('id_groomer_id');
   const inFechaHora = document.getElementById('id_fecha_hora');
   const inDur       = document.getElementById('id_duracion');
   const inPrecio    = document.getElementById('id_precio');
+  const inPelaje    = document.getElementById('id_condicion_pelaje');
   const inObs       = document.getElementById('id_observaciones');
   const radios      = Array.from(document.querySelectorAll('input[name="servicio"]'));
   const botones     = Array.from(document.querySelectorAll('button[form="form-peluqueria"]'));
@@ -472,6 +480,7 @@
     if (!hiddenId.value)       faltan.push('mascota');
     if (!inGroomer.value)      faltan.push('groomer');
     if (!inFechaHora.value)    faltan.push('fecha y hora');
+    if (!inPelaje.value.trim()) faltan.push('condición del pelaje');
     if (!(valorPrecio() > 0))  faltan.push('precio');
     const lista = !faltan.length;
     sumEstado.classList.toggle('pp-summary__status--lista', lista);
@@ -493,6 +502,10 @@
       document.getElementById('paso-mascota').scrollIntoView({ behavior: 'smooth', block: 'center' });
       input.focus(); return;
     }
+    if (!inPelaje.value.trim()) {
+      e.preventDefault(); errPelaje.hidden = false; inPelaje.focus(); return;
+    }
+    errPelaje.hidden = true;
     if (!(valorPrecio() > 0)) {
       e.preventDefault(); errPrecio.hidden = false; inPrecio.focus(); return;
     }
@@ -511,6 +524,7 @@
       const r = radios.find(x => x.value === b.servicio);
       if (r) { r.checked = true; r.dispatchEvent(new Event('change')); }
     }
+    if (b.condicion_pelaje) { inPelaje.value = b.condicion_pelaje; }
     if (b.groomer_id) { inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
     if (b.fecha_hora) { inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
     if (b.precio) { inPrecio.value = String(b.precio); formatearPrecio(); }

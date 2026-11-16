@@ -53,11 +53,11 @@ Proyecto de la asignatura *Administración de Proyectos Informáticos*, entregab
 | Indicador | Valor |
 |---|---|
 | Ítems del backlog | 21 (PB-01 a PB-21) |
-| ✅ Terminados | 10 |
+| ✅ Terminados | 11 |
 | ⚠️ Terminados con defecto abierto | 4 (PB-01, PB-08, PB-11, PB-14) |
-| 🔄 En curso / parciales | 5 (PB-15 a PB-18, PB-21) |
+| 🔄 En curso / parciales | 4 (PB-15, PB-17, PB-18, PB-21) |
 | ⏳ Sin iniciar | 2 (PB-19, PB-20) |
-| Horas del backlog terminadas | 453 h de 1.134 h (**40 %**); 640 h (**56 %**) si se cuentan los ítems con defecto abierto |
+| Horas del backlog terminadas | 520 h de 1.134 h (**46 %**); 707 h (**62 %**) si se cuentan los ítems con defecto abierto |
 | Pruebas automatizadas | 93 pruebas: **78 pasan, 15 fallan** (ver [Defectos](#-defectos-y-deuda-técnica)) |
 
 ```
@@ -81,7 +81,7 @@ Sprint 6  █░░░░░░░░░  Por iniciar  RF13, RF14, RF11
 | **Historia clínica** | `/clinico/historial/` | 8 tipos de registro (consulta general, vacunación, desparasitación, sedación, cirugía, eutanasia, control posoperatorio y otro), con constantes vitales, examen por sistemas, fórmula médica, adjuntos, edición/anulación con trazabilidad y PDF. |
 | **Hospitalización** | `/clinico/hospitalizacion/` | Ingreso de pacientes, evolución diaria, alta con condición de salida y PDF. Se origina en la atención médica: no se agenda. |
 | **Recordatorios** | `/clinico/recordatorios/` | Próximas vacunas y baños por mascota según el intervalo configurado. |
-| **Peluquería** | `/peluqueria/` | Agendamiento con groomer, duración y precio, validación de cruces por groomer y comprobante PDF. |
+| **Peluquería** | `/peluqueria/` | Registro de baño y tipos de corte con mascota, raza, tamaño, condición del pelaje, groomer, precio ingresado manualmente y comisión del 40 %; validación de cruces y comprobante PDF. |
 | **Inventario** | `/inventario/` | Productos, medicamentos y servicios; lotes con vencimiento; reposición; kardex de movimientos; alerta de bajo stock; carga masiva y exportación a Excel. |
 | **Facturación** | — | ⏳ Pendiente (Sprint 6). |
 | **Reportes** | — | ⏳ Pendiente (Sprint 6). |
@@ -283,7 +283,7 @@ Variables de entorno en Railway (ver `.env.example`):
 | PB-13 | 4 | RF09 | Carga masiva del catálogo por Excel | 93 | ✅ | Probada con 41 ítems de ejemplo sin errores. Mejora: importar categoría, proveedor, código de barras y precio de compra. |
 | PB-14 | 4 | RF12 | Recordatorios de vacunación y baño | 68 | ⚠️ | Funciona. 2 pruebas fallan: una por BUG-05 y otra por BUG-06 (fecha del recordatorio). |
 | PB-15 | 5 | RF07 | Récipe médico con medicamentos del catálogo | 92 | 🟡 | Existe la "Fórmula médica" como texto libre. Falta: seleccionar medicamentos del inventario, dosis e indicaciones por ítem, y PDF del récipe. |
-| PB-16 | 5 | RF08 | Cobro de peluquería por raza, tamaño y pelaje, con comisión del 40 % | 67 | 🟡 | Hay tamaño, servicio y precio. Falta: condición del pelaje, tipo de corte, tabla de tarifas y cálculo de la comisión del groomer. |
+| PB-16 | 5 | RF08 | Cobro de peluquería por raza, tamaño y pelaje, con comisión del 40 % | 67 | ✅ | Registra mascota, raza, tamaño, condición del pelaje, tipo de servicio/corte, groomer, precio manual y comisión calculada del 40 %. |
 | PB-17 | 5 | RF10 | Descuento automático de stock en consulta y peluquería | 75 | 🟡 | Existe `descontar_stock_consulta()` en `inventario/services.py`, pero **ninguna vista la usa todavía**. |
 | PB-18 | 5 | RF15 | Clasificación por colores de clientes recurrentes | 29 | 🔄 | Solo existe el campo `es_recurrente`. Falta acordar los criterios con el patrocinador, calcularlos y mostrar los colores. |
 | PB-19 | 6 | RF13 | Factura consolidada y registro de ingresos y gastos | 109 | ⏳ | La app `facturacion` está vacía. Hay modelos `Venta` y `DetalleVenta` en inventario con una migración pendiente (BUG-02). |
