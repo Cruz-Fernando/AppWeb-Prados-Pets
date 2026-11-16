@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from apps.clinico.models import RegistroClinico
 from apps.directorio.models import Dueno, Mascota
-from apps.inventario.models import InsumoServicio, MovimientoInventario, Producto, StockLote
+from apps.inventario.models import InsumoServicio, MovimientoInventario, Producto
 from apps.inventario.services import (
     StockInsuficiente,
     descontar_stock,
@@ -39,63 +39,41 @@ def crear_producto(codigo, stock, precio="1000", minimo=2):
                                    precio_venta=Decimal(precio), stock_actual=stock, stock_minimo=minimo)
 
 
-def lote(producto, numero, cantidad, dias=None):
-    vence = timezone.localdate() + timedelta(days=dias) if dias is not None else None
-    return StockLote.objects.create(producto=producto, numero_lote=numero, cantidad=cantidad,
-                                    fecha_vencimiento=vence)
-
-
 class ServicioDescuentoTests(TestCase):
-    """La regla del descuento: lotes por vencimiento, nunca negativo, devolución exacta."""
+    """La regla del descuento (inventario simple): resta, nunca negativo, vencido no se usa."""
 
-    def test_descuenta_primero_el_lote_que_vence_antes(self):
+    def test_descuenta_la_cantidad_y_deja_el_movimiento(self):
         p = crear_producto("AMOX", 10)
-        tarde = lote(p, "L-TARDE", 4, dias=200)
-        pronto = lote(p, "L-PRONTO", 3, dias=20)
-        sin_fecha = lote(p, "L-SINFECHA", 3)
+        mov = descontar_stock(p.pk, 4, observacion="Prueba")
+        p.refresh_from_db()
+        self.assertEqual(p.stock_actual, 6)
+        self.assertEqual((mov.tipo, mov.cantidad, mov.monto_total), ("SALIDA_CLINICA", 4, Decimal("4000")))
 
-        mov = descontar_stock(p.pk, 5)
-
-        p.refresh_from_db(); tarde.refresh_from_db(); pronto.refresh_from_db(); sin_fecha.refresh_from_db()
-        self.assertEqual(p.stock_actual, 5)
-        self.assertEqual((pronto.cantidad, tarde.cantidad, sin_fecha.cantidad), (0, 2, 3))
-        self.assertEqual([u["numero"] for u in mov.lotes], ["L-PRONTO", "L-TARDE"])
-        self.assertIn("lote L-PRONTO ×3", mov.observacion)
-        self.assertEqual(mov.monto_total, Decimal("5000"))
-
-    def test_no_usa_lotes_vencidos_ni_deja_stock_negativo(self):
-        p = crear_producto("VAC", 5)
-        lote(p, "L-VENCIDO", 3, dias=-1)
-        lote(p, "L-OK", 2, dias=60)
-
-        self.assertEqual(disponibilidad(p), (2, 3))
+    def test_no_deja_stock_negativo(self):
+        p = crear_producto("VAC", 2)
         with self.assertRaises(StockInsuficiente) as error:
             descontar_stock(p.pk, 3)
-        self.assertIn("hay 2 disponibles", str(error.exception))
-        self.assertIn("3 unidades vencidas", str(error.exception))
-
+        self.assertIn("pediste 3 y hay 2 disponibles", str(error.exception))
         p.refresh_from_db()
-        self.assertEqual(p.stock_actual, 5)
+        self.assertEqual(p.stock_actual, 2)
         self.assertFalse(MovimientoInventario.objects.exists())
 
-    def test_usa_unidades_sin_lote_despues_de_los_lotes(self):
-        p = crear_producto("GASA", 6)          # 2 en lote + 4 sin lote
-        l = lote(p, "L1", 2, dias=90)
-        mov = descontar_stock(p.pk, 5)
-        p.refresh_from_db(); l.refresh_from_db()
-        self.assertEqual((p.stock_actual, l.cantidad), (1, 0))
-        self.assertEqual(mov.lotes, [{"lote": l.pk, "numero": "L1", "cantidad": 2}])
+    def test_producto_vencido_no_se_usa(self):
+        p = crear_producto("SUERO", 5)
+        p.fecha_vencimiento = timezone.localdate() - timedelta(days=1)
+        p.save()
+        self.assertEqual(disponibilidad(p), (0, 5))
+        with self.assertRaises(StockInsuficiente) as error:
+            descontar_stock(p.pk, 1)
+        self.assertIn("está vencido", str(error.exception))
 
-    def test_devolver_regresa_al_mismo_lote_una_sola_vez(self):
-        p = crear_producto("SUERO", 4)
-        l = lote(p, "L1", 4, dias=90)
+    def test_devolver_suma_una_sola_vez(self):
+        p = crear_producto("GASA", 4)
         salida = descontar_stock(p.pk, 3)
-
         devolver_movimientos([salida], motivo="prueba")
         devolver_movimientos([salida], motivo="prueba otra vez")   # no duplica
-
-        p.refresh_from_db(); l.refresh_from_db(); salida.refresh_from_db()
-        self.assertEqual((p.stock_actual, l.cantidad), (4, 4))
+        p.refresh_from_db(); salida.refresh_from_db()
+        self.assertEqual(p.stock_actual, 4)
         self.assertTrue(salida.devuelto)
         self.assertEqual(MovimientoInventario.objects.filter(tipo="ENTRADA_DEVOLUCION").count(), 1)
 
@@ -112,7 +90,6 @@ class DescuentoEnConsultaTests(TestCase):
     def setUp(self):
         self.client.force_login(self.vet)
         self.amox = crear_producto("AMOX", 10, minimo=8)
-        lote(self.amox, "A-1", 10, dias=120)
         self.jeringa = crear_producto("JER", 3)
 
     def _post(self, insumos):
@@ -171,7 +148,6 @@ class DescuentoEnConsultaTests(TestCase):
 
         self.amox.refresh_from_db()
         self.assertEqual(self.amox.stock_actual, 10)
-        self.assertEqual(StockLote.objects.get(numero_lote="A-1").cantidad, 10)
         self.assertContains(respuesta, "Se devolvió al inventario: 4 × Producto AMOX.")
 
     def test_buscador_de_productos(self):
