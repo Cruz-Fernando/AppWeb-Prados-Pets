@@ -1,0 +1,57 @@
+{% extends "clinico/pdf/_base.html" %}
+{% block titulo %}Historia clínica · {{ mascota.nombre }}{% endblock %}
+{% block encabezado_derecha %}<b>Historia clínica</b><br>{{ mascota.codigo_mascota }}<br>Corte {{ fecha_generacion|date:"d/m/Y" }}{% endblock %}
+
+{% block contenido %}
+{% if fallecido %}<div class="aviso">Paciente fallecido.</div>{% endif %}
+
+<h2>Resumen</h2>
+<table class="lista">
+  <tr><th>N.°</th><th>Fecha</th><th>Tipo</th><th>Motivo</th><th>Profesional</th></tr>
+  {% for b in bloques %}
+  <tr>
+    <td>{{ b.r.numero }}</td><td>{{ b.r.fecha_atencion|date:"d/m/Y" }}</td>
+    <td>{{ b.tipo.nombre }}{% if b.r.anulado %} (anulado){% endif %}</td>
+    <td>{{ b.r.motivo|truncatechars:70 }}</td>
+    <td>{{ b.r.profesional.nombre_completo|default:b.r.profesional.username }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5" class="muted">Sin registros clínicos.</td></tr>
+  {% endfor %}
+</table>
+
+{% if hospitalizaciones %}
+<h2>Hospitalizaciones</h2>
+<table class="lista">
+  <tr><th>N.°</th><th>Ingreso</th><th>Egreso</th><th>Motivo</th><th>Condición</th></tr>
+  {% for h in hospitalizaciones %}
+  <tr>
+    <td>{{ h.numero }}</td><td>{{ h.fecha_ingreso|date:"d/m/Y" }}</td>
+    <td>{% if h.fecha_alta %}{{ h.fecha_alta|date:"d/m/Y" }}{% else %}Internado{% endif %}</td>
+    <td>{{ h.motivo|truncatechars:60 }}</td><td>{{ h.get_condicion_alta_display|default:"—" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% for b in bloques %}
+  {% with r=b.r tipo=b.tipo vitales=b.vitales evaluacion=b.evaluacion especificos=b.especificos %}
+  <h2>{{ r.numero }} · {{ tipo.nombre }} · {{ r.fecha_atencion|date:"d/m/Y H:i" }}</h2>
+  {% if r.anulado %}<div class="anulado">Anulado: {{ r.motivo_anulacion }}</div>{% endif %}
+  <p class="texto"><span class="tipo">{{ tipo.titulo_motivo }}:</span> <b>{{ r.motivo }}</b>
+    <span class="muted"> · {{ r.profesional.nombre_completo|default:r.profesional.username }}</span></p>
+  {% include "clinico/pdf/_registro_cuerpo.html" %}
+  {% endwith %}
+{% endfor %}
+
+{% if consultas_antiguas %}
+<h2>Consultas registradas en el formato anterior</h2>
+{% for c in consultas_antiguas %}
+<div class="bloque">
+  <b>{{ c.fecha_consulta|date:"d/m/Y H:i" }}</b> <span class="muted">· {{ c.profesional.nombre_completo|default:c.profesional.username }}</span>
+  <p class="texto">{{ c.anamnesis|linebreaksbr }}</p>
+  {% if c.examen_general %}<p class="texto"><b>Examen general:</b> {{ c.examen_general }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

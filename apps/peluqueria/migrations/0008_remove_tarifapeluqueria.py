@@ -7,8 +7,4 @@ class Migration(migrations.Migration):
         ('peluqueria', '0007_tarifapeluqueria_cita_tarifa_comision'),
     ]
 
-    operations = [
-        migrations.DeleteModel(
-            name='TarifaPeluqueria',
-        ),
-    ]
+    operations = []

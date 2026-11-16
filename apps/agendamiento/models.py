@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -20,6 +22,15 @@ def _rango_en_minutos(hora_inicio, hora_fin):
     if hora_fin and _minutos(hora_fin) > inicio:
         return inicio, _minutos(hora_fin)
     return inicio, inicio + DURACION_DEFECTO_MIN
+
+
+def hora_fin_por_defecto(hora_inicio):
+    """Hora de inicio + 30 min, sin pasar de las 23:59 del mismo día."""
+    inicio = datetime.combine(datetime.min.date(), hora_inicio)
+    fin = inicio + timedelta(minutes=DURACION_DEFECTO_MIN)
+    if fin.date() != inicio.date():
+        return inicio.replace(hour=23, minute=59).time()
+    return fin.time()
 
 
 class Cita(models.Model):
@@ -70,7 +81,9 @@ class Cita(models.Model):
     )
     fecha = models.DateField()
     hora_inicio = models.TimeField()
-    hora_fin = models.TimeField(null=False, blank=False)  # SW-04: Exigido para validar cruces por rango
+    # SW-04: la BD la exige para validar cruces por rango. Si el usuario no la
+    # escribe, se completa con la hora de inicio + 30 min (BUG-04).
+    hora_fin = models.TimeField(null=False, blank=True)
     intervalo_recordatorio_dias = models.PositiveIntegerField(
         default=365,
         validators=[MinValueValidator(1)],
@@ -97,7 +110,16 @@ class Cita(models.Model):
     def __str__(self):
         return f"{self.mascota.nombre} - {self.fecha} {self.hora_inicio} ({self.veterinario})"
 
+    def completar_hora_fin(self):
+        if self.hora_inicio and not self.hora_fin:
+            self.hora_fin = hora_fin_por_defecto(self.hora_inicio)
+
+    def save(self, *args, **kwargs):
+        self.completar_hora_fin()
+        super().save(*args, **kwargs)
+
     def clean(self):
+        self.completar_hora_fin()
         hoy = timezone.localdate()
 
         # Bloquear fechas pasadas solo al CREAR la cita: así se puede seguir

@@ -101,6 +101,10 @@ STATICFILES_DIRS = [
 # Dónde recojo/copia Django TODOS los estáticos para PRODUCCIÓN cuando ejecutas collectstatic:
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Archivos subidos por los usuarios (consentimientos, exámenes, adjuntos clínicos)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "usuarios.Usuario"

@@ -1,0 +1,261 @@
+{% extends "clinico/_layout.html" %}
+{% load static %}
+{% block titulo_pagina %}{% if registro %}Editar {{ registro.numero }}{% else %}{{ tipo.nombre }}{% endif %} · {{ mascota.nombre }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'clinico:seleccionar_mascota_historial' %}">Historia clínica</a>
+  <span class="app-topbar__sep">/</span>
+  <a href="{% url 'clinico:historial_clinico' mascota.id_mascota %}">{{ mascota.nombre }}</a>
+  <span class="app-topbar__sep">/</span>
+  <span class="app-topbar__current">{% if registro %}Editar {{ registro.numero }}{% else %}{{ tipo.nombre }}{% endif %}</span>
+{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
+<div class="t-{{ tipo.color }}">
+  <div class="cl-head">
+    <div class="cl-head__text">
+      <span class="cl-eyebrow">{% include "clinico/_icono.html" with nombre=tipo.icono size=14 %} {{ tipo.nombre }}</span>
+      <h1>{% if registro %}Editar {{ registro.numero }}{% else %}Nuevo registro · {{ mascota.nombre }}{% endif %}</h1>
+      <p class="app-content__subtitle">
+        {{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}
+        · {{ mascota.codigo_mascota }} · Propietario: {{ mascota.id_dueno.nombre_completo }}
+      </p>
+    </div>
+  </div>
+
+  {% if fallecido %}
+  <div class="cl-banner cl-banner--dead">{% include "clinico/_icono.html" with nombre="corazon" %}<span>Esta mascota tiene registrado un fallecimiento. Verifica que el paciente sea el correcto.</span></div>
+  {% endif %}
+  {% if registro %}
+  <div class="cl-banner cl-banner--info">{% include "clinico/_icono.html" with nombre="reloj" %}<span>Cada cambio queda guardado en la trazabilidad con el valor anterior, el nuevo, tu usuario y la hora.</span></div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="cl-card" novalidate>
+    {% csrf_token %}
+    {% for e in form.non_field_errors %}<div class="cl-banner cl-banner--void" style="margin:16px 20px 0;">{{ e }}</div>{% endfor %}
+
+    <!-- 1. Datos de la atención -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">1</span> Datos de la atención</h2>
+      <div class="cl-fields">
+        {% include "clinico/_campo.html" with f=form.fecha_atencion ancho="third" %}
+        {% if form.hospitalizacion %}{% include "clinico/_campo.html" with f=form.hospitalizacion ancho="third" %}{% endif %}
+        {% include "clinico/_campo.html" with f=form.motivo ancho="full" %}
+      </div>
+    </section>
+
+    <!-- 2. Constantes vitales -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">2</span> Constantes vitales</h2>
+      <div class="cl-fields cl-fields--vitals">
+        {% include "clinico/_campo.html" with f=form.peso %}
+        {% include "clinico/_campo.html" with f=form.temperatura %}
+        {% include "clinico/_campo.html" with f=form.frecuencia_cardiaca %}
+        {% include "clinico/_campo.html" with f=form.frecuencia_respiratoria %}
+        {% include "clinico/_campo.html" with f=form.tllc %}
+        {% include "clinico/_campo.html" with f=form.mucosas %}
+        {% include "clinico/_campo.html" with f=form.condicion_corporal %}
+        {% include "clinico/_campo.html" with f=form.hidratacion %}
+      </div>
+    </section>
+
+    {% if tipo.usa_evaluacion %}
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">3</span> Anamnesis</h2>
+      <div class="cl-fields">{% include "clinico/_campo.html" with f=form.anamnesis ancho="full" %}</div>
+    </section>
+    {% endif %}
+
+    <!-- Datos propios del tipo -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}4{% else %}3{% endif %}</span> {{ tipo.nombre }}</h2>
+      {% for titulo, items in form.grupos_especificos %}
+        {% if titulo %}<h3 class="cl-subtitle">{{ titulo }}</h3>{% endif %}
+        <div class="cl-fields">
+          {% for bf, c in items %}{% include "clinico/_campo.html" with f=bf ancho=c.ancho %}{% endfor %}
+        </div>
+      {% endfor %}
+    </section>
+
+    <!-- Diagnóstico y plan -->
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}5{% else %}4{% endif %}</span> {% if tipo.usa_evaluacion %}Diagnóstico y plan{% else %}Indicaciones{% endif %}</h2>
+      <div class="cl-fields">
+        {% if tipo.usa_evaluacion %}
+          {% include "clinico/_campo.html" with f=form.diagnostico_presuntivo %}
+          {% include "clinico/_campo.html" with f=form.diagnostico_definitivo %}
+          {% include "clinico/_campo.html" with f=form.tratamiento %}
+          {% include "clinico/_campo.html" with f=form.prescripcion %}
+        {% endif %}
+        {% include "clinico/_campo.html" with f=form.recomendaciones ancho="full" %}
+        {% include "clinico/_campo.html" with f=form.proximo_control ancho="third" %}
+        {% include "clinico/_campo.html" with f=form.adjunto ancho="third" %}
+        {% include "clinico/_campo.html" with f=form.observaciones ancho="full" %}
+      </div>
+    </section>
+
+    <!-- PB-17 / RF10: medicamentos e insumos que se descuentan del inventario -->
+    {% if not registro %}
+    <section class="cl-form-section" id="insumos">
+      <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}6{% else %}5{% endif %}</span> Medicamentos e insumos usados</h2>
+      <p class="ins-intro">Lo que agregues aquí se descuenta del inventario al guardar. Si un producto no alcanza o está vencido, no se guarda nada y te avisamos cuál.</p>
+
+      <div class="ins-buscar">
+        <span class="ins-buscar__icono" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input type="search" id="insumo-buscar" class="cl-input" autocomplete="off"
+               placeholder="Buscar medicamento o insumo por nombre o código…"
+               role="combobox" aria-expanded="false" aria-controls="insumo-opciones" aria-autocomplete="list"
+               data-url="{% url 'inventario:buscar_producto' %}">
+        <ul id="insumo-opciones" class="ins-opciones" role="listbox" hidden></ul>
+      </div>
+
+      <table class="ins-tabla" id="insumo-tabla"{% if not filas_insumos %} hidden{% endif %}>
+        <thead><tr><th>Producto</th><th class="ins-num">Disponible</th><th class="ins-num">Cantidad</th><th><span class="sr-only">Quitar</span></th></tr></thead>
+        <tbody id="insumo-filas"></tbody>
+      </table>
+      <p class="ins-vacio" id="insumo-vacio"{% if filas_insumos %} hidden{% endif %}>No has agregado productos. Si en esta atención no se usó nada del inventario, déjalo así.</p>
+      {{ filas_insumos|json_script:"insumos-previos" }}
+    </section>
+    {% elif insumos_usados %}
+    <section class="cl-form-section">
+      <h2 class="cl-form-section__title">Medicamentos e insumos descontados</h2>
+      <ul class="ins-lista cl-card" style="margin:0;">
+        {% for m in insumos_usados %}
+        <li><span>{{ m.producto.nombre }}<small>{{ m.producto.codigo }}{% if m.devuelto %} · devuelto al inventario{% endif %}</small></span><span class="ins-lista__cant">× {{ m.cantidad }}</span></li>
+        {% endfor %}
+      </ul>
+      <p class="ins-intro" style="margin-top:10px;">Lo descontado no se cambia al editar. Si hubo un error, anula el registro (lo descontado vuelve al inventario) y créalo de nuevo.</p>
+    </section>
+    {% endif %}
+
+    <div class="cl-actions">
+      <a href="{% if registro %}{% url 'clinico:registro_detalle' registro.pk %}{% else %}{% url 'clinico:historial_clinico' mascota.id_mascota %}{% endif %}" class="btn btn--ghost">Cancelar</a>
+      {% if not registro %}
+      <button type="submit" name="guardar_pdf" value="1" class="btn btn--ghost">
+        {% include "clinico/_icono.html" with nombre="descargar" size=16 %} Guardar y descargar PDF
+      </button>
+      {% endif %}
+      <button type="submit" class="btn btn--primary">{% if registro %}Guardar cambios{% else %}Guardar en historia clínica{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not registro %}
+<script>
+/* PB-17: buscador de medicamentos e insumos del inventario */
+(function () {
+  const buscar = document.getElementById('insumo-buscar');
+  if (!buscar) return;
+  const opciones = document.getElementById('insumo-opciones');
+  const tabla = document.getElementById('insumo-tabla');
+  const filas = document.getElementById('insumo-filas');
+  const vacio = document.getElementById('insumo-vacio');
+  let resultados = [], activa = -1, temporizador = null, ultimaConsulta = '';
+
+  function esc(t) { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+  function etiquetaStock(p) {
+    if (p.disponible <= 0) return '<span class="ins-tag ins-tag--agotado">Agotado</span>';
+    const cls = p.disponible <= p.stock_minimo ? 'ins-tag ins-tag--bajo' : 'ins-tag';
+    return `<span class="${cls}">${p.disponible} disp.</span>`;
+  }
+  function actualizarVacio() {
+    const hay = filas.children.length > 0;
+    tabla.hidden = !hay; vacio.hidden = hay;
+  }
+  function cerrar() { opciones.hidden = true; buscar.setAttribute('aria-expanded', 'false'); activa = -1; }
+
+  function agregar(p, cantidad) {
+    const existente = filas.querySelector(`tr[data-id="${p.id}"]`);
+    if (existente) {
+      const inp = existente.querySelector('input[name="insumo_cantidad"]');
+      inp.value = String((parseInt(inp.value, 10) || 0) + 1);
+      inp.focus(); inp.select(); revisar(existente); return;
+    }
+    const tr = document.createElement('tr');
+    tr.dataset.id = p.id; tr.dataset.disponible = p.disponible;
+    tr.innerHTML = `
+      <td>${esc(p.nombre)}<small>${esc(p.codigo)}${p.es_medicamento ? ' · medicamento' : ''}${p.proximo_vence ? ' · vence ' + esc(p.proximo_vence) : ''}</small>
+          <input type="hidden" name="insumo_producto" value="${p.id}"><span class="ins-error-fila" hidden></span></td>
+      <td class="ins-num">${etiquetaStock(p)}</td>
+      <td class="ins-num"><input type="number" name="insumo_cantidad" class="cl-input" min="1" max="999" step="1"
+          value="${esc(cantidad || 1)}" aria-label="Cantidad de ${esc(p.nombre)}"></td>
+      <td><button type="button" class="ins-quitar" aria-label="Quitar ${esc(p.nombre)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>`;
+    filas.appendChild(tr);
+    tr.querySelector('.ins-quitar').addEventListener('click', () => { tr.remove(); actualizarVacio(); });
+    tr.querySelector('input[name="insumo_cantidad"]').addEventListener('input', () => revisar(tr));
+    revisar(tr); actualizarVacio();
+  }
+
+  function revisar(tr) {
+    const cant = parseInt(tr.querySelector('input[name="insumo_cantidad"]').value, 10);
+    const disp = parseInt(tr.dataset.disponible, 10);
+    const err = tr.querySelector('.ins-error-fila');
+    let texto = '';
+    if (!(cant >= 1)) texto = 'Escribe una cantidad de 1 o más.';
+    else if (cant > disp) texto = `Solo hay ${disp} disponible${disp === 1 ? '' : 's'}.`;
+    err.textContent = texto; err.hidden = !texto; tr.classList.toggle('is-error', !!texto);
+  }
+
+  function pintar() {
+    if (!resultados.length) {
+      opciones.innerHTML = '<li class="ins-opcion__vacio">No hay productos con ese nombre o código.</li>';
+    } else {
+      opciones.innerHTML = resultados.map((p, i) => `
+        <li class="ins-opcion${p.disponible <= 0 ? ' is-agotada' : ''}${i === activa ? ' is-activa' : ''}" role="option"
+            data-i="${i}" aria-disabled="${p.disponible <= 0}" aria-selected="${i === activa}">
+          <span class="ins-opcion__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${p.vencidas ? ' · vencido, no se puede usar' : ''}</small></span>
+          <span>${p.es_medicamento ? '<span class="ins-tag ins-tag--med">Med.</span> ' : ''}${etiquetaStock(p)}</span>
+        </li>`).join('');
+    }
+    opciones.hidden = false; buscar.setAttribute('aria-expanded', 'true');
+  }
+
+  function elegir(i) {
+    const p = resultados[i];
+    if (!p || p.disponible <= 0) return;
+    agregar(p, 1);
+    buscar.value = ''; cerrar();
+  }
+
+  buscar.addEventListener('input', function () {
+    clearTimeout(temporizador);
+    const q = this.value.trim();
+    if (q.length < 2) { cerrar(); return; }
+    temporizador = setTimeout(() => {
+      ultimaConsulta = q;
+      fetch(`${buscar.dataset.url}?q=${encodeURIComponent(q)}`, { headers: { 'X-Requested-With': 'fetch' } })
+        .then(r => r.ok ? r.json() : [])
+        .then(datos => { if (q !== ultimaConsulta) return; resultados = datos; activa = -1; pintar(); })
+        .catch(() => { resultados = []; pintar(); });
+    }, 220);
+  });
+  buscar.addEventListener('keydown', function (e) {
+    if (opciones.hidden || !resultados.length) {
+      if (e.key === 'Enter') e.preventDefault();   // Enter aquí no debe enviar el registro
+      return;
+    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); activa = Math.min(activa + 1, resultados.length - 1); pintar(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activa = Math.max(activa - 1, 0); pintar(); }
+    else if (e.key === 'Enter') { e.preventDefault(); elegir(activa >= 0 ? activa : 0); }
+    else if (e.key === 'Escape') { cerrar(); }
+  });
+  opciones.addEventListener('mousedown', function (e) {
+    const li = e.target.closest('.ins-opcion'); if (!li) return;
+    e.preventDefault(); elegir(parseInt(li.dataset.i, 10));
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.ins-buscar')) cerrar(); });
+
+  // Si el servidor devolvió el formulario con errores, se vuelven a pintar las filas
+  JSON.parse(document.getElementById('insumos-previos').textContent || '[]')
+    .forEach(f => agregar({ id: f.id, codigo: f.codigo, nombre: f.nombre, disponible: f.disponible,
+                            stock_minimo: 0, es_medicamento: false, proximo_vence: '' }, f.cantidad));
+  actualizarVacio();
+}());
+</script>
+{% endif %}
+{% endblock %}

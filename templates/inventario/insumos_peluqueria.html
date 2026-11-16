@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Insumos por servicio · Prados Pets{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
+
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        <a href="{% url 'inventario:lista' %}">Inventario</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Insumos por servicio</span>
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide cfg">
+      <div class="cfg-head">
+        <div>
+          <h1>Insumos por servicio de peluquería</h1>
+          <p>Lo que configures aquí se descuenta solo del inventario cada vez que se agenda el servicio, y vuelve al inventario si la cita se cancela. Si dejas el tamaño en «Todos», aplica a cualquier mascota; una regla de un tamaño reemplaza a la general para el mismo producto.</p>
+        </div>
+      </div>
+
+      {% if messages %}
+      <ul class="app-messages">
+        {% for message in messages %}<li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      <form method="post" class="cfg-card cfg-form">
+        {% csrf_token %}
+        <h2>Agregar o cambiar un insumo</h2>
+        <div class="cfg-form__grid">
+          <label class="cfg-campo">
+            <span>Servicio</span>
+            <select name="servicio" required>
+              {% for clave, nombre in servicios %}<option value="{{ clave }}">{{ nombre }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="cfg-campo">
+            <span>Tamaño de la mascota</span>
+            <select name="tamano">
+              {% for clave, nombre in tamanos %}<option value="{{ clave }}">{{ nombre }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="cfg-campo cfg-campo--ancho">
+            <span>Producto del inventario</span>
+            <select name="producto" required>
+              <option value="">Selecciona un producto</option>
+              {% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} · {{ p.codigo }} (stock {{ p.stock_actual }})</option>{% endfor %}
+            </select>
+          </label>
+          <label class="cfg-campo cfg-campo--corto">
+            <span>Cantidad</span>
+            <input type="number" name="cantidad" min="1" max="99" value="1" required>
+          </label>
+          <button type="submit" class="cfg-btn">Guardar</button>
+        </div>
+        <p class="cfg-ayuda">Si el producto ya estaba en ese servicio y tamaño, se actualiza la cantidad.</p>
+      </form>
+
+      <div class="cfg-grupos">
+        {% for g in grupos %}
+        <section class="cfg-card">
+          <h2>{{ g.nombre }} <span class="cfg-cuenta">{{ g.insumos|length }}</span></h2>
+          {% if g.insumos %}
+          <ul class="ins-lista">
+            {% for i in g.insumos %}
+            <li>
+              <span>{{ i.cantidad }} × {{ i.producto.nombre }}
+                <small>{% if i.tamano %}Solo {{ i.get_tamano_display }}{% else %}Todos los tamaños{% endif %} · {{ i.producto.codigo }}</small>
+              </span>
+              <span class="cfg-acciones">
+                <span class="ins-tag{% if i.disponible < i.cantidad %} ins-tag--agotado{% elif i.disponible <= i.producto.stock_minimo %} ins-tag--bajo{% endif %}">{{ i.disponible }} disp.</span>
+                <form method="post">
+                  {% csrf_token %}
+                  <button type="submit" name="eliminar" value="{{ i.pk }}" class="ins-quitar" aria-label="Quitar {{ i.producto.nombre }} de {{ g.nombre }}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </form>
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="ins-nota">Sin insumos: al agendar este servicio no se descuenta nada.</p>
+          {% endif %}
+        </section>
+        {% endfor %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

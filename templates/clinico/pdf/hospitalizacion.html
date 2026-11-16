@@ -1,0 +1,58 @@
+{% extends "clinico/pdf/_base.html" %}
+{% block titulo %}{{ h.numero }} · Hospitalización{% endblock %}
+{% block encabezado_derecha %}<b>{% if h.activa %}Reporte de hospitalización{% else %}Epicrisis{% endif %}</b><br>{{ h.numero }}<br>{{ h.fecha_ingreso|date:"d/m/Y" }}{% if h.fecha_alta %} – {{ h.fecha_alta|date:"d/m/Y" }}{% endif %}{% endblock %}
+
+{% block contenido %}
+<h2>Estancia</h2>
+<table class="grid">
+  <tr><td class="et" style="width:30%;">Motivo de ingreso</td><td class="va"><b>{{ h.motivo }}</b></td></tr>
+  <tr><td class="et">Ingreso</td><td class="va">{{ h.fecha_ingreso|date:"d/m/Y H:i" }}{% if h.profesional_ingreso %} · {{ h.profesional_ingreso.nombre_completo|default:h.profesional_ingreso.username }}{% endif %}</td></tr>
+  <tr><td class="et">Egreso</td><td class="va">{% if h.fecha_alta %}{{ h.fecha_alta|date:"d/m/Y H:i" }} · {{ h.get_condicion_alta_display }}{% else %}Paciente internado{% endif %}</td></tr>
+  <tr><td class="et">Días de estancia</td><td class="va">{{ h.dias_estancia }}</td></tr>
+  {% if h.area %}<tr><td class="et">Área</td><td class="va">{{ h.area }}</td></tr>{% endif %}
+  {% if h.pronostico %}<tr><td class="et">Pronóstico al ingreso</td><td class="va">{{ h.get_pronostico_display }}</td></tr>{% endif %}
+</table>
+
+{% if vitales_ingreso %}
+<h3>Constantes al ingreso</h3>
+<table class="vit"><tr>{% for etq, valor in vitales_ingreso %}<td><div class="et">{{ etq }}</div><div class="va"><b>{{ valor }}</b></div></td>{% endfor %}</tr></table>
+{% endif %}
+{% if h.diagnostico_presuntivo %}<h3>Diagnóstico presuntivo</h3><p class="texto">{{ h.diagnostico_presuntivo|linebreaksbr }}</p>{% endif %}
+{% if h.tratamiento_inicial %}<h3>Plan de tratamiento inicial</h3><p class="texto">{{ h.tratamiento_inicial|linebreaksbr }}</p>{% endif %}
+
+{% if evoluciones %}
+<h2>Evolución</h2>
+<table class="lista">
+  <tr><th style="width:14%;">Fecha</th><th style="width:12%;">Estado</th><th style="width:22%;">Constantes</th><th>Tratamiento y observaciones</th></tr>
+  {% for e in evoluciones %}
+  <tr>
+    <td>{{ e.fecha|date:"d/m H:i" }}</td>
+    <td>{{ e.get_estado_general_display }}</td>
+    <td>{% if e.temperatura %}T° {{ e.temperatura }} °C<br>{% endif %}{% if e.frecuencia_cardiaca %}FC {{ e.frecuencia_cardiaca }} · {% endif %}{% if e.frecuencia_respiratoria %}FR {{ e.frecuencia_respiratoria }}{% endif %}{% if e.peso %}<br>{{ e.peso }} kg{% endif %}</td>
+    <td>{% if e.fluidoterapia %}<b>Fluidos:</b> {{ e.fluidoterapia }}<br>{% endif %}{% if e.medicamentos %}<b>Medicamentos:</b> {{ e.medicamentos|linebreaksbr }}<br>{% endif %}{{ e.observaciones|linebreaksbr }}<br><span class="muted">{{ e.profesional.nombre_completo|default:e.profesional.username }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% if registros %}
+<h2>Procedimientos durante la estancia</h2>
+<table class="lista">
+  <tr><th>N.°</th><th>Fecha</th><th>Tipo</th><th>Motivo</th></tr>
+  {% for r in registros %}<tr><td>{{ r.numero }}</td><td>{{ r.fecha_atencion|date:"d/m/Y H:i" }}</td><td>{{ r.get_tipo_display }}</td><td>{{ r.motivo }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+{% if not h.activa %}
+<h2>Epicrisis</h2>
+{% if h.resumen_alta %}<h3>Resumen de la estancia</h3><p class="texto">{{ h.resumen_alta|linebreaksbr }}</p>{% endif %}
+{% if h.indicaciones_alta %}<h3>Indicaciones para casa</h3><p class="texto">{{ h.indicaciones_alta|linebreaksbr }}</p>{% endif %}
+{% if h.proximo_control %}<h3>Próximo control</h3><p class="texto">{{ h.proximo_control|date:"d/m/Y" }}</p>{% endif %}
+{% endif %}
+
+<table class="firma"><tr>
+  <td style="width:45%;"><div class="raya"><b>{% if h.profesional_alta %}{{ h.profesional_alta.nombre_completo|default:h.profesional_alta.username }}{% elif h.profesional_ingreso %}{{ h.profesional_ingreso.nombre_completo|default:h.profesional_ingreso.username }}{% else %}&nbsp;{% endif %}</b><br>Médico veterinario</div></td>
+  <td style="width:10%;"></td>
+  <td style="width:45%;"><div class="raya"><b>{{ dueno.nombre_completo }}</b><br>Propietario</div></td>
+</tr></table>
+{% endblock %}

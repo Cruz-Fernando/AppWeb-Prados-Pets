@@ -1,0 +1,31 @@
+{% extends "clinico/pdf/_base.html" %}
+{% block titulo %}{{ r.numero }} · {{ tipo.nombre }}{% endblock %}
+{% block encabezado_derecha %}<b>{{ tipo.nombre }}</b><br>{{ r.numero }}<br>{{ r.fecha_atencion|date:"d/m/Y H:i" }}{% endblock %}
+
+{% block contenido %}
+{% if r.anulado %}
+<div class="anulado"><b>REGISTRO ANULADO</b> el {{ r.anulado_en|date:"d/m/Y H:i" }} por {{ r.anulado_por.nombre_completo|default:r.anulado_por.username }}. Motivo: {{ r.motivo_anulacion }}</div>
+{% endif %}
+
+<h2>{{ tipo.titulo_motivo }}</h2>
+<p class="texto"><b>{{ r.motivo }}</b></p>
+
+{% include "clinico/pdf/_registro_cuerpo.html" %}
+
+{% if r.hospitalizacion %}<p class="muted">Realizado durante la hospitalización {{ r.hospitalizacion.numero }}.</p>{% endif %}
+{% if r.fue_editado %}<p class="muted">Registro modificado el {{ r.actualizado_en|date:"d/m/Y H:i" }}. Los cambios constan en la trazabilidad del sistema.</p>{% endif %}
+
+<table class="firma"><tr>
+  <td style="width:45%;">
+    <div class="raya"><b>{{ r.profesional.nombre_completo|default:r.profesional.username }}</b><br>Médico veterinario responsable</div>
+  </td>
+  <td style="width:10%;"></td>
+  <td style="width:45%;">
+    {% if r.tipo == 'eutanasia' or r.tipo == 'cirugia' or r.tipo == 'sedacion' %}
+    <div class="raya"><b>{{ r.detalle.autorizado_por|default:dueno.nombre_completo }}</b><br>Propietario / responsable{% if r.detalle.documento_autorizante %} · CC {{ r.detalle.documento_autorizante }}{% endif %}</div>
+    {% else %}
+    <div class="raya">Recibido por el propietario</div>
+    {% endif %}
+  </td>
+</tr></table>
+{% endblock %}

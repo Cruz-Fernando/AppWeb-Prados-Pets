@@ -1,0 +1,158 @@
+{% extends "clinico/_layout.html" %}
+{% block titulo_pagina %}{{ h.numero }} · {{ mascota.nombre }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'clinico:hospitalizacion' %}">Hospitalización</a>
+  <span class="app-topbar__sep">/</span>
+  <span class="app-topbar__current">{{ h.numero }} · {{ mascota.nombre }}</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="t-hosp">
+  <div class="cl-head">
+    <div class="cl-head__text">
+      <span class="cl-eyebrow">{% include "clinico/_icono.html" with nombre="hospital" size=14 %} Hospitalización · {{ h.numero }}</span>
+      <h1>{{ mascota.nombre }} · {{ h.motivo }}</h1>
+      <p class="app-content__subtitle">
+        {{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %} · {{ mascota.id_dueno.nombre_completo }} ({{ mascota.id_dueno.telefono }})
+      </p>
+    </div>
+    <div class="cl-head__actions">
+      <a href="{% url 'clinico:historial_clinico' mascota.id_mascota %}" class="btn btn--ghost">{% include "clinico/_icono.html" with nombre="archivo" size=16 %} Historia clínica</a>
+      <a href="{% url 'clinico:hospitalizacion_pdf' h.pk %}" class="btn btn--ghost">{% include "clinico/_icono.html" with nombre="descargar" size=16 %} {% if h.activa %}Reporte PDF{% else %}Epicrisis PDF{% endif %}</a>
+      {% if h.activa and puede_registrar %}
+      <a href="{% url 'clinico:dar_alta' h.pk %}" class="btn btn--green">{% include "clinico/_icono.html" with nombre="salida" size=16 %} Dar de alta</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if h.activa %}
+  <div class="cl-banner cl-banner--hosp">
+    {% include "clinico/_icono.html" with nombre="reloj" %}
+    <span><b>Internado</b> desde {{ h.fecha_ingreso|date:"d/m/Y H:i" }} · Día {{ h.dias_estancia }}{% if h.area %} · {{ h.area }}{% endif %}{% if h.pronostico %} · Pronóstico {{ h.get_pronostico_display|lower }}{% endif %}</span>
+  </div>
+  {% else %}
+  <div class="cl-banner {% if h.condicion_alta == 'fallecido' %}cl-banner--dead{% else %}cl-banner--info{% endif %}">
+    {% include "clinico/_icono.html" with nombre="salida" %}
+    <span><b>{{ h.get_condicion_alta_display|default:"Dado de alta" }}</b> · {{ h.fecha_alta|date:"d/m/Y H:i" }} · {{ h.dias_estancia }} día{{ h.dias_estancia|pluralize }} de estancia{% if h.profesional_alta %} · {{ h.profesional_alta.nombre_completo|default:h.profesional_alta.username }}{% endif %}</span>
+  </div>
+  {% endif %}
+
+  <div class="cl-grid">
+    <div>
+      <!-- Ingreso -->
+      <section class="cl-card">
+        <div class="cl-card__head">
+          <h2 class="cl-card__title">Ingreso</h2>
+          <span class="cl-list__muted" style="font-size:12.5px;">{{ h.fecha_ingreso|date:"d/m/Y H:i" }}{% if h.profesional_ingreso %} · {{ h.profesional_ingreso.nombre_completo|default:h.profesional_ingreso.username }}{% endif %}</span>
+        </div>
+        <div class="cl-card__body">
+          {% if vitales_ingreso %}
+          <div class="cl-vitals" style="margin-bottom:18px;">
+            {% for etq, valor in vitales_ingreso %}<div class="cl-vital"><span>{{ etq }}</span><b>{{ valor }}</b></div>{% endfor %}
+          </div>
+          {% endif %}
+          <dl class="cl-dl">
+            {% if h.diagnostico_presuntivo %}<div class="is-long"><dt>Diagnóstico presuntivo</dt><dd>{{ h.diagnostico_presuntivo }}</dd></div>{% endif %}
+            {% if h.tratamiento_inicial %}<div class="is-long"><dt>Plan de tratamiento inicial</dt><dd>{{ h.tratamiento_inicial }}</dd></div>{% endif %}
+            {% if h.observaciones %}<div class="is-long"><dt>Observaciones</dt><dd>{{ h.observaciones }}</dd></div>{% endif %}
+            {% if h.documento_consentimiento %}<div><dt>Consentimiento</dt><dd><a href="{{ h.documento_consentimiento.url }}" target="_blank" rel="noopener">Abrir documento</a></dd></div>{% endif %}
+            {% if h.examenes_adjuntos %}<div><dt>Exámenes</dt><dd><a href="{{ h.examenes_adjuntos.url }}" target="_blank" rel="noopener">Abrir documento</a></dd></div>{% endif %}
+          </dl>
+        </div>
+      </section>
+
+      {% if not h.activa and h.resumen_alta %}
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">Epicrisis</h2></div>
+        <div class="cl-card__body">
+          <dl class="cl-dl">
+            <div class="is-long"><dt>Resumen de la estancia</dt><dd>{{ h.resumen_alta }}</dd></div>
+            {% if h.indicaciones_alta %}<div class="is-long"><dt>Indicaciones para casa</dt><dd>{{ h.indicaciones_alta }}</dd></div>{% endif %}
+            {% if h.proximo_control %}<div><dt>Próximo control</dt><dd>{{ h.proximo_control|date:"d/m/Y" }}</dd></div>{% endif %}
+          </dl>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Evoluciones -->
+      <section class="cl-card">
+        <div class="cl-card__head">
+          <h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="pulso" size=16 %} Evolución</h2>
+          <span class="cl-badge cl-badge--muted">{{ evoluciones|length }}</span>
+        </div>
+        {% for e in evoluciones %}
+        <article class="cl-evol">
+          <div class="cl-evol__head">
+            <b>{{ e.fecha|date:"d/m/Y · H:i" }}</b>
+            <span class="cl-badge {% if e.estado_general == 'critico' or e.estado_general == 'empeorando' %}cl-badge--crit{% elif e.estado_general == 'mejorando' %}cl-badge--ok{% else %}cl-badge--muted{% endif %}">{{ e.get_estado_general_display }}</span>
+          </div>
+          <div class="cl-evol__vitals">
+            {% if e.peso %}<span>Peso <b>{{ e.peso|floatformat:"-2" }} kg</b></span>{% endif %}
+            {% if e.temperatura %}<span>T° <b>{{ e.temperatura }} °C</b></span>{% endif %}
+            {% if e.frecuencia_cardiaca %}<span>FC <b>{{ e.frecuencia_cardiaca }}</b></span>{% endif %}
+            {% if e.frecuencia_respiratoria %}<span>FR <b>{{ e.frecuencia_respiratoria }}</b></span>{% endif %}
+            {% if e.mucosas %}<span>Mucosas <b>{{ e.get_mucosas_display }}</b></span>{% endif %}
+            {% if e.apetito %}<span>Apetito <b>{{ e.get_apetito_display }}</b></span>{% endif %}
+            <span>Orina <b>{{ e.orina|yesno:"Sí,No" }}</b></span>
+            <span>Heces <b>{{ e.defeca|yesno:"Sí,No" }}</b></span>
+            {% if e.vomito %}<span style="color:#FCA5A5;">Vómito</span>{% endif %}
+          </div>
+          {% if e.fluidoterapia %}<p><b>Fluidoterapia:</b> {{ e.fluidoterapia }}</p>{% endif %}
+          {% if e.medicamentos %}<p><b>Medicamentos:</b> {{ e.medicamentos }}</p>{% endif %}
+          {% if e.observaciones %}<p>{{ e.observaciones }}</p>{% endif %}
+          <div class="cl-list__muted" style="font-size:12px;margin-top:6px;">{{ e.profesional.nombre_completo|default:e.profesional.username }}</div>
+        </article>
+        {% empty %}
+        <p class="cl-empty-sm">Sin notas de evolución todavía.</p>
+        {% endfor %}
+      </section>
+    </div>
+
+    <aside class="cl-side">
+      {% if form %}
+      <form method="post" class="cl-card" novalidate>
+        {% csrf_token %}
+        <div class="cl-card__head"><h2 class="cl-card__title">Nueva evolución</h2></div>
+        <div class="cl-card__body">
+          <div class="cl-fields">
+            {% include "clinico/_campo.html" with f=form.fecha %}
+            {% include "clinico/_campo.html" with f=form.estado_general %}
+            {% include "clinico/_campo.html" with f=form.temperatura %}
+            {% include "clinico/_campo.html" with f=form.peso %}
+            {% include "clinico/_campo.html" with f=form.frecuencia_cardiaca %}
+            {% include "clinico/_campo.html" with f=form.frecuencia_respiratoria %}
+            {% include "clinico/_campo.html" with f=form.mucosas %}
+            {% include "clinico/_campo.html" with f=form.apetito %}
+            {% include "clinico/_campo.html" with f=form.orina %}
+            {% include "clinico/_campo.html" with f=form.defeca %}
+            {% include "clinico/_campo.html" with f=form.vomito %}
+            {% include "clinico/_campo.html" with f=form.fluidoterapia ancho="full" %}
+            {% include "clinico/_campo.html" with f=form.medicamentos ancho="full" %}
+            {% include "clinico/_campo.html" with f=form.observaciones ancho="full" %}
+          </div>
+        </div>
+        <div class="cl-actions" style="position:static;"><button type="submit" class="btn btn--primary" style="width:100%;">Registrar evolución</button></div>
+      </form>
+      {% endif %}
+
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">Procedimientos en esta estancia</h2></div>
+        {% if registros %}
+        <ul class="cl-list">
+          {% for r in registros %}
+          <li><a href="{% url 'clinico:registro_detalle' r.pk %}" style="color:var(--text);{% if r.anulado %}text-decoration:line-through;opacity:.6;{% endif %}">{{ r.get_tipo_display }} · {{ r.motivo|truncatechars:32 }}</a><span class="cl-list__muted">{{ r.fecha_atencion|date:"d/m" }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="cl-empty-sm">Ninguno registrado.</p>{% endif %}
+        {% if h.activa and puede_registrar %}
+        <div class="cl-card__body" style="border-top:1px solid var(--border-subtle);display:flex;flex-wrap:wrap;gap:6px;">
+          {% for t in tipos %}{% if t.clave != 'consulta_general' and t.clave != 'vacunacion' %}
+          <a class="cl-chip t-{{ t.color }}" href="{% url 'clinico:nuevo_registro' mascota.id_mascota t.clave %}?hosp={{ h.pk }}">+ {{ t.nombre }}</a>
+          {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

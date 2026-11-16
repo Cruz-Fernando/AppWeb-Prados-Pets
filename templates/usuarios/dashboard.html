@@ -65,6 +65,28 @@
         </div>
       </section>
 
+      <!-- PB-14: recordatorios de hoy (vacunación y baño) -->
+      {% if recordatorios_hoy %}
+      <section class="app-card" id="recordatorios-hoy" style="margin: 0 0 24px; padding: 18px 20px; border: 1px solid rgba(251, 191, 36, .35); background: rgba(251, 191, 36, .08); border-radius: var(--radius-lg);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;">
+          <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Recordatorios de hoy ({{ recordatorios_hoy|length }})
+          </h2>
+          <a href="{% url 'clinico:recordatorios' %}" class="btn btn--ghost btn--sm">Ver todos los recordatorios →</a>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; display: grid; gap: 6px;">
+          {% for r in recordatorios_hoy|slice:":6" %}
+          <li style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
+            <span><strong style="color: var(--text);">{{ r.mascota.nombre }}</strong> · {{ r.tipo }} · {{ r.mascota.id_dueno.nombre_completo }}</span>
+            <a href="tel:{{ r.mascota.id_dueno.telefono }}">{{ r.mascota.id_dueno.telefono }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if recordatorios_hoy|length > 6 %}<p style="margin: 8px 0 0; font-size: 0.85rem; color: var(--text-muted);">y {{ recordatorios_hoy|length|add:"-6" }} más…</p>{% endif %}
+      </section>
+      {% endif %}
+
       <!-- Módulos -->
       <div class="app-section-header">
         <div>

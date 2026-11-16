@@ -5,7 +5,6 @@ from .models import (
     Servicio, 
     Producto, 
     Medicamento, 
-    StockLote, 
     MovimientoInventario, 
     Venta, 
     DetalleVenta
@@ -33,7 +32,7 @@ class ServicioAdmin(admin.ModelAdmin):
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'codigo_barras', 'nombre', 'categoria', 'precio_compra', 'precio_venta', 'stock_actual', 'stock_minimo', 'activo')
+    list_display = ('codigo', 'codigo_barras', 'nombre', 'categoria', 'precio_compra', 'precio_venta', 'stock_actual', 'stock_minimo', 'fecha_vencimiento', 'activo')
     list_filter = ('categoria', 'activo', 'proveedor')
     search_fields = ('codigo', 'codigo_barras', 'nombre')
 
@@ -43,13 +42,6 @@ class MedicamentoAdmin(admin.ModelAdmin):
     list_display = ('producto', 'principio_activo', 'concentracion', 'presentacion', 'requiere_receta')
     list_filter = ('requiere_receta', 'presentacion')
     search_fields = ('producto__nombre', 'principio_activo')
-
-
-@admin.register(StockLote)
-class StockLoteAdmin(admin.ModelAdmin):
-    list_display = ('numero_lote', 'producto', 'fecha_vencimiento', 'cantidad', 'fecha_ingreso')
-    list_filter = ('fecha_vencimiento',)
-    search_fields = ('numero_lote', 'producto__nombre')
 
 
 @admin.register(MovimientoInventario)

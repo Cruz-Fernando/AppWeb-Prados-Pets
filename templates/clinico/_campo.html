@@ -1,0 +1,12 @@
+{% comment %}Pinta un BoundField. Variables: f (campo), ancho (full|half|third|quarter){% endcomment %}
+<div class="cl-field{% if ancho == 'full' %} cl-field--full{% elif ancho == 'third' %} cl-field--third{% elif ancho == 'quarter' %} cl-field--quarter{% endif %}{% if f.errors %} has-error{% endif %}">
+  {% if f.widget_type == "checkbox" %}
+    <span class="cl-label">&nbsp;</span>
+    <label class="cl-checkline" for="{{ f.id_for_label }}">{{ f }} <span>{{ f.label }}{% if f.field.required %} <span class="cl-req">*</span>{% endif %}</span></label>
+  {% else %}
+    <label class="cl-label" for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} <span class="cl-req">*</span>{% endif %}</label>
+    {{ f }}
+  {% endif %}
+  {% if f.help_text %}<span class="cl-help">{{ f.help_text }}</span>{% endif %}
+  {% for e in f.errors %}<span class="cl-error">{{ e }}</span>{% endfor %}
+</div>
