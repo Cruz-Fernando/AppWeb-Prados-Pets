@@ -39,7 +39,7 @@
       <tr><td class="k">Especie</td><td class="v">{{ mascota.get_especie_display }}</td></tr>
       {% endif %}
       <tr><td class="k">Raza</td><td class="v">{{ cita.raza|default:"No especificada" }}</td></tr>
-      {% if mascota.condicion_pelaje %}<tr><td class="k">Pelaje</td><td class="v">{{ mascota.condicion_pelaje }}</td></tr>{% endif %}
+      {% with pelaje=cita.condicion_pelaje|default:mascota.condicion_pelaje %}{% if pelaje %}<tr><td class="k">Pelaje</td><td class="v">{{ pelaje }}</td></tr>{% endif %}{% endwith %}
     </table>
   </td>
   <td class="col col-der sec">

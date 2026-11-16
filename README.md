@@ -13,6 +13,7 @@ Directorio · Agenda · Historia clínica · Hospitalización · Peluquería · 
 ![Metodología](https://img.shields.io/badge/Metodolog%C3%ADa-Scrum-7c3aed)
 ![Entregable](https://img.shields.io/badge/Entregable-E1-f472b6)
 ![Sprint](https://img.shields.io/badge/Sprint%20actual-5%20de%206-0ea5e9)
+![Pruebas](https://img.shields.io/badge/Pruebas-184%20pasan-16a34a)
 
 </div>
 
@@ -48,25 +49,25 @@ Proyecto de la asignatura *Administración de Proyectos Informáticos*, entregab
 
 ## 📈 Estado actual
 
-> Corte: **10 de noviembre de 2026**. Estamos en el **Sprint 5** (09/11 – 20/11).
+> Corte: **16 de noviembre de 2026**, después de fusionar `Pruebas_V2` en `main` (PR #67). Estamos en el **Sprint 5** (09/11 – 20/11).
 
 | Indicador | Valor |
 |---|---|
 | Ítems del backlog | 21 (PB-01 a PB-21) |
-| ✅ Terminados | 10 |
-| ⚠️ Terminados con defecto abierto | 4 (PB-01, PB-08, PB-11, PB-14) |
-| 🔄 En curso / parciales | 5 (PB-15 a PB-18, PB-21) |
-| ⏳ Sin iniciar | 2 (PB-19, PB-20) |
-| Horas del backlog terminadas | 453 h de 1.134 h (**40 %**); 640 h (**56 %**) si se cuentan los ítems con defecto abierto |
-| Pruebas automatizadas | 93 pruebas: **78 pasan, 15 fallan** (ver [Defectos](#-defectos-y-deuda-técnica)) |
+| ✅ Terminados | 15 |
+| ⚠️ Terminados con pendiente | 1 (PB-11) |
+| 🟡 Parciales | 5 (PB-15, PB-18, PB-19, PB-20, PB-21) |
+| ⏳ Sin iniciar | 0 |
+| Horas del backlog terminadas | 754 h de 1.134 h (**66 %**); 782 h (**69 %**) si se cuenta PB-11 |
+| Pruebas automatizadas | **184 pruebas, todas pasan** |
 
 ```
-Sprint 1  ██████████  Cerrado      RF16, RF17   Acceso y usuarios
-Sprint 2  ██████████  Cerrado      RF04         Directorio
-Sprint 3  █████████░  Cerrado      RF05         Agenda y citas (cancelación de peluquería pendiente)
-Sprint 4  █████████░  Cerrado      RF06, RF09, RF12  Historia clínica, carga masiva, recordatorios
-Sprint 5  ███░░░░░░░  En curso     RF07, RF08, RF10, RF15
-Sprint 6  █░░░░░░░░░  Por iniciar  RF13, RF14, RF11
+Sprint 1  ██████████  Cerrado      RF16, RF17        Acceso y usuarios
+Sprint 2  ██████████  Cerrado      RF04              Directorio
+Sprint 3  █████████░  Cerrado      RF05              Agenda y citas (falta cancelar peluquería futura)
+Sprint 4  ██████████  Cerrado      RF06, RF09, RF12  Historia clínica, carga masiva, recordatorios
+Sprint 5  █████░░░░░  En curso     RF07, RF08, RF10, RF15  (RF08 y RF10 terminados)
+Sprint 6  ██░░░░░░░░  Por iniciar  RF13, RF14, RF11  (ya tienen base)
 ```
 
 ---
@@ -75,16 +76,16 @@ Sprint 6  █░░░░░░░░░  Por iniciar  RF13, RF14, RF11
 
 | Módulo | Ruta | Qué hace hoy |
 |---|---|---|
-| **Usuarios y roles** | `/panel/`, `/usuarios/`, `/roles/` | Inicio y cierre de sesión, panel principal, alta/edición/baja de usuarios y roles (solo administrador). Roles: administrador, veterinario, auxiliar, groomer y domiciliario. |
-| **Directorio** | `/directorio/` | Registro y edición de dueños y mascotas, código de mascota con año y mes (`AAMM`), peso y antecedentes de vacunación, búsqueda en tiempo real, listados y exportación a Excel. |
-| **Agenda de consulta** | `/agendamiento/` | Calendario visual por día y semana (consulta y peluquería juntas), agendamiento con validación de cruces por veterinario, cancelación con motivo y comprobante PDF. |
-| **Historia clínica** | `/clinico/historial/` | 8 tipos de registro (consulta general, vacunación, desparasitación, sedación, cirugía, eutanasia, control posoperatorio y otro), con constantes vitales, examen por sistemas, fórmula médica, adjuntos, edición/anulación con trazabilidad y PDF. |
+| **Usuarios y roles** | `/panel/`, `/usuarios/`, `/roles/` | Inicio y cierre de sesión, panel principal con avisos de recordatorios, alta/edición/baja de usuarios y roles (solo administrador). Roles: administrador, veterinario, auxiliar, groomer y domiciliario; cada uno ve solo sus módulos. |
+| **Directorio** | `/directorio/` | Registro y edición de dueños y mascotas, código de mascota con año y mes (`AAMM`), peso y antecedentes de vacunación, búsqueda en tiempo real, listados y exportación a Excel. Insignias de cliente **Frecuente** y **VIP** (ver PB-18). |
+| **Agenda de consulta** | `/agendamiento/` | Calendario visual por día y semana (consulta y peluquería juntas), agendamiento con validación de cruces por veterinario, hora de fin opcional (30 min por defecto), cancelación con motivo y comprobante PDF. |
+| **Historia clínica** | `/clinico/historial/` | 8 tipos de registro (consulta general, vacunación, desparasitación, sedación, cirugía, eutanasia, control posoperatorio y otro), con constantes vitales, examen por sistemas, fórmula médica, **medicamentos e insumos usados** (se descuentan del inventario y vuelven al anular), adjuntos, edición/anulación con trazabilidad y PDF. |
 | **Hospitalización** | `/clinico/hospitalizacion/` | Ingreso de pacientes, evolución diaria, alta con condición de salida y PDF. Se origina en la atención médica: no se agenda. |
-| **Recordatorios** | `/clinico/recordatorios/` | Próximas vacunas y baños por mascota según el intervalo configurado. |
-| **Peluquería** | `/peluqueria/` | Agendamiento con groomer, duración y precio, validación de cruces por groomer y comprobante PDF. |
-| **Inventario** | `/inventario/` | Productos, medicamentos y servicios; lotes con vencimiento; reposición; kardex de movimientos; alerta de bajo stock; carga masiva y exportación a Excel. |
-| **Facturación** | — | ⏳ Pendiente (Sprint 6). |
-| **Reportes** | — | ⏳ Pendiente (Sprint 6). |
+| **Recordatorios** | `/clinico/recordatorios/` | Próximas vacunas y baños por mascota según el intervalo configurado; aviso en el panel principal. |
+| **Peluquería** | `/peluqueria/` | Agendamiento con groomer, servicio, condición del pelaje, duración y precio; validación de cruces por groomer; vista previa de los insumos que se van a descontar; comisión del groomer (40 %) y comprobante PDF. |
+| **Inventario** | `/inventario/` | Productos, medicamentos y servicios con **cantidad y fecha de vencimiento por producto** (sin lotes); búsqueda en tiempo real; botones Añadir y Quitar en cada fila (con motivo); retiro y reactivación sin perder el historial; kardex; **insumos por servicio de peluquería**; descuento automático desde consulta y peluquería; alertas de stock mínimo, vencidos y por vencer (30 días); carga masiva y exportación a Excel. |
+| **Facturación** | `/facturacion/` | Ganancias por groomer (hoy, semana, mes, mes anterior o fechas elegidas): facturado, comisión del 40 % y lo que queda a la clínica, con el detalle de cada servicio. Cierre de servicios pasados como realizados o cancelados (al cancelar vuelven los insumos). Exportación a Excel. El groomer ve solo lo suyo. Falta la factura consolidada (PB-19). |
+| **Reportes** | — | ⏳ Pendiente (Sprint 6). Las comisiones por groomer ya se consultan en Facturación. |
 
 ---
 
@@ -110,10 +111,10 @@ AppWeb-Prados-Pets/
 │   ├── usuarios/       # login, roles, permisos, panel, comando crear_usuarios_prueba
 │   ├── directorio/     # dueños, mascotas, vacunación, búsqueda, exportación Excel
 │   ├── agendamiento/   # citas de consulta, calendario, cancelación, PDF
-│   ├── clinico/        # historia clínica, hospitalización, recordatorios, PDF
-│   ├── peluqueria/     # citas de grooming y comprobante PDF
-│   ├── inventario/     # productos, lotes, kardex, carga masiva Excel
-│   ├── facturacion/    # (vacía, Sprint 6)
+│   ├── clinico/        # historia clínica, hospitalización, recordatorios, insumos usados, PDF
+│   ├── peluqueria/     # citas de grooming, comisión, insumos por cita, comprobante PDF
+│   ├── inventario/     # productos, kardex, descuento de stock, insumos por servicio, carga Excel
+│   ├── facturacion/    # ganancias y comisiones por groomer, exportación Excel
 │   └── reportes/       # (vacía, Sprint 6)
 ├── config/
 │   ├── settings/       # base.py, dev.py, prod.py
@@ -121,7 +122,7 @@ AppWeb-Prados-Pets/
 │   ├── pdf.py          # utilidades comunes de PDF
 │   └── urls.py
 ├── templates/          # una carpeta por app + base.html
-├── static/             # css, js, img
+├── static/             # css, js, img, plantillas (plantilla Excel de inventario)
 ├── requirements.txt    # dependencias de producción (las usa Railway)
 ├── requirements/       # base.txt, dev.txt, prod.txt
 ├── BACKLOG.md          # backlog del plan del proyecto (PGP)
@@ -177,13 +178,13 @@ Abre `http://127.0.0.1:8000/`.
 ## 🧪 Pruebas automatizadas
 
 ```bash
-python manage.py test                 # todo el proyecto
+python manage.py test                 # todo el proyecto (184 pruebas al 16/11/2026)
 python manage.py test apps.clinico    # una sola app
 ```
 
 Django crea una base de pruebas temporal, así que el usuario de la base necesita permiso para crear bases de datos.
 
-Regla del equipo: **no se fusiona a `main` un PR que deje pruebas fallando** o con marcas de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`).
+Regla del equipo: **no se fusiona a `main` un PR que deje pruebas fallando** o con marcas de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`). Si cambias una validación (por ejemplo, un campo que pasa a ser obligatorio), actualiza también las pruebas que envían ese formulario.
 
 ---
 
@@ -203,7 +204,7 @@ Regla del equipo: **no se fusiona a `main` un PR que deje pruebas fallando** o c
 
 ## 📦 Carga masiva de inventario
 
-**Inventario › Carga Masiva Excel** recibe un `.xlsx`. El sistema lee **solo la primera hoja**, con encabezados en la fila 1 y datos desde la fila 2, en este orden:
+**Inventario › Carga Masiva Excel** recibe solo archivos `.xlsx` (usa la plantilla que se descarga desde la misma pantalla). El sistema lee **la primera hoja**, sin importar cuál estaba abierta al guardar, valida los encabezados de la fila 1 y procesa los datos desde la fila 2 (máximo 2.000 filas), en este orden:
 
 | Col. | Campo | Obligatorio | Aplica a |
 |---|---|---|---|
@@ -214,9 +215,11 @@ Regla del equipo: **no se fusiona a `main` un PR que deje pruebas fallando** o c
 | E | `Precio` (venta, en COP, solo números) | Sí | Todos |
 | F | `StockMinimo` (5 si se deja vacío) | No | Producto, medicamento |
 | G–J | `PrincipioActivo`, `Concentracion`, `Presentacion`, `RequiereReceta` (SI/NO) | No | Medicamento |
-| K–M | `NumeroLote`, `FechaVencimiento` (AAAA-MM-DD), `CantidadLote` | No | Producto, medicamento |
+| K | `NumeroLote` (se acepta, pero **ya no se usa**: el inventario no maneja lotes) | No | — |
+| L | `FechaVencimiento` (AAAA-MM-DD): fecha de vencimiento del producto | No | Producto, medicamento |
+| M | `CantidadLote`: **cantidad inicial** del producto | No | Producto, medicamento |
 
-Las filas con error se listan en pantalla y no se guardan; las demás sí. Un código que ya existe se rechaza. La plantilla se descarga desde la misma pantalla.
+Las filas con error se listan en pantalla y no se guardan; las demás sí. Un código que ya existe se rechaza, y una fecha de vencimiento ya pasada no se carga como stock. Si el producto vence en 30 días o menos, se avisa.
 
 ---
 
@@ -250,82 +253,95 @@ Variables de entorno en Railway (ver `.env.example`):
 - Una rama por ítem o HU, creada desde `main`: `PB-15-recipe-medico`, `fix/permisos-rol`, etc.
 - Se integra a `main` solo por **Pull Request**, con revisión de otra pareja y la descripción `Closes #N`.
 - Antes de abrir el PR: `git pull origin main`, resolver conflictos **revisando cada bloque** y correr las pruebas.
+- Si el PR se fusiona con **Squash and merge**, actualiza la rama de origen con `main` (`git merge origin/main`) antes de seguir trabajando en ella.
+- Revisa `git status` antes de `git add .`: solo deben subirse archivos del proyecto (nada de archivos vacíos, `.env` ni respaldos de la base).
 
 ---
 
 ## 🗃️ Product Backlog actualizado
 
-> Actualizado al **10/11/2026** según el código de `main`. Las estimaciones, responsables y criterios de aceptación completos están en [`BACKLOG.md`](BACKLOG.md).
+> Actualizado al **16/11/2026** según el código de `main`. Las estimaciones, responsables y criterios de aceptación completos están en [`BACKLOG.md`](BACKLOG.md).
 
-**Estado:** ✅ Terminado · ⚠️ Terminado con defecto abierto · 🔄 En curso · 🟡 Parcial · ⏳ Sin iniciar
+**Estado:** ✅ Terminado · ⚠️ Terminado con pendiente · 🟡 Parcial · ⏳ Sin iniciar
 
 ### Iteración 1
 
 | ID | Sp. | RF | Elemento | Est. (h) | Estado | Observaciones |
 |:--|:-:|:--|:--|:-:|:-:|:--|
-| PB-01 | 1 | RF16 | Control de acceso por rol (login y logout) | 67 | ⚠️ | Login y logout funcionan. **Defecto crítico BUG-01:** el control de permisos no reconoce el rol, así que solo el superusuario entra a los módulos protegidos. |
-| PB-02 | 1 | RF17 | Gestión de usuarios y roles (solo administrador) | 57 | ✅ | Incluye protección del último administrador y de los roles base. Sus 4 pruebas fallan por BUG-01. |
+| PB-01 | 1 | RF16 | Control de acceso por rol (login y logout) | 67 | ✅ | Login, logout y permisos por rol. BUG-01 corregido: el rol se lee de `id_rol` y el nombre antiguo `recepcionista` se trata como `auxiliar`. |
+| PB-02 | 1 | RF17 | Gestión de usuarios y roles (solo administrador) | 57 | ✅ | Incluye protección del último administrador y de los roles base. |
 | PB-03 | 2 | RF04 | Registro de propietarios | 14 | ✅ | Con listado y exportación a Excel. |
-| PB-04 | 2 | RF04 | Registro de mascotas con código AAMM, peso y vacunación | 28 | ✅ | Sus pruebas fallan por BUG-01, no por la funcionalidad. |
+| PB-04 | 2 | RF04 | Registro de mascotas con código AAMM, peso y vacunación | 28 | ✅ | |
 | PB-05 | 2 | RF04 | Búsqueda en tiempo real de propietarios y mascotas | 33 | ✅ | Autocompletado AJAX. |
 | PB-06 | 2 | RF04 | Edición de propietarios y mascotas | 28 | ✅ | |
 | PB-07 | 3 | RF05 | Calendario diario y semanal | 57 | ✅ | Unifica consulta y peluquería. |
-| PB-08 | 3 | RF05 | Citas de consulta médica | 24 | ⚠️ | **BUG-04:** `hora_fin` quedó obligatoria en la base de datos, pero la lógica asume 30 min cuando viene vacía (4 pruebas fallan). |
-| PB-09 | 3 | RF05 | Citas de peluquería con groomer y duración | 28 | ✅ | Guarda duración y precio. |
+| PB-08 | 3 | RF05 | Citas de consulta médica | 24 | ✅ | BUG-04 corregido: la hora de fin es opcional y se asumen 30 min. |
+| PB-09 | 3 | RF05 | Citas de peluquería con groomer y duración | 28 | ✅ | Guarda duración, precio y condición del pelaje. |
 | PB-10 | 3 | RF05 | Validación de cruces de veterinario y groomer | 14 | ✅ | Detecta solapamiento de rangos, no solo la misma hora. |
-| PB-11 | 3 | RF05 | Cancelación de citas con motivo y liberación del horario | 28 | ⚠️ | Consulta: terminada. **Peluquería: falta la vista para cancelar** (el modelo ya tiene `estado` y `motivo_cancelacion`). |
+| PB-11 | 3 | RF05 | Cancelación de citas con motivo y liberación del horario | 28 | ⚠️ | Consulta: terminada. Peluquería: solo se cancela desde Facturación cuando la cita ya pasó (y devuelve los insumos). **Falta cancelar una cita futura de peluquería.** |
 
 ### Iteración 2
 
 | ID | Sp. | RF | Elemento | Est. (h) | Estado | Observaciones |
 |:--|:-:|:--|:--|:-:|:-:|:--|
 | PB-12 | 4 | RF06 | Consulta médica e historial clínico | 101 | ✅ | 8 tipos de registro, trazabilidad, anulación, adjuntos y PDF. Se agregó hospitalización completa. |
-| PB-13 | 4 | RF09 | Carga masiva del catálogo por Excel | 93 | ✅ | Probada con 41 ítems de ejemplo sin errores. Mejora: importar categoría, proveedor, código de barras y precio de compra. |
-| PB-14 | 4 | RF12 | Recordatorios de vacunación y baño | 68 | ⚠️ | Funciona. 2 pruebas fallan: una por BUG-05 y otra por BUG-06 (fecha del recordatorio). |
-| PB-15 | 5 | RF07 | Récipe médico con medicamentos del catálogo | 92 | 🟡 | Existe la "Fórmula médica" como texto libre. Falta: seleccionar medicamentos del inventario, dosis e indicaciones por ítem, y PDF del récipe. |
-| PB-16 | 5 | RF08 | Cobro de peluquería por raza, tamaño y pelaje, con comisión del 40 % | 67 | ✅ | Registra mascota, raza, tamaño, condición del pelaje, tipo de servicio/corte, groomer, precio manual y comisión calculada del 40 %. |
-| PB-17 | 5 | RF10 | Descuento automático de stock en consulta y peluquería | 75 | 🟡 | Existe `descontar_stock_consulta()` en `inventario/services.py`, pero **ninguna vista la usa todavía**. |
-| PB-18 | 5 | RF15 | Clasificación por colores de clientes recurrentes | 29 | 🔄 | Solo existe el campo `es_recurrente`. Falta acordar los criterios con el patrocinador, calcularlos y mostrar los colores. |
-| PB-19 | 6 | RF13 | Factura consolidada y registro de ingresos y gastos | 109 | ⏳ | La app `facturacion` está vacía. Hay modelos `Venta` y `DetalleVenta` en inventario con una migración pendiente (BUG-02). |
-| PB-20 | 6 | RF14 | Reportes diarios, semanales y mensuales | 84 | ⏳ | La app `reportes` está vacía. Las exportaciones a Excel actuales pueden servir de base. |
-| PB-21 | 6 | RF11 | Alertas de stock bajo y de vencimiento por lote | 38 | 🟡 | Ya hay un contador de bajo stock (stock ≤ mínimo). Falta: umbrales de 2 y 5 unidades, y alerta de vencimiento con fecha y lote. |
+| PB-13 | 4 | RF09 | Carga masiva del catálogo por Excel | 93 | ✅ | Valida archivo, encabezados y fechas, e informa fila por fila. Mejora pendiente: importar el precio de compra (DT-05). |
+| PB-14 | 4 | RF12 | Recordatorios de vacunación y baño | 68 | ✅ | Uno por mascota, con aviso en el panel y enlace en el menú. |
+| PB-15 | 5 | RF07 | Récipe médico con medicamentos del catálogo | 92 | 🟡 | El registro clínico ya toma los medicamentos e insumos del inventario (con cantidad) y salen en el PDF del registro. Falta: dosis e indicaciones por medicamento y el PDF del récipe. |
+| PB-16 | 5 | RF08 | Cobro de peluquería por raza, tamaño y pelaje, con comisión del 40 % | 67 | ✅ | Registra mascota, raza, tamaño, condición del pelaje, tipo de servicio/corte, groomer, precio manual y comisión del 40 %. |
+| PB-17 | 5 | RF10 | Descuento automático de stock en consulta y peluquería | 75 | ✅ | Se descuenta al guardar el registro clínico o agendar la peluquería; si algo no alcanza, no se guarda nada. Al anular o cancelar, vuelve. Queda en el kardex. Pantalla «Insumos por servicio» con reglas por tamaño. |
+| PB-18 | 5 | RF15 | Clasificación por colores de clientes recurrentes | 29 | 🟡 | Insignias **Frecuente** (4+ visitas) y **VIP** (8+) en el listado y la búsqueda de dueños. Falta: contar las visitas (BUG-09) y confirmar los umbrales con el patrocinador. |
+| PB-19 | 6 | RF13 | Factura consolidada y registro de ingresos y gastos | 109 | 🟡 | Facturación ya muestra lo facturado en peluquería y la comisión por groomer. Falta: factura que sume consulta, peluquería y productos, y el registro de ingresos y gastos (arriendo). |
+| PB-20 | 6 | RF14 | Reportes diarios, semanales y mensuales | 84 | 🟡 | Las comisiones por groomer por día, semana y mes (con Excel) ya están en Facturación. Falta: rotación de productos, vencimientos y balance de ganancias o pérdidas. |
+| PB-21 | 6 | RF11 | Alertas de stock bajo y de vencimiento | 38 | 🟡 | Alertas de stock mínimo, vencidos y por vencer (30 días) en Inventario, y aviso al descontar. Falta: decidir los umbrales de 2 y 5 unidades y actualizar el criterio, que pide lote (DT-06). |
 
 ### Resumen por sprint
 
 | Sprint | Fechas | RF | Horas | Avance |
 |:-:|:--|:--|:-:|:--|
-| 1 | 14/09 – 25/09 | RF16, RF17 | 124 | Cerrado, con BUG-01 abierto |
+| 1 | 14/09 – 25/09 | RF16, RF17 | 124 | Cerrado; BUG-01 corregido |
 | 2 | 28/09 – 09/10 | RF04 | 103 | Cerrado |
-| 3 | 13/10 – 23/10 | RF05 | 151 | Cerrado; falta cancelar peluquería |
-| 4 | 26/10 – 06/11 | RF06, RF09, RF12 | 262 | Cerrado, con BUG-06 abierto |
-| 5 | 09/11 – 20/11 | RF07, RF08, RF10, RF15 | 263 | **En curso:** 3 ítems parciales y 1 sin avance |
-| 6 | 23/11 – 03/12 | RF13, RF14, RF11 | 231 | Por iniciar; PB-21 ya tiene base |
+| 3 | 13/10 – 23/10 | RF05 | 151 | Cerrado; falta cancelar peluquería futura (PB-11) |
+| 4 | 26/10 – 06/11 | RF06, RF09, RF12 | 262 | Cerrado |
+| 5 | 09/11 – 20/11 | RF07, RF08, RF10, RF15 | 263 | **En curso:** PB-16 y PB-17 terminados (142 h); PB-15 y PB-18 parciales |
+| 6 | 23/11 – 03/12 | RF13, RF14, RF11 | 231 | Por iniciar; PB-19 a PB-21 ya tienen base |
 
 ### Prioridad sugerida para lo que queda
 
-1. **BUG-01 (permisos):** bloquea a todo el personal que no es superusuario. Es lo primero.
-2. **BUG-02 a BUG-04:** migración pendiente, respaldo con datos sensibles y `hora_fin`. Todo el equipo debe partir de una base estable.
-3. **PB-17 (descuento de stock):** PB-15, PB-16 y PB-19 dependen de que el inventario se mueva solo.
-4. **PB-15 y PB-16:** completar el Sprint 5.
-5. **PB-18:** pedir ya al patrocinador los criterios de colores para no frenar el sprint.
-6. **Sprint 6:** PB-19 (factura), luego PB-20 (reportes, que se alimenta de la factura) y PB-21.
+1. **PB-15 (récipe):** dosis e indicaciones por medicamento y PDF del récipe, sobre la lista de medicamentos que ya tiene el registro clínico.
+2. **PB-18 (clientes recurrentes):** contar las visitas reales (BUG-09) y confirmar con el patrocinador los umbrales de 4 y 8.
+3. **PB-11:** botón para cancelar una cita de peluquería futura (la devolución de insumos ya funciona).
+4. **Sprint 6:** PB-19 (factura consolidada e ingresos/gastos), luego PB-20 (reportes, que se alimenta de la factura) y cerrar PB-21.
+5. **DT-01 (integración continua):** evita que lleguen a `main` pruebas fallando, como pasó el 16/11.
 
 ---
 
 ## 🐞 Defectos y deuda técnica
 
+### Abiertos
+
 | ID | Prioridad | Descripción | Afecta | Solución propuesta |
 |:--|:-:|:--|:--|:--|
-| BUG-01 | 🔴 Crítica | `rol_requerido` (`apps/usuarios/permissions.py`) lee `request.user.rol`, atributo que no existe. Por eso solo el superusuario pasa y todos los demás reciben 403. Además 17 vistas piden el rol `recepcionista`, que no existe (el rol real es `auxiliar`). | PB-01, PB-02, PB-04 y 8 pruebas | Leer `request.user.id_rol.nombre_rol` y cambiar `recepcionista` por `auxiliar`. |
-| BUG-02 | 🔴 Alta | Falta una migración: `makemigrations --check` detecta un cambio en `Venta.usuario` sin migrar. | Despliegue, PB-19 | `python manage.py makemigrations inventario` y subir la migración. |
-| BUG-03 | 🔴 Alta | `datos_respaldo_sqlite.json` sigue en el repositorio (está en `.gitignore`, pero ya estaba versionado). Contiene hashes de contraseñas y datos de clientes. | Seguridad | `git rm --cached datos_respaldo_sqlite.json`, purgarlo del historial y cambiar las contraseñas de esos usuarios. |
-| BUG-04 | 🟠 Alta | `Cita.hora_fin` es `NOT NULL`, pero el formulario y la validación tratan la hora de fin como opcional (30 min por defecto). | PB-08 y 4 pruebas | Calcular `hora_fin` en `save()` cuando venga vacía, o volver el campo `null=True`. |
-| BUG-05 | 🟡 Media | Dos pruebas (`CancelarCitaRF05Tests` y la de cambio de intervalo en recordatorios) crean un rol que ya existe por la migración de roles: error de llave duplicada. | 2 pruebas | Usar `Rol.objects.get_or_create(...)` en esas pruebas. |
-| BUG-06 | 🟡 Media | Para una cita ya pasada, el recordatorio muestra el 20/11 cuando la prueba espera la fecha de hoy. La prueba depende de la fecha actual. | PB-14 y 1 prueba | Revisar si el error está en el cálculo de la próxima fecha o en la prueba, y fijar la fecha en la prueba. |
-| DT-01 | 🟡 Media | No hay integración continua: el 29/10 llegaron marcas de conflicto a `main` y rompieron el despliegue. | Todo el equipo | GitHub Action que corra `check`, `makemigrations --check` y `test` en cada PR. |
+| BUG-09 | 🟠 Alta | `Dueno.numero_visitas` no se actualiza en ninguna parte (solo se puede editar en el admin), así que las insignias Frecuente y VIP no le aparecen a nadie. | PB-18 | Calcular las visitas a partir de las citas atendidas, los registros clínicos y las peluquerías realizadas, con los criterios que confirme el patrocinador. |
+| BUG-03 | 🟠 Alta | `datos_respaldo_sqlite.json` (hashes de contraseñas y sesiones) se retiró del repositorio el 16/11, pero sigue en el historial de Git. | Seguridad | Cambiar las contraseñas de las cuentas que aparecen en el archivo. |
+| DT-01 | 🟡 Media | No hay integración continua: el 29/10 llegaron marcas de conflicto a `main` y el 16/11 llegaron 9 pruebas fallando con el PR #67. | Todo el equipo | GitHub Action que corra `check`, `makemigrations --check` y `test` en cada PR. |
 | DT-02 | 🟡 Media | `CitaPeluqueria` repite `nombre_mascota` y `raza` como texto además de la FK a `Mascota`. | Peluquería, reportes | Mostrar siempre los datos de la FK y retirar los campos de texto con una migración de datos. |
-| DT-03 | 🟢 Baja | `requirements.txt` y `requirements/` no coinciden en versiones. | Mantenimiento | Dejar `requirements/prod.txt` como fuente y que `requirements.txt` solo contenga `-r requirements/prod.txt`. |
-| DT-04 | 🟢 Baja | Pendientes del informe de QA del 28/10: desbordamiento horizontal en móvil, imágenes pesadas (logo de 80 KB mostrado a 36 px) y estilos repetidos dentro de las plantillas. | Interfaz | Ver `rediseno_gui_prados_pets.txt`. |
+| DT-04 | 🟢 Baja | Pendientes del informe de QA del 28/10: desbordamiento horizontal en móvil, imágenes pesadas (logo de 80 KB mostrado a 36 px) y estilos repetidos dentro de las plantillas. | Interfaz | Aplicar las recomendaciones del informe de QA. |
+| DT-05 | 🟢 Baja | La plantilla de Excel no trae precio de compra: el valor del inventario puede dar 0. | PB-13, PB-20 | Agregar la columna `PrecioCompra` a la plantilla y a la carga. |
+| DT-06 | 🟢 Baja | Cambios de alcance sin registrar: el inventario ya no maneja lotes y la peluquería usa precio manual en vez de tabla de tarifas, pero los criterios de PB-16 y PB-21 en `BACKLOG.md` siguen hablando de «tarifa» y «lote». | Plan del proyecto | Registrar los cambios en el control de cambios y actualizar los criterios de aceptación. |
+
+### Corregidos
+
+| ID | Descripción | Corrección |
+|:--|:--|:--|
+| BUG-01 | El control de permisos no reconocía el rol: solo el superusuario entraba a los módulos. | Se lee `id_rol.nombre_rol`; `recepcionista` se trata como `auxiliar`. |
+| BUG-02 | Faltaba una migración (`Venta.usuario`). | `makemigrations --check` ya no detecta cambios. |
+| BUG-04 | `Cita.hora_fin` era obligatoria en la base. | Migración `0006_hora_fin_opcional`. |
+| BUG-05 | Pruebas que creaban un rol que ya existía. | Usan `get_or_create`. |
+| BUG-06 | Prueba de recordatorios que dependía de la fecha actual. | La suite pasa completa. |
+| BUG-07 | 9 pruebas de peluquería e inventario fallaban porque no enviaban `condicion_pelaje`, que pasó a ser obligatoria con PB-16. | Pruebas actualizadas el 16/11. |
+| BUG-08 | El comprobante PDF de peluquería no mostraba la condición del pelaje registrada en la cita. | El PDF usa la condición de la cita. |
+| DT-03 | `requirements.txt` y `requirements/base.txt` no coincidían (faltaba `openpyxl` en `base.txt`). | Mismas dependencias y versiones en ambos. |
 
 ---
 

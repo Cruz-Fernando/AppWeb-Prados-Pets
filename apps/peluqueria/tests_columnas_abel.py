@@ -32,10 +32,11 @@ class ColumnasAbelTests(TestCase):
         respuesta = self.client.post("/peluqueria/guardar-cita/", {
             "mascota_id": self.mascota.pk, "servicio": "BANO", "groomer_id": self.groomer.pk,
             "fecha_hora": fecha_hora.strftime("%Y-%m-%dT%H:%M"), "duracion_min": "60", "precio": "40000",
+            "condicion_pelaje": "Normal",
         })
         self.assertEqual(respuesta.status_code, 302)
         cita = CitaPeluqueria.objects.get()
-        self.assertEqual(cita.condicion_pelaje, "")
+        self.assertEqual(cita.condicion_pelaje, "Normal")
         self.assertEqual(cita.comision_groomer, Decimal("16000.00"))
 
     def test_comision_se_actualiza_al_cambiar_precio(self):

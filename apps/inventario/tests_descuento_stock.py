@@ -182,6 +182,7 @@ class DescuentoEnPeluqueriaTests(TestCase):
         return self.client.post(reverse("peluqueria:guardar_cita"), {
             "mascota_id": self.mascota.pk, "servicio": servicio, "groomer_id": self.groomer.pk,
             "fecha_hora": fecha.strftime("%Y-%m-%dT%H:%M"), "duracion_min": "60", "precio": "45000",
+            "condicion_pelaje": "Normal",
         })
 
     def test_agendar_descuenta_segun_servicio_y_tamano(self):
