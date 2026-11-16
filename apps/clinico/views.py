@@ -12,10 +12,12 @@ from django.views.decorators.http import require_POST
 
 from apps.agendamiento.models import Cita
 from apps.directorio.models import Mascota
+from apps.inventario.services import StockInsuficiente, avisos_stock_bajo, devolver_movimientos
 from apps.peluqueria.models import CitaPeluqueria
 from apps.usuarios.permissions import rol_requerido
 
 from . import presentacion
+from .insumos import descontar_insumos, leer_insumos
 from .forms import (
     AltaForm,
     AnularRegistroForm,
@@ -320,33 +322,59 @@ def nuevo_registro(request, mascota_id, tipo):
 
     form = RegistroClinicoForm(request.POST or None, request.FILES or None,
                                tipo=definicion, mascota=mascota, initial=initial)
-    if request.method == 'POST' and form.is_valid():
-        with transaction.atomic():
-            registro = form.save(commit=False)
-            registro.profesional = request.user
-            registro.save()
-            registrar_traza(request, mascota, 'crear',
-                            f"{registro.numero} · {definicion.nombre}: {registro.motivo}", registro=registro)
-
-            if definicion.clave == 'eutanasia':
-                for h in mascota.hospitalizaciones.filter(estado='ACTIVO'):
-                    h.estado, h.condicion_alta = 'ALTA', 'fallecido'
-                    h.fecha_alta = registro.fecha_atencion
-                    h.profesional_alta = request.user
-                    h.resumen_alta = h.resumen_alta or f"Eutanasia registrada en {registro.numero}."
-                    h.save()
-                    registrar_traza(request, mascota, 'alta',
-                                    f"{h.numero} cerrada por eutanasia ({registro.numero})", hospitalizacion=h)
-
-        messages.success(request, f"{definicion.nombre} registrada en la historia clínica ({registro.numero}).")
-        if 'guardar_pdf' in request.POST:
-            return redirect(f"{reverse('clinico:registro_detalle', args=[registro.pk])}?pdf=1")
-        return redirect('clinico:registro_detalle', pk=registro.pk)
+    insumos, filas_insumos, errores_insumos = [], [], []
     if request.method == 'POST':
-        messages.error(request, 'Revisa los campos marcados en rojo.')
+        # PB-17: medicamentos e insumos usados en la atención
+        insumos, filas_insumos, errores_insumos = leer_insumos(request.POST)
+
+    if request.method == 'POST' and form.is_valid() and not errores_insumos:
+        try:
+            with transaction.atomic():
+                registro = form.save(commit=False)
+                registro.profesional = request.user
+                registro.save()
+
+                # PB-17: descuento automático del stock. Si un producto no alcanza
+                # se lanza StockInsuficiente y se deshace TODO (registro incluido).
+                movimientos = descontar_insumos(registro, insumos, request.user)
+
+                descripcion = f"{registro.numero} · {definicion.nombre}: {registro.motivo}"
+                if movimientos:
+                    descripcion += ". Descontado del inventario: " + ", ".join(
+                        f"{m.cantidad} × {m.producto.nombre}" for m in movimientos)
+                registrar_traza(request, mascota, 'crear', descripcion[:255], registro=registro)
+
+                if definicion.clave == 'eutanasia':
+                    for h in mascota.hospitalizaciones.filter(estado='ACTIVO'):
+                        h.estado, h.condicion_alta = 'ALTA', 'fallecido'
+                        h.fecha_alta = registro.fecha_atencion
+                        h.profesional_alta = request.user
+                        h.resumen_alta = h.resumen_alta or f"Eutanasia registrada en {registro.numero}."
+                        h.save()
+                        registrar_traza(request, mascota, 'alta',
+                                        f"{h.numero} cerrada por eutanasia ({registro.numero})", hospitalizacion=h)
+        except StockInsuficiente as error:
+            errores_insumos = [str(error)]
+        else:
+            messages.success(request, f"{definicion.nombre} registrada en la historia clínica ({registro.numero}).")
+            if movimientos:
+                messages.info(request, "Se descontó del inventario: "
+                              + ", ".join(f"{m.cantidad} × {m.producto.nombre}" for m in movimientos) + ".")
+            for aviso in avisos_stock_bajo(movimientos):
+                messages.warning(request, aviso)
+            if 'guardar_pdf' in request.POST:
+                return redirect(f"{reverse('clinico:registro_detalle', args=[registro.pk])}?pdf=1")
+            return redirect('clinico:registro_detalle', pk=registro.pk)
+
+    if request.method == 'POST':
+        for error in errores_insumos:
+            messages.error(request, error)
+        if form.errors:
+            messages.error(request, 'Revisa los campos marcados en rojo.')
 
     return render(request, 'clinico/registro_form.html', {
         'mascota': mascota, 'tipo': definicion, 'form': form, 'fallecido': _fallecido(mascota),
+        'filas_insumos': filas_insumos, 'errores_insumos': errores_insumos,
     })
 
 
@@ -366,6 +394,7 @@ def registro_detalle(request, pk):
         'evaluacion': presentacion.evaluacion(registro),
         'especificos': presentacion.detalle_legible(registro),
         'trazas': registro.trazas.select_related('usuario'),
+        'insumos_usados': registro.insumos_usados,
         'puede_editar': puede_editar(request.user, registro),
         'puede_anular': puede_editar(request.user, registro),
         'form_anular': AnularRegistroForm(),
@@ -421,6 +450,7 @@ def editar_registro(request, pk):
 
     return render(request, 'clinico/registro_form.html', {
         'mascota': registro.mascota, 'tipo': definicion, 'form': form, 'registro': registro,
+        'insumos_usados': registro.insumos_usados,
     })
 
 
@@ -440,10 +470,17 @@ def anular_registro(request, pk):
     registro.anulado_por = request.user
     registro.anulado_en = timezone.now()
     registro.motivo_anulacion = form.cleaned_data['motivo_anulacion']
-    registro.save(update_fields=['anulado', 'anulado_por', 'anulado_en', 'motivo_anulacion', 'actualizado_en'])
-    registrar_traza(request, registro.mascota, 'anular',
-                    f"{registro.numero} anulado: {registro.motivo_anulacion}", registro=registro)
+    with transaction.atomic():
+        registro.save(update_fields=['anulado', 'anulado_por', 'anulado_en', 'motivo_anulacion', 'actualizado_en'])
+        registrar_traza(request, registro.mascota, 'anular',
+                        f"{registro.numero} anulado: {registro.motivo_anulacion}", registro=registro)
+        # PB-17: lo que se había descontado vuelve al inventario
+        devueltos = devolver_movimientos(list(registro.insumos_usados), usuario=request.user,
+                                         motivo=f"{registro.numero} anulado")
     messages.success(request, f"{registro.numero} fue anulado. Sigue visible en la historia para trazabilidad.")
+    if devueltos:
+        messages.info(request, "Se devolvió al inventario: "
+                      + ", ".join(f"{m.cantidad} × {m.producto.nombre}" for m in devueltos) + ".")
     return redirect('clinico:registro_detalle', pk=pk)
 
 

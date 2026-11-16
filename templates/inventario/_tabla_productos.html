@@ -1,0 +1,92 @@
+{% comment %}
+  Tabla de productos. La usa la lista y también la búsqueda en vivo (?parcial=1).
+  Cada fila tiene Añadir (reponer), Quitar (sacar unidades) y Retirar el producto.
+{% endcomment %}
+<div class="inv-tabla-wrap">
+  <table class="inv-tabla">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th class="inv-num">Costo</th>
+        <th class="inv-num">Precio venta</th>
+        <th class="inv-num">Stock</th>
+        <th>Vence</th>
+        <th>Estado</th>
+        <th class="inv-num"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for prod in productos %}
+      <tr>
+        <td class="inv-codigo" data-col="codigo">{{ prod.codigo }}</td>
+        <td class="inv-prod inv-col-prod">
+          <b>{{ prod.nombre }}</b>
+          <small>{% if prod.categoria %}{{ prod.categoria.nombre }}{% elif prod.medicamento %}Medicamento{% else %}General{% endif %}<span class="inv-solo-movil"> · {{ prod.codigo }}{% if prod.fecha_vencimiento %} · vence {{ prod.fecha_vencimiento|date:"d/m/Y" }}{% endif %}</span></small>
+        </td>
+        <td class="inv-num" data-col="costo">${{ prod.precio_compra|floatformat:"0g" }}</td>
+        <td class="inv-num" data-col="precio">${{ prod.precio_venta|floatformat:"0g" }}</td>
+        <td class="inv-num inv-col-stock">
+          <span class="inv-stock{% if prod.necesita_reposicion %} is-bajo{% endif %}">{{ prod.stock_actual }}
+            <small>mín. {{ prod.stock_minimo }}</small></span>
+        </td>
+        <td data-col="vence" class="inv-vence{% if prod.vencido %} is-vencido{% elif prod.dias_para_vencer is not None and prod.dias_para_vencer <= 30 %} is-pronto{% endif %}">
+          {% if prod.fecha_vencimiento %}{{ prod.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}
+        </td>
+        <td data-col="estado">
+          {% if ver_retirados %}<span class="inv-tag inv-tag--gris">Retirado</span>
+          {% elif prod.stock_actual == 0 %}<span class="inv-tag inv-tag--bajo">Agotado</span>
+          {% elif prod.vencido %}<span class="inv-tag inv-tag--bajo" title="Quítalo con «Quitar» y el motivo «Vencimiento», o actualiza la fecha con «Añadir»">Vencido</span>
+          {% elif prod.necesita_reposicion %}<span class="inv-tag inv-tag--aviso">Reabastecer</span>
+          {% elif prod.dias_para_vencer is not None and prod.dias_para_vencer <= 30 %}<span class="inv-tag inv-tag--aviso">Vence pronto</span>
+          {% else %}<span class="inv-tag">OK</span>{% endif %}
+        </td>
+        <td class="inv-col-acciones">
+          <div class="inv-fila-acciones">
+            {% if ver_retirados %}
+              <form method="post" action="{% url 'inventario:reactivar' prod.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inv-mini inv-mini--anadir">Reactivar</button>
+              </form>
+            {% else %}
+              <a href="{% url 'inventario:reposicion' %}?producto={{ prod.pk }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}"
+                 class="inv-mini inv-mini--anadir" aria-label="Añadir unidades de {{ prod.nombre }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Añadir
+              </a>
+              <a href="{% url 'inventario:salida' %}?producto={{ prod.pk }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}"
+                 class="inv-mini inv-mini--quitar" aria-label="Quitar unidades de {{ prod.nombre }}"
+                 {% if prod.stock_actual == 0 %}aria-disabled="true" tabindex="-1" title="No hay unidades para quitar"{% endif %}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Quitar
+              </a>
+              <a href="{% url 'inventario:retirar' prod.pk %}{% if q %}?q={{ q|urlencode }}{% endif %}"
+                 class="inv-mini inv-mini--icono" title="Retirar el producto del inventario" aria-label="Retirar {{ prod.nombre }} del inventario">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="inv-vacio">
+        {% if q %}No hay productos que coincidan con «{{ q }}».
+        {% elif ver_retirados %}No hay productos retirados.
+        {% else %}No hay productos en el inventario.{% endif %}
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="inv-paginas">
+    {% if page_obj.has_previous %}
+      <a class="inv-btn" data-pagina href="{{ request.path }}?page={{ page_obj.previous_page_number }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if ver_retirados %}&amp;retirados=1{% endif %}">‹ Anterior</a>
+    {% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} productos</span>
+    {% if page_obj.has_next %}
+      <a class="inv-btn" data-pagina href="{{ request.path }}?page={{ page_obj.next_page_number }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if ver_retirados %}&amp;retirados=1{% endif %}">Siguiente ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

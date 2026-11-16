@@ -1,48 +1,67 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'inventario/_layout.html' %}
+{% block titulo %}Añadir unidades{% endblock %}
+{% block migas %}
+  <a href="{{ volver }}">Inventario</a>
+  <span class="app-topbar__sep">›</span>
+  <span class="app-topbar__current">Añadir unidades</span>
+{% endblock %}
 
-{% block title %}Registrar Reposición de Stock · Prados Pets{% endblock %}
-
-{% block body %}
-<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
-
-<div class="app-shell">
-  {% include "usuarios/_sidebar.html" %}
-
-  <div class="app-main">
-    <header class="app-topbar">
-      <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
-        <span class="app-topbar__sep">›</span>
-        <a href="{% url 'inventario:lista' %}">Inventario</a>
-        <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Entrada / Reposición</span>
-      </div>
-    </header>
-
-    <main class="app-content app-content--wide">
-      <div class="card" style="max-width: 600px; margin: 2rem auto; background: linear-gradient(170deg, #1C1530, #120e1c); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px;">
-        <h2 style="color: #fff; margin-bottom: 8px; font-weight: 700;">Registrar Reposición de Stock</h2>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">Ingresa las unidades recibidas para actualizar el inventario y generar el asiento de entrada en el Kardex.</p>
-
-        <form method="post" style="display: flex; flex-direction: column; gap: 16px;">
-          {% csrf_token %}
-          {% for field in form %}
-            <div>
-              <label style="color: #e2e8f0; font-weight: 600; display: block; margin-bottom: 6px;">{{ field.label }}</label>
-              {{ field }}
-              {% if field.help_text %}
-                <small style="color: #94a3b8; display: block; margin-top: 4px;">{{ field.help_text }}</small>
-              {% endif %}
-            </div>
-          {% endfor %}
-
-          <button type="submit" class="cal-btn cal-btn--consulta" style="margin-top: 12px; padding: 12px 24px; border-radius: 10px; color: white; font-weight: 600;">
-            Guardar Reposición
-          </button>
-        </form>
-      </div>
-    </main>
+{% block contenido %}
+<div class="inv-form-wrap">
+  <div class="inv-producto">
+    <span class="inv-producto__ico" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </span>
+    <div>
+      <h1>Añadir unidades{% if producto %} · {{ producto.nombre }}{% endif %}</h1>
+      <p>Registra lo que llegó (compra o reposición). Queda como entrada en el Kardex.</p>
+    </div>
   </div>
+
+  {% if producto %}
+  <div class="inv-cifras">
+    <div class="inv-cifra"><span>Hay ahora</span><b>{{ producto.stock_actual }}</b></div>
+    <div class="inv-cifra{% if producto.necesita_reposicion %} inv-cifra--alerta{% endif %}"><span>Stock mínimo</span><b>{{ producto.stock_minimo }}</b></div>
+    <div class="inv-cifra{% if producto.vencido %} inv-cifra--alerta{% endif %}"><span>Vence</span><b>{% if producto.fecha_vencimiento %}{{ producto.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}</b></div>
+  </div>
+  {% endif %}
+
+  <form method="post" class="inv-card" novalidate>
+    {% csrf_token %}
+    {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+    <div class="inv-card__head"><h2>Datos de la entrada</h2></div>
+    <div class="inv-card__body">
+      {% for e in form.non_field_errors %}<div class="inv-aviso inv-aviso--peligro">{{ e }}</div>{% endfor %}
+      <div class="inv-grid">
+        {% for field in form %}
+        <div class="inv-campo{% if field.name == 'producto' or field.name == 'observacion' %} inv-campo--full{% endif %}{% if field.errors %} has-error{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %} <span class="inv-ayuda">(opcional)</span>{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="inv-ayuda">{{ field.help_text }}</span>{% endif %}
+          {% for e in field.errors %}<span class="inv-error">{{ e }}</span>{% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="inv-card__pie">
+      <a href="{{ volver }}" class="inv-btn">Cancelar</a>
+      <button type="submit" class="inv-btn inv-btn--primario">Añadir al inventario</button>
+    </div>
+  </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Si se elige otro producto, la página se recarga con sus datos (cantidad y fecha) */
+(function () {
+  const sel = document.getElementById('id_producto');
+  if (sel) sel.addEventListener('change', function () {
+    if (!this.value) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('producto', this.value);
+    window.location.href = url.toString();
+  });
+}());
+</script>
 {% endblock %}

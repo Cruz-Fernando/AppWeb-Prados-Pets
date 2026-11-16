@@ -1,4 +1,5 @@
 {% extends "clinico/_layout.html" %}
+{% load static %}
 {% block titulo_pagina %}{{ r.numero }} · {{ mascota.nombre }}{% endblock %}
 {% block migas %}
   <a href="{% url 'clinico:seleccionar_mascota_historial' %}">Historia clínica</a>
@@ -9,6 +10,7 @@
 {% endblock %}
 
 {% block contenido %}
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
 <div class="t-{{ tipo.color|default:'gray' }}">
   <div class="cl-head">
     <div class="cl-head__text">
@@ -59,6 +61,28 @@
             </dl>
           {% endfor %}
         </div>
+      </section>
+      {% endif %}
+
+      {% if insumos_usados %}
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          Medicamentos e insumos descontados</h2></div>
+        <ul class="ins-lista">
+          {% for m in insumos_usados %}
+          <li>
+            <span>{{ m.producto.nombre }}
+              <small>{{ m.producto.codigo }}</small>
+            </span>
+            <span>
+              {% if m.devuelto %}<span class="cl-badge cl-badge--muted">Devuelto</span>{% endif %}
+              <span class="ins-lista__cant">× {{ m.cantidad }}</span>
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="ins-nota">{% if r.anulado %}Al anular el registro, lo descontado volvió al inventario.{% else %}Se descontó del inventario al guardar el registro. Si anulas el registro, vuelve al inventario.{% endif %} <a href="{% url 'inventario:kardex' %}">Ver Kardex</a></p>
       </section>
       {% endif %}
 

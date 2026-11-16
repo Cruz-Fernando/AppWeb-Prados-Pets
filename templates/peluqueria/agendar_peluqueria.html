@@ -4,6 +4,7 @@
 
 {% block body %}
 <link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
@@ -43,7 +44,7 @@
         <span class="ag-success__ico">{% include "agendamiento/_icono.html" with nombre="ok" size=22 %}</span>
         <div class="ag-success__text">
           <b>Cita agendada para {{ cita_creada.nombre_mascota }}</b>
-          <span>{{ cita_creada.get_servicio_display }} · {{ cita_creada.fecha_hora|date:"l j \d\e F, H:i" }}{% if cita_creada.groomer %} · {{ cita_creada.groomer.nombre_completo }}{% endif %}. El comprobante se está descargando.</span>
+          <span>{{ cita_creada.get_servicio_display }} · {{ cita_creada.fecha_hora|date:"l j \d\e F, H:i" }}{% if cita_creada.groomer %} · {{ cita_creada.groomer.nombre_completo }}{% endif %}. Comisión del groomer (40 %): {{ comision_formateada }}. El comprobante se está descargando.</span>
         </div>
         <a href="{{ descargar_url }}" class="btn btn--ghost">{% include "agendamiento/_icono.html" with nombre="descargar" size=16 %} Descargar de nuevo</a>
       </div>
@@ -83,7 +84,7 @@
           <h2 class="ag-step__title"><span class="ag-step__n">2</span> Servicio y groomer</h2>
           <div class="ag-field">
             <span class="ag-label">Tipo de servicio <span class="ag-req">*</span></span>
-            <div class="ag-choices ag-choices--3" role="radiogroup" aria-label="Tipo de servicio">
+            <div class="ag-choices ag-choices--3" role="radiogroup" aria-label="Baño o tipo de corte">
               {% for clave, nombre in servicios %}
               <label class="ag-choice">
                 <input type="radio" name="servicio" value="{{ clave }}" data-nombre="{{ nombre }}"{% if forloop.first %} checked{% endif %}>
@@ -96,6 +97,13 @@
               </label>
               {% endfor %}
             </div>
+          </div>
+
+          <!-- PB-17: lo que este servicio descuenta del inventario -->
+          <div class="ag-field ins-previa" id="insumos-previa" aria-live="polite">
+            <span class="ag-label">Se descontará del inventario</span>
+            <ul class="ins-previa__lista" id="insumos-previa-lista"></ul>
+            <p class="ag-hint" id="insumos-previa-vacio">Este servicio no tiene insumos configurados. Configúralos en <a href="{% url 'inventario:insumos_peluqueria' %}">Inventario › Insumos por servicio</a>.</p>
           </div>
 
           <div class="ag-field">
@@ -149,6 +157,12 @@
         <!-- 4. Precio y notas -->
         <section class="ag-step" id="paso-precio">
           <h2 class="ag-step__title"><span class="ag-step__n">4</span> Precio y observaciones</h2>
+          <div class="ag-field">
+            <label class="ag-label" for="id_condicion_pelaje">Condición del pelaje <span class="ag-req">*</span></label>
+            <input type="text" name="condicion_pelaje" id="id_condicion_pelaje" required
+                   maxlength="100" class="ag-input" placeholder="Ej: normal, enredado, con nudos…">
+            <p class="ag-error" id="error-pelaje" hidden>Describe la condición del pelaje de la mascota.</p>
+          </div>
           <div class="ag-field">
             <label class="ag-label" for="id_precio">Precio (COP) <span class="ag-req">*</span></label>
             <input type="text" name="precio" id="id_precio" required class="ag-input"
@@ -213,6 +227,7 @@
 </div>
 
 {% if borrador %}{{ borrador|json_script:"borrador-datos" }}{% endif %}
+{{ insumos_previa|json_script:"insumos-previa-datos" }}
 <script>
 (function(){
   const form      = document.getElementById('form-peluqueria');
@@ -222,11 +237,13 @@
   const boxInfo   = document.getElementById('info-mascota-box');
   const errMasc   = document.getElementById('error-mascota');
   const errPrecio = document.getElementById('error-precio');
+  const errPelaje = document.getElementById('error-pelaje');
 
   const inGroomer   = document.getElementById('id_groomer_id');
   const inFechaHora = document.getElementById('id_fecha_hora');
   const inDur       = document.getElementById('id_duracion');
   const inPrecio    = document.getElementById('id_precio');
+  const inPelaje    = document.getElementById('id_condicion_pelaje');
   const inObs       = document.getElementById('id_observaciones');
   const radios      = Array.from(document.querySelectorAll('input[name="servicio"]'));
   const botones     = Array.from(document.querySelectorAll('button[form="form-peluqueria"]'));
@@ -249,6 +266,28 @@
   const DURACION_MIN = { pequeno: 60, mediano: 90, grande: 120 };
   const PRECIO_MAX_DIGITOS = 8;   // 99.999.999 COP, igual que el tope del servidor
   let timer = null, items = [], activo = -1;
+
+  // ---------- PB-17: vista previa de los insumos que se descuentan ----------
+  const INSUMOS = JSON.parse(document.getElementById('insumos-previa-datos').textContent || '{}');
+  const listaIns = document.getElementById('insumos-previa-lista');
+  const vacioIns = document.getElementById('insumos-previa-vacio');
+  let tamanoMascota = '';
+  function pintarInsumos(){
+    const marcado = radios.find(r => r.checked);
+    const reglas = INSUMOS[marcado ? marcado.value : ''] || {};
+    const porProducto = {};
+    (reglas[''] || []).forEach(i => { porProducto[i.producto] = i; });
+    if (tamanoMascota) (reglas[tamanoMascota] || []).forEach(i => { porProducto[i.producto] = i; });
+    const lista = Object.values(porProducto);
+    listaIns.innerHTML = lista.map(i => {
+      const falta = i.cantidad > i.disponible;
+      return `<li class="${falta ? 'is-falta' : ''}"><span>${esc(i.cantidad)} × ${esc(i.nombre)}</span>`
+           + `<span class="ins-tag${falta ? ' ins-tag--agotado' : (i.disponible - i.cantidad <= 2 ? ' ins-tag--bajo' : '')}">`
+           + `${falta ? 'No alcanza · ' : ''}${esc(i.disponible)} disp.</span></li>`;
+    }).join('');
+    listaIns.hidden = !lista.length;
+    vacioIns.hidden = !!lista.length;
+  }
 
   function esc(t) {
     return String(t == null ? '' : t).replace(/[&<>"']/g, c => (
@@ -330,6 +369,8 @@
     inDur.value = String(mins);
     actualizarDuracion();
 
+    tamanoMascota = (m.tamano || 'pequeno').toUpperCase();
+    pintarInsumos();
     const tam = m.tamano_display || m.tamano || 'Pequeño';
     document.getElementById('lbl_avatar').textContent = inicial(m.nombre);
     document.getElementById('lbl_pet_name').textContent = m.nombre;
@@ -352,12 +393,14 @@
     sumRazaTam.textContent = 'Especie · Raza · Tamaño';
     inDur.value = '';
     actualizarDuracion();
+    tamanoMascota = '';
+    pintarInsumos();
     actualizarEstado();
     input.focus();
   });
 
   // ---------- Servicio, groomer, fecha y duración ----------
-  radios.forEach(r => r.addEventListener('change', function(){ setValor(sumServ, this.dataset.nombre, false); }));
+  radios.forEach(r => r.addEventListener('change', function(){ setValor(sumServ, this.dataset.nombre, false); pintarInsumos(); }));
 
   inGroomer.addEventListener('change', function(){
     setValor(sumGroomer, this.value ? this.options[this.selectedIndex].text : 'Por asignar', !this.value);
@@ -437,6 +480,7 @@
     if (!hiddenId.value)       faltan.push('mascota');
     if (!inGroomer.value)      faltan.push('groomer');
     if (!inFechaHora.value)    faltan.push('fecha y hora');
+    if (!inPelaje.value.trim()) faltan.push('condición del pelaje');
     if (!(valorPrecio() > 0))  faltan.push('precio');
     const lista = !faltan.length;
     sumEstado.classList.toggle('pp-summary__status--lista', lista);
@@ -458,6 +502,10 @@
       document.getElementById('paso-mascota').scrollIntoView({ behavior: 'smooth', block: 'center' });
       input.focus(); return;
     }
+    if (!inPelaje.value.trim()) {
+      e.preventDefault(); errPelaje.hidden = false; inPelaje.focus(); return;
+    }
+    errPelaje.hidden = true;
     if (!(valorPrecio() > 0)) {
       e.preventDefault(); errPrecio.hidden = false; inPrecio.focus(); return;
     }
@@ -476,11 +524,13 @@
       const r = radios.find(x => x.value === b.servicio);
       if (r) { r.checked = true; r.dispatchEvent(new Event('change')); }
     }
+    if (b.condicion_pelaje) { inPelaje.value = b.condicion_pelaje; }
     if (b.groomer_id) { inGroomer.value = b.groomer_id; inGroomer.dispatchEvent(new Event('change')); }
     if (b.fecha_hora) { inFechaHora.value = b.fecha_hora; inFechaHora.dispatchEvent(new Event('change')); }
     if (b.precio) { inPrecio.value = String(b.precio); formatearPrecio(); }
     if (b.observaciones) { inObs.value = b.observaciones; }
   }
+  pintarInsumos();
   actualizarEstado();
 
   // Tras agendar con éxito: descarga automática del comprobante PDF

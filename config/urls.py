@@ -16,6 +16,7 @@ urlpatterns = [
     path('agendamiento/', include('apps.agendamiento.urls')),
     path('inventario/', include('apps.inventario.urls')),
     path('clinico/', include('apps.clinico.urls')),
+    path('facturacion/', include('apps.facturacion.urls')),
 ]
 
 # En desarrollo Django sirve los adjuntos subidos (en producción no hace nada).

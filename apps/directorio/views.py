@@ -265,6 +265,7 @@ def buscar_directorio(request):
                     'telefono': d.telefono,
                     'direccion': d.direccion,
                     'url_edicion': reverse('editar_dueno', args=[d.id_dueno]),
+                    'numero_visitas': d.numero_visitas,
                 }
                 for d in duenos
             ],

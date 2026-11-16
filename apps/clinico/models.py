@@ -322,6 +322,12 @@ class RegistroClinico(models.Model):
     def fue_editado(self):
         return self.actualizado_por_id is not None
 
+    @property
+    def insumos_usados(self):
+        """Medicamentos e insumos que se descontaron del inventario con este registro (PB-17)."""
+        return (self.movimientos_inventario.filter(tipo='SALIDA_CLINICA')
+                .select_related('producto').order_by('pk'))
+
 
 class TrazaClinica(models.Model):
     """Bitácora inmutable: quién hizo qué, cuándo y desde dónde."""

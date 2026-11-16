@@ -158,16 +158,17 @@
         </div>
 
         <!-- Facturación -->
-        <div class="app-module-card app-module-card--disabled">
+        <div class="app-module-card">
           <div class="app-module-card__icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
           <div class="app-module-card__body">
             <div class="app-module-card__title">Facturación</div>
-            <div class="app-module-card__desc">Presupuestos, cobros y reportes de facturación.</div>
+            <div class="app-module-card__desc">Ganancias y comisión del 40 % de cada groomer por día, semana o mes.</div>
           </div>
           <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
+            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
+            <a href="{% url 'facturacion:panel' %}" class="btn btn--ghost btn--sm">Ir a Facturación →</a>
           </div>
         </div>
 

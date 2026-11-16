@@ -31,7 +31,15 @@
         {% for d in duenos %}
         <tr>
           <td data-label="Nombre">
-            <span class="bq-name"><span class="bq-avatar">{{ d.nombre_completo|slice:":1"|upper }}</span>{{ d.nombre_completo }}</span>
+            <span class="bq-name">
+              <span class="bq-avatar">{{ d.nombre_completo|slice:":1"|upper }}</span>
+              {{ d.nombre_completo }}
+              {% if d.numero_visitas >= 8 %}
+                <span style="padding: 2px 6px; background: #eab308; color: #fff; font-size: 0.7rem; border-radius: 12px; font-weight: bold; margin-left: 6px;">VIP</span>
+              {% elif d.numero_visitas >= 4 %}
+                <span style="padding: 2px 6px; background: #10b981; color: #fff; font-size: 0.7rem; border-radius: 12px; font-weight: bold; margin-left: 6px;">Frecuente</span>
+              {% endif %}
+            </span>
           </td>
           <td data-label="Teléfono">{{ d.telefono|default:"—" }}</td>
           <td data-label="Dirección" class="bq-sub">{{ d.direccion|default:"—" }}</td>
