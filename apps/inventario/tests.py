@@ -114,14 +114,14 @@ class CargaMasivaCatalogoTests(TestCase):
             ("JUGUETE", "X-1", "Pelota", "", 5000, 1, "", "", "", "", "", None, None),
             ("PRODUCTO", "", "Sin código", "", 5000, 1, "", "", "", "", "", None, None),
             ("PRODUCTO", "PROD-2", "Precio malo", "", "$abc", 1, "", "", "", "", "", None, None),
-            ("PRODUCTO", "PROD-3", "Cantidad mala", "", 5000, 1, "", "", "", "", "", None, "diez"),
+            ("PRODUCTO", "PROD-3", "Lote malo", "", 5000, 1, "", "", "", "", "L-1", None, "diez"),
         ))
 
         self.assertEqual(response.context["exitos"], 1)
         filas_con_error = sorted(e["fila"] for e in response.context["errores"])
         self.assertEqual(filas_con_error, [3, 4, 5, 6])
         self.assertEqual(list(Producto.objects.values_list("codigo", flat=True)), ["PROD-OK"])
-        # La fila 6 tenía una cantidad inválida: no debe quedar el producto a medias.
+        # La fila 6 falló al crear el lote: no debe quedar el producto a medias.
         self.assertFalse(Producto.objects.filter(codigo="PROD-3").exists())
 
     def test_codigo_repetido_se_rechaza_sin_duplicar(self):

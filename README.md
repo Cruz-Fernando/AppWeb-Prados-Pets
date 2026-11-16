@@ -53,11 +53,11 @@ Proyecto de la asignatura *Administración de Proyectos Informáticos*, entregab
 | Indicador | Valor |
 |---|---|
 | Ítems del backlog | 21 (PB-01 a PB-21) |
-| ✅ Terminados | 11 |
+| ✅ Terminados | 10 |
 | ⚠️ Terminados con defecto abierto | 4 (PB-01, PB-08, PB-11, PB-14) |
-| 🔄 En curso / parciales | 4 (PB-15, PB-17, PB-18, PB-21) |
+| 🔄 En curso / parciales | 5 (PB-15 a PB-18, PB-21) |
 | ⏳ Sin iniciar | 2 (PB-19, PB-20) |
-| Horas del backlog terminadas | 520 h de 1.134 h (**46 %**); 707 h (**62 %**) si se cuentan los ítems con defecto abierto |
+| Horas del backlog terminadas | 453 h de 1.134 h (**40 %**); 640 h (**56 %**) si se cuentan los ítems con defecto abierto |
 | Pruebas automatizadas | 93 pruebas: **78 pasan, 15 fallan** (ver [Defectos](#-defectos-y-deuda-técnica)) |
 
 ```
@@ -81,7 +81,7 @@ Sprint 6  █░░░░░░░░░  Por iniciar  RF13, RF14, RF11
 | **Historia clínica** | `/clinico/historial/` | 8 tipos de registro (consulta general, vacunación, desparasitación, sedación, cirugía, eutanasia, control posoperatorio y otro), con constantes vitales, examen por sistemas, fórmula médica, adjuntos, edición/anulación con trazabilidad y PDF. |
 | **Hospitalización** | `/clinico/hospitalizacion/` | Ingreso de pacientes, evolución diaria, alta con condición de salida y PDF. Se origina en la atención médica: no se agenda. |
 | **Recordatorios** | `/clinico/recordatorios/` | Próximas vacunas y baños por mascota según el intervalo configurado. |
-| **Peluquería** | `/peluqueria/` | Registro de baño y tipos de corte con mascota, raza, tamaño, condición del pelaje, groomer, precio ingresado manualmente y comisión del 40 %; validación de cruces y comprobante PDF. |
+| **Peluquería** | `/peluqueria/` | Agendamiento con groomer, duración y precio, validación de cruces por groomer y comprobante PDF. |
 | **Inventario** | `/inventario/` | Productos, medicamentos y servicios; lotes con vencimiento; reposición; kardex de movimientos; alerta de bajo stock; carga masiva y exportación a Excel. |
 | **Facturación** | — | ⏳ Pendiente (Sprint 6). |
 | **Reportes** | — | ⏳ Pendiente (Sprint 6). |
