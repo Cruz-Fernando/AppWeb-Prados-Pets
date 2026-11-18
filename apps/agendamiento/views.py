@@ -13,6 +13,7 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from apps.directorio.models import Mascota
+from apps.peluqueria import confirmacion
 from apps.peluqueria.models import CitaPeluqueria
 from apps.usuarios.permissions import rol_requerido
 
@@ -192,9 +193,14 @@ def calendario(request):
 
     desde, hasta = fechas[0], fechas[-1]
     citas = Cita.objects.select_related("mascota", "veterinario").filter(fecha__range=(desde, hasta))
-    citas_pelu = CitaPeluqueria.objects.filter(fecha_hora__date__range=(desde, hasta))
+    citas_pelu = (CitaPeluqueria.objects.select_related("mascota__id_dueno")
+                  .filter(fecha_hora__date__range=(desde, hasta)))
 
-    eventos = cal.eventos_desde_citas(citas) + cal.eventos_desde_peluqueria(citas_pelu)
+    def enlaces_cliente(cita):
+        return (confirmacion.enlace_whatsapp_cita(request, cita),
+                confirmacion.url_publica(request, cita))
+
+    eventos = cal.eventos_desde_citas(citas) + cal.eventos_desde_peluqueria(citas_pelu, enlaces_cliente)
     hora_inicio, hora_fin = cal.rango_horas(eventos)
     dias = cal.construir_dias(eventos, fechas, hora_inicio, hora_fin)
 

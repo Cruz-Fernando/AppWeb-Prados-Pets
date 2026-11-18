@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
@@ -16,8 +17,10 @@ from apps.agendamiento.recomendaciones import RECOMENDACIONES_PELUQUERIA
 from apps.directorio.models import Mascota
 from apps.inventario.services import StockInsuficiente, avisos_stock_bajo
 from apps.usuarios.permissions import rol_requerido
+from config.marca import contexto_marca
 from config.pdf import render_pdf
 
+from . import confirmacion
 from .insumos import descontar_insumos_cita, vista_previa
 from .models import CitaPeluqueria
 
@@ -155,11 +158,16 @@ def panel_peluqueria(request):
     # el navegador descarga el comprobante a partir de este enlace.
     descargar_url = None
     cita_creada = None
+    whatsapp_cliente = pdf_cliente_url = ''
     descargar = request.GET.get('descargar', '')
     if descargar.isdigit():
-        cita_creada = CitaPeluqueria.objects.select_related('groomer').filter(pk=int(descargar)).first()
+        cita_creada = (CitaPeluqueria.objects.select_related('groomer', 'mascota__id_dueno')
+                       .filter(pk=int(descargar)).first())
         if cita_creada:
             descargar_url = reverse('peluqueria:comprobante_pdf', args=[cita_creada.pk])
+            whatsapp_cliente = confirmacion.enlace_whatsapp_cita(
+                request, cita_creada, _formatear_precio(cita_creada.precio))
+            pdf_cliente_url = confirmacion.url_publica(request, cita_creada)
 
     return render(request, 'peluqueria/agendar_peluqueria.html', {
         'groomers': groomers,
@@ -168,6 +176,8 @@ def panel_peluqueria(request):
         'intervalos_bano': INTERVALOS_BANO,
         'descargar_url': descargar_url,
         'cita_creada': cita_creada,
+        'whatsapp_cliente': whatsapp_cliente,
+        'pdf_cliente_url': pdf_cliente_url,
         'comision_formateada': (
             _formatear_precio(cita_creada.comision_groomer) if cita_creada else None
         ),
@@ -344,3 +354,48 @@ def comprobante_pdf(request, pk):
         'precio_formateado': _formatear_precio(cita.precio) if cita.precio else 'Valor no especificado',
         'recomendaciones': RECOMENDACIONES_PELUQUERIA,
     }, f'Peluqueria_{cita.pk:05d}_{slugify(cita.nombre_mascota)}')
+
+def confirmacion_cliente(request, token):
+    """
+    PDF de confirmación para el dueño de la mascota. Público: se entra con el
+    enlace firmado que se manda por WhatsApp (no pide iniciar sesión).
+    """
+    try:
+        pk = confirmacion.cita_desde_token(token)
+    except signing.BadSignature:
+        return render(request, 'peluqueria/confirmacion_no_disponible.html',
+                      {'motivo': 'invalido', **contexto_marca()}, status=404)
+
+    cita = (CitaPeluqueria.objects.select_related('groomer', 'mascota__id_dueno')
+            .filter(pk=pk).first())
+    if cita is None or cita.estado == 'Cancelada':
+        return render(request, 'peluqueria/confirmacion_no_disponible.html',
+                      {'motivo': 'cancelada' if cita else 'invalido', 'cita': cita, **contexto_marca()},
+                      status=410 if cita else 404)
+    if confirmacion.enlace_vencido(cita):
+        return render(request, 'peluqueria/confirmacion_no_disponible.html',
+                      {'motivo': 'vencido', 'cita': cita, **contexto_marca()}, status=410)
+
+    duracion = cita.duracion_estimada_min or 60
+    inicio = timezone.localtime(cita.fecha_hora)
+    nombre_mascota = cita.mascota.nombre if cita.mascota else cita.nombre_mascota
+    respuesta = render_pdf(request, 'peluqueria/pdf_cliente.html', {
+        'cita': cita,
+        'mascota': cita.mascota,
+        'nombre_mascota': nombre_mascota,
+        'dueno_nombre': confirmacion.nombre_corto(
+            cita.mascota.id_dueno.nombre_completo if cita.mascota else ''),
+        'groomer_nombre': confirmacion.nombre_corto(cita.groomer.nombre_completo) if cita.groomer else '',
+        'inicio': inicio,
+        'llegada': inicio - timedelta(minutes=10),
+        'entrega': inicio + timedelta(minutes=duracion),
+        'duracion_texto': _etiqueta_duracion(duracion),
+        'precio_formateado': _formatear_precio(cita.precio) if cita.precio else 'Por confirmar',
+        'codigo_reserva': confirmacion.codigo_reserva(cita),
+        'proximo_bano': confirmacion.proximo_bano(cita),
+        'antes_de_venir': confirmacion.ANTES_DE_VENIR,
+    }, f'Confirmacion_{confirmacion.codigo_reserva(cita)}_{slugify(nombre_mascota)}', descargar=False)
+    # El enlace es privado: que no lo guarden cachés compartidas ni buscadores.
+    respuesta['Cache-Control'] = 'private, no-store'
+    respuesta['X-Robots-Tag'] = 'noindex, nofollow'
+    return respuesta

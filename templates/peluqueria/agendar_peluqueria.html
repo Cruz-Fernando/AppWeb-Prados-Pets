@@ -3,7 +3,7 @@
 {% block title %}Agendar Peluquería · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -47,6 +47,26 @@
           <span>{{ cita_creada.get_servicio_display }} · {{ cita_creada.fecha_hora|date:"l j \d\e F, H:i" }}{% if cita_creada.groomer %} · {{ cita_creada.groomer.nombre_completo }}{% endif %}. Comisión del groomer (40 %): {{ comision_formateada }}. El comprobante se está descargando.</span>
         </div>
         <a href="{{ descargar_url }}" class="btn btn--ghost">{% include "agendamiento/_icono.html" with nombre="descargar" size=16 %} Descargar de nuevo</a>
+      </div>
+
+      <!-- Confirmación para el cliente por WhatsApp -->
+      <div class="ag-enviar" id="enviar-cliente">
+        <div class="ag-enviar__texto">
+          <b>Envíale la confirmación a {{ cita_creada.mascota.id_dueno.nombre_completo|default:"el propietario" }}</b>
+          <span>Le llega un mensaje con la fecha, el costo total y un enlace a su PDF con la marca de Prados Pets.</span>
+        </div>
+        <div class="ag-enviar__acciones">
+          {% if whatsapp_cliente %}
+          <a href="{{ whatsapp_cliente }}" target="_blank" rel="noopener" class="ag-enviar__wa" id="btn-enviar-whatsapp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+            Enviar por WhatsApp
+          </a>
+          {% else %}
+          <span class="ag-hint">El propietario no tiene un teléfono válido registrado. Puedes copiar el enlace y enviarlo por otro medio.</span>
+          {% endif %}
+          <a href="{{ pdf_cliente_url }}" target="_blank" rel="noopener" class="btn btn--ghost">Ver PDF del cliente</a>
+          <button type="button" class="btn btn--ghost" id="btn-copiar-enlace" data-enlace="{{ pdf_cliente_url }}">Copiar enlace</button>
+        </div>
       </div>
       {% endif %}
 
@@ -534,6 +554,18 @@
     botones.forEach(b => { b.disabled = true; });
   });
   window.addEventListener('pageshow', () => botones.forEach(b => { b.disabled = false; }));
+
+  // ---------- Copiar el enlace de la confirmación del cliente ----------
+  const btnCopiar = document.getElementById('btn-copiar-enlace');
+  if (btnCopiar) btnCopiar.addEventListener('click', () => {
+    const texto = btnCopiar.dataset.enlace;
+    const listo = () => { btnCopiar.textContent = '¡Enlace copiado!'; setTimeout(() => { btnCopiar.textContent = 'Copiar enlace'; }, 2500); };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(texto).then(listo, () => window.prompt('Copia el enlace:', texto));
+    } else {
+      window.prompt('Copia el enlace:', texto);
+    }
+  });
 
   // ---------- Restaurar lo escrito si el servidor devolvió un error ----------
   const borradorEl = document.getElementById('borrador-datos');

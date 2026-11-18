@@ -9,4 +9,6 @@ urlpatterns = [
     path('buscar-mascota/', views.buscar_mascota, name='buscar_mascota'),
     path('guardar-cita/', views.guardar_cita, name='guardar_cita'),
     path('comprobante/<int:pk>/', views.comprobante_pdf, name='comprobante_pdf'),
+    # Confirmación para el cliente: enlace firmado que se envía por WhatsApp (sin iniciar sesión)
+    path('confirmacion/<str:token>/', views.confirmacion_cliente, name='confirmacion_cliente'),
 ]

@@ -586,3 +586,14 @@
 .cal-modal .cal-cancel__confirm:active {
   transform: scale(0.97) !important;
 }
+/* Peluquería: reenviar la confirmación al cliente (detalle de la cita) */
+.cal-modal .cal-enviar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.cal-modal .cal-enviar[hidden], .cal-modal .cal-enviar a[hidden] { display: none; }
+.cal-modal .cal-enviar a {
+  display: inline-flex; align-items: center; justify-content: center; flex: 1 1 180px;
+  padding: 10px 14px; font-size: 13.5px; font-weight: 600; text-decoration: none; border-radius: 10px;
+}
+.cal-modal .cal-enviar__wa { color: #fff; background: #16a34a; }
+.cal-modal .cal-enviar__wa:hover { background: #15803d; }
+.cal-modal .cal-enviar__pdf { color: var(--text, #EDE9F8); border: 1px solid rgba(167, 139, 250, .35); }
+.cal-modal .cal-enviar__pdf:hover { background: rgba(167, 139, 250, .12); }

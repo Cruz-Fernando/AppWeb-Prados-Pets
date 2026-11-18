@@ -39,6 +39,9 @@ class Evento:
     responsable: str = ""     # "Dra. X" (consulta) o "Raza: Y" (peluquería)
     id_cita: int = None       # solo citas de consulta (RF05: cancelación)
     motivo_cancelacion: str = ""
+    # Peluquería: reenviar la confirmación al cliente
+    whatsapp_url: str = ""
+    pdf_cliente_url: str = ""
     # Calculados al distribuir en la grilla
     top: float = 0.0
     alto: float = 0.0
@@ -137,8 +140,11 @@ def eventos_desde_citas(citas):
     return eventos
 
 
-def eventos_desde_peluqueria(citas):
-    """Convierte citas de peluquería (peluqueria.CitaPeluqueria) en eventos."""
+def eventos_desde_peluqueria(citas, enlaces=None):
+    """
+    Convierte citas de peluquería (peluqueria.CitaPeluqueria) en eventos.
+    `enlaces(cita)` → (whatsapp_url, pdf_cliente_url) para reenviar la confirmación.
+    """
     eventos = []
     for c in citas:
         if not c.fecha_hora:
@@ -156,6 +162,8 @@ def eventos_desde_peluqueria(citas):
             servicio=c.get_servicio_display(),
             categoria=CATEGORIA_PELUQUERIA,
             responsable=f"Raza: {c.raza}",
+            **(dict(zip(("whatsapp_url", "pdf_cliente_url"), enlaces(c)))
+               if enlaces and c.estado != "Cancelada" and c.mascota_id else {}),
         ))
     return eventos
 

@@ -13,15 +13,13 @@ después, mientras nadie lo marque como avisado (modelo AvisoRecordatorio). Así
 no se pierde si ese día nadie entró al sistema.
 """
 
-import re
 from datetime import timedelta
-from urllib.parse import quote
 
-from django.conf import settings
 from django.utils import timezone
 
 from apps.agendamiento.models import Cita
 from apps.peluqueria.models import CitaPeluqueria
+from config.whatsapp import enlace_whatsapp
 
 from .models import AvisoRecordatorio
 
@@ -73,17 +71,6 @@ def describir_cuando(dias):
     if dias == -1:
         return "Ayer"
     return f"En {dias} días" if dias > 0 else f"Hace {-dias} días"
-
-
-def enlace_whatsapp(telefono, mensaje):
-    """Enlace wa.me con el mensaje listo. '' si el teléfono no sirve."""
-    digitos = re.sub(r"\D", "", telefono or "")
-    if len(digitos) < 7:
-        return ""
-    # Celular local (10 dígitos) → se antepone el indicativo del país.
-    if len(digitos) == 10:
-        digitos = getattr(settings, "WHATSAPP_INDICATIVO", "57") + digitos
-    return f"https://wa.me/{digitos}?text={quote(mensaje)}"
 
 
 def _mensaje(tipo, mascota, fecha):

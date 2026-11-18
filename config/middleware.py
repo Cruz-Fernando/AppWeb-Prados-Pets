@@ -3,7 +3,8 @@ Middleware de seguridad de AppWeb Prados Pets.
 
 LoginRequeridoMiddleware obliga a iniciar sesión para acceder a CUALQUIER
 ruta del sitio (presente o futura), salvo la pantalla de login, los archivos
-estáticos y el admin de Django (que tiene su propio login). Así nadie puede
+estáticos, el admin de Django (que tiene su propio login) y la confirmación de
+peluquería para el cliente (protegida con un enlace firmado). Así nadie puede
 saltarse la seguridad escribiendo una URL a mano, aunque a una vista se le
 olvide el decorador @login_required.
 
@@ -42,6 +43,9 @@ class LoginRequeridoMiddleware:
             login_url,
             "/admin/",  # el admin de Django gestiona su propio login
             "/" + settings.STATIC_URL.lstrip("/"),
+            # PDF que recibe el dueño por WhatsApp. La vista valida la firma del
+            # enlace, así que sin un enlace válido no se ve ninguna cita.
+            "/peluqueria/confirmacion/",
         )
         if ruta.startswith(rutas_libres):
             return self.get_response(request)
