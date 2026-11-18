@@ -60,6 +60,10 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Quitar
               </a>
+              <a href="{% url 'inventario:kardex' %}?producto={{ prod.pk }}"
+                 class="inv-mini inv-mini--icono inv-mini--historial" title="Ver movimientos de este producto" aria-label="Ver movimientos de {{ prod.nombre }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+              </a>
               <a href="{% url 'inventario:retirar' prod.pk %}{% if q %}?q={{ q|urlencode }}{% endif %}"
                  class="inv-mini inv-mini--icono" title="Retirar el producto del inventario" aria-label="Retirar {{ prod.nombre }} del inventario">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -71,6 +75,7 @@
       {% empty %}
       <tr><td colspan="8" class="inv-vacio">
         {% if q %}No hay productos que coincidan con «{{ q }}».
+        {% elif estado %}No hay productos en «{{ estado_texto }}». ¡Bien!
         {% elif ver_retirados %}No hay productos retirados.
         {% else %}No hay productos en el inventario.{% endif %}
       </td></tr>
@@ -81,11 +86,11 @@
   {% if is_paginated %}
   <div class="inv-paginas">
     {% if page_obj.has_previous %}
-      <a class="inv-btn" data-pagina href="{{ request.path }}?page={{ page_obj.previous_page_number }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if ver_retirados %}&amp;retirados=1{% endif %}">‹ Anterior</a>
+      <a class="inv-btn" data-pagina href="{{ request.path }}?page={{ page_obj.previous_page_number }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if ver_retirados %}&amp;retirados=1{% endif %}{% if estado %}&amp;estado={{ estado }}{% endif %}">‹ Anterior</a>
     {% endif %}
     <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} productos</span>
     {% if page_obj.has_next %}
-      <a class="inv-btn" data-pagina href="{{ request.path }}?page={{ page_obj.next_page_number }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if ver_retirados %}&amp;retirados=1{% endif %}">Siguiente ›</a>
+      <a class="inv-btn" data-pagina href="{{ request.path }}?page={{ page_obj.next_page_number }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if ver_retirados %}&amp;retirados=1{% endif %}{% if estado %}&amp;estado={{ estado }}{% endif %}">Siguiente ›</a>
     {% endif %}
   </div>
   {% endif %}

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -37,6 +37,31 @@ ROLES_INVENTARIO = ('administrador', 'veterinario', 'auxiliar')
 solo_inventario = method_decorator(rol_requerido(*ROLES_INVENTARIO), name='dispatch')
 
 
+# Filtros rápidos de la lista (los usan los indicadores y la campana).
+# Cada uno: (texto, condición sobre productos activos).
+def _filtros_estado():
+    hoy = timezone.localdate()
+    con_unidades = models.Q(stock_actual__gt=0)
+    return {
+        # El indicador «stock mínimo o menos» (incluye los agotados)
+        'reabastecer': ('Por reabastecer', models.Q(stock_actual__lte=models.F('stock_minimo'))),
+        'agotados': ('Agotados', models.Q(stock_actual=0)),
+        'bajo': ('En stock mínimo', con_unidades & models.Q(stock_actual__lte=models.F('stock_minimo'))),
+        'vencidos': ('Vencidos con unidades', con_unidades & models.Q(fecha_vencimiento__lt=hoy)),
+        'por_vencer': ('Vencen en 30 días', con_unidades & models.Q(
+            fecha_vencimiento__gte=hoy, fecha_vencimiento__lte=hoy + timedelta(days=30))),
+    }
+
+
+class PestanasInventarioMixin:
+    """Datos que comparten las pestañas del inventario (Productos, Retirados, Kardex)."""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault('total_retirados', Producto.objects.filter(activo=False).count())
+        return context
+
+
 @solo_inventario
 class InventarioListView(LoginRequiredMixin, ListView):
     model = Producto
@@ -46,6 +71,10 @@ class InventarioListView(LoginRequiredMixin, ListView):
 
     def ver_retirados(self):
         return self.request.GET.get('retirados') == '1'
+
+    def estado(self):
+        estado = self.request.GET.get('estado') or ''
+        return estado if estado in _filtros_estado() else ''
 
     def get_template_names(self):
         # La búsqueda en vivo solo pide la tabla, no la página entera
@@ -59,7 +88,10 @@ class InventarioListView(LoginRequiredMixin, ListView):
                     .order_by('nombre', 'pk'))
         q = (self.request.GET.get('q') or '').strip()
         categoria_id = self.request.GET.get('categoria')
+        estado = self.estado()
 
+        if estado and not self.ver_retirados():
+            queryset = queryset.filter(_filtros_estado()[estado][1])
         if q:
             queryset = queryset.filter(
                 models.Q(nombre__icontains=q) |
@@ -96,6 +128,8 @@ class InventarioListView(LoginRequiredMixin, ListView):
         context['productos_vencidos'] = resumen['vencidos']
         context['ver_retirados'] = self.ver_retirados()
         context['q'] = (self.request.GET.get('q') or '').strip()
+        context['estado'] = self.estado()
+        context['estado_texto'] = _filtros_estado()[context['estado']][0] if context['estado'] else ''
         return context
 
 
@@ -375,12 +409,138 @@ def descargar_plantilla_excel(request):
     return response
 
 
+# Tipos de movimiento agrupados para el filtro del Kardex.
+GRUPOS_MOVIMIENTO = {
+    'entradas': ('Todas las entradas', models.Q(tipo__startswith='ENTRADA')),
+    'salidas': ('Todas las salidas', ~models.Q(tipo__startswith='ENTRADA')),
+}
+
+
 @solo_inventario
-class KardexListView(LoginRequiredMixin, ListView):
+class KardexListView(LoginRequiredMixin, PestanasInventarioMixin, ListView):
+    """
+    Historial de movimientos (Kardex), como una pestaña más del inventario.
+    Filtros: producto (texto o ?producto=id), tipo, rango de fechas.
+    ?parcial=1 devuelve solo la tabla (búsqueda en vivo); ?exportar=1, el Excel.
+    """
     model = MovimientoInventario
     template_name = 'inventario/kardex.html'
     context_object_name = 'movimientos'
-    paginate_by = 20
+    paginate_by = 25
+
+    def get_template_names(self):
+        if self.request.GET.get('parcial') == '1':
+            return ['inventario/_tabla_kardex.html']
+        return [self.template_name]
+
+    def _fecha(self, nombre):
+        try:
+            return datetime.strptime(self.request.GET.get(nombre) or '', '%Y-%m-%d').date()
+        except ValueError:
+            return None
+
+    def filtros(self):
+        g = self.request.GET
+        producto_id = (g.get('producto') or '').strip()
+        tipo = g.get('tipo') or ''
+        validos = set(GRUPOS_MOVIMIENTO) | {c for c, _ in MovimientoInventario.TIPO_MOVIMIENTO}
+        return {
+            'q': (g.get('q') or '').strip(),
+            'producto': producto_id if producto_id.isdigit() else '',
+            'tipo': tipo if tipo in validos else '',
+            'desde': self._fecha('desde'),
+            'hasta': self._fecha('hasta'),
+        }
+
+    def get_queryset(self):
+        f = self.filtros()
+        qs = (MovimientoInventario.objects
+              .select_related('producto', 'usuario')
+              .order_by('-fecha', '-pk'))
+        if f['producto']:
+            qs = qs.filter(producto_id=f['producto'])
+        if f['q']:
+            qs = qs.filter(models.Q(producto__nombre__icontains=f['q'])
+                           | models.Q(producto__codigo__icontains=f['q'])
+                           | models.Q(observacion__icontains=f['q']))
+        if f['tipo'] in GRUPOS_MOVIMIENTO:
+            qs = qs.filter(GRUPOS_MOVIMIENTO[f['tipo']][1])
+        elif f['tipo']:
+            qs = qs.filter(tipo=f['tipo'])
+        if f['desde']:
+            qs = qs.filter(fecha__date__gte=f['desde'])
+        if f['hasta']:
+            qs = qs.filter(fecha__date__lte=f['hasta'])
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('exportar') == '1':
+            return _kardex_excel(self.get_queryset())
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        f = self.filtros()
+        entrada = models.Q(tipo__startswith='ENTRADA')
+        context['resumen'] = self.object_list.aggregate(
+            unidades_entrada=models.Sum('cantidad', filter=entrada),
+            unidades_salida=models.Sum('cantidad', filter=~entrada),
+            monto_entrada=models.Sum('monto_total', filter=entrada),
+            monto_salida=models.Sum('monto_total', filter=~entrada),
+        )
+        context['filtros'] = f
+        context['producto_filtrado'] = (
+            Producto.objects.filter(pk=f['producto']).first() if f['producto'] else None
+        )
+        context['grupos_movimiento'] = [(k, v[0]) for k, v in GRUPOS_MOVIMIENTO.items()]
+        context['tipos_movimiento'] = MovimientoInventario.TIPO_MOVIMIENTO
+        context['hay_filtros'] = any(f.values())
+        # La misma búsqueda, sin la página (para paginar y exportar)
+        params = self.request.GET.copy()
+        for clave in ('page', 'parcial', 'exportar'):
+            params.pop(clave, None)
+        context['querystring'] = params.urlencode()
+        return context
+
+
+def _kardex_excel(movimientos):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Kardex"
+    encabezados = ['Fecha', 'Código', 'Producto', 'Movimiento', 'Entrada', 'Salida',
+                   'Precio unitario ($)', 'Monto ($)', 'Usuario', 'Observación']
+    ws.append(encabezados)
+    for celda in ws[1]:
+        celda.fill = PatternFill(start_color="1E1530", end_color="1E1530", fill_type="solid")
+        celda.font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        celda.alignment = Alignment(horizontal="center", vertical="center")
+
+    for mov in movimientos[:20000]:
+        es_entrada = mov.tipo.startswith('ENTRADA')
+        ws.append([
+            timezone.localtime(mov.fecha).strftime('%d/%m/%Y %H:%M'),
+            mov.producto.codigo,
+            mov.producto.nombre,
+            mov.get_tipo_display() + (' (devuelto)' if mov.devuelto else ''),
+            mov.cantidad if es_entrada else None,
+            None if es_entrada else mov.cantidad,
+            float(mov.precio_unitario_historico),
+            float(mov.monto_total),
+            (mov.usuario.nombre_completo or mov.usuario.username) if mov.usuario else 'Sistema',
+            mov.observacion or '',
+        ])
+
+    for col in ws.columns:
+        ancho = max(len(str(c.value or '')) for c in col)
+        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max(ancho + 3, 10), 60)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    nombre = f"Kardex_Prados_Pets_{timezone.localdate():%Y-%m-%d}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{nombre}"'
+    wb.save(response)
+    return response
 
 
 # ---------------------------------------------------------------------------

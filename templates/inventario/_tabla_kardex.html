@@ -1,0 +1,63 @@
+{% comment %}
+  Tabla del Kardex. La usa la pestaña Movimientos y la búsqueda en vivo (?parcial=1).
+{% endcomment %}
+<div class="inv-kardex-resumen">
+  <div><span>Unidades que entraron</span><b class="is-entrada">+{{ resumen.unidades_entrada|default:0 }}</b><small>${{ resumen.monto_entrada|default:0|floatformat:"0g" }}</small></div>
+  <div><span>Unidades que salieron</span><b class="is-salida">−{{ resumen.unidades_salida|default:0 }}</b><small>${{ resumen.monto_salida|default:0|floatformat:"0g" }}</small></div>
+  <div><span>Movimientos</span><b>{{ page_obj.paginator.count|default:0 }}</b><small>{% if hay_filtros %}con los filtros elegidos{% else %}en total{% endif %}</small></div>
+</div>
+
+<div class="inv-tabla-wrap">
+  <table class="inv-tabla inv-tabla--kardex">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Producto</th>
+        <th>Movimiento</th>
+        <th class="inv-num">Cantidad</th>
+        <th class="inv-num">Precio unit.</th>
+        <th class="inv-num">Monto</th>
+        <th>Usuario</th>
+        <th>Observación</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mov in movimientos %}
+      {% with entrada=mov.es_entrada %}
+      <tr>
+        <td class="inv-vence" data-col="fecha">{{ mov.fecha|date:"d/m/Y H:i" }}</td>
+        <td class="inv-prod inv-col-prod">
+          <a href="{% url 'inventario:kardex' %}?producto={{ mov.producto_id }}" class="inv-prod__enlace" title="Ver solo este producto"><b>{{ mov.producto.nombre }}</b></a>
+          <small>{{ mov.producto.codigo }}<span class="inv-solo-movil"> · {{ mov.fecha|date:"d/m/Y H:i" }} · {{ mov.get_tipo_display }}</span></small>
+        </td>
+        <td data-col="tipo">
+          <span class="inv-tag{% if not entrada %} inv-tag--bajo{% endif %}">{% if entrada %}Entrada{% else %}Salida{% endif %}</span>
+          <small class="inv-kardex-tipo">{{ mov.get_tipo_display }}{% if mov.devuelto %} · devuelto{% endif %}</small>
+        </td>
+        <td class="inv-num inv-col-stock"><b class="{% if entrada %}is-entrada{% else %}is-salida{% endif %}">{% if entrada %}+{% else %}−{% endif %}{{ mov.cantidad }}</b></td>
+        <td class="inv-num" data-col="precio">${{ mov.precio_unitario_historico|floatformat:"0g" }}</td>
+        <td class="inv-num" data-col="monto">${{ mov.monto_total|floatformat:"0g" }}</td>
+        <td data-col="usuario" class="inv-vence">{% if mov.usuario %}{{ mov.usuario.nombre_completo|default:mov.usuario.username }}{% else %}Sistema{% endif %}</td>
+        <td data-col="obs" class="inv-kardex-obs">{{ mov.observacion|default:"—" }}</td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="8" class="inv-vacio">
+        {% if hay_filtros %}No hay movimientos con estos filtros.{% else %}Todavía no hay movimientos. Aparecen al añadir o quitar unidades, al atender consultas y en la peluquería.{% endif %}
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="inv-paginas">
+    {% if page_obj.has_previous %}
+      <a class="inv-btn" data-pagina href="{{ request.path }}?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">‹ Anterior</a>
+    {% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="inv-btn" data-pagina href="{{ request.path }}?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Siguiente ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

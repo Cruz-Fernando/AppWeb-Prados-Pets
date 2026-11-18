@@ -68,6 +68,18 @@ class GuardarCitaPeluqueriaTests(TestCase):
         self.assertEqual(cita.duracion_estimada_min, 120)  # tamaño grande
         self.assertTrue(timezone.is_aware(cita.fecha_hora))
 
+    def test_el_bano_guarda_cuando_recordar_el_proximo(self):
+        self.client.post(reverse("peluqueria:guardar_cita"), self._datos(intervalo_recordatorio_dias="15"))
+        self.assertEqual(CitaPeluqueria.objects.get().intervalo_recordatorio_dias, 15)
+
+    def test_sin_lapso_o_en_corte_queda_el_valor_por_defecto(self):
+        self.client.post(reverse("peluqueria:guardar_cita"), self._datos())
+        self.assertEqual(CitaPeluqueria.objects.get().intervalo_recordatorio_dias, 30)
+        CitaPeluqueria.objects.all().delete()
+        self.client.post(reverse("peluqueria:guardar_cita"),
+                         self._datos(servicio="CORTE", intervalo_recordatorio_dias="7"))
+        self.assertEqual(CitaPeluqueria.objects.get().intervalo_recordatorio_dias, 30)
+
     def test_comprobante_pdf(self):
         self.client.post(reverse("peluqueria:guardar_cita"), self._datos())
         cita = CitaPeluqueria.objects.get()

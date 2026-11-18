@@ -52,7 +52,7 @@ class RecordatoriosCierreSprint4Tests(TestCase):
     def test_el_panel_muestra_los_recordatorios_de_hoy(self):
         self._vacuna(-30, intervalo=30)          # el ciclo cae justo hoy
         response = self.client.get(reverse("usuarios:dashboard"))
-        self.assertContains(response, "Recordatorios de hoy (1)")
+        self.assertContains(response, "Recordatorios por avisar (1)")
         self.assertContains(response, "Toby")
 
     def test_el_menu_tiene_el_enlace_a_recordatorios(self):

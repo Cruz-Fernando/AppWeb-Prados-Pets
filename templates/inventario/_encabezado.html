@@ -1,0 +1,24 @@
+{% comment %}
+  Título y acciones del inventario. Lo comparten las pestañas Productos,
+  Retirados y Movimientos (Kardex), para que se sientan una sola pantalla.
+{% endcomment %}
+<div class="inv-cabecera">
+  <div>
+    <h1>Inventario</h1>
+    <p class="inv-sub">Usa <b>Añadir</b> para sumar unidades y <b>Quitar</b> para restarlas (uso, vencimiento, daño, venta…). Cada cambio queda en <b>Movimientos</b>.</p>
+  </div>
+  <div class="inv-acciones">
+    <a href="{% url 'inventario:crear_producto' %}" class="inv-btn inv-btn--primario">+ Nuevo producto</a>
+    <a href="{% url 'inventario:reposicion' %}" class="inv-btn">Añadir unidades</a>
+    <a href="{% url 'inventario:salida' %}" class="inv-btn">Quitar unidades</a>
+    <details class="inv-mas">
+      <summary class="inv-btn">Más opciones <span aria-hidden="true">▾</span></summary>
+      <div class="inv-mas__menu">
+        <a href="{% url 'inventario:cargar_excel' %}">Carga masiva desde Excel</a>
+        <a href="{% url 'inventario:descargar_plantilla' %}">Descargar plantilla de Excel</a>
+        <a href="{% url 'inventario:exportar_excel' %}">Exportar inventario a Excel</a>
+        <a href="{% url 'inventario:insumos_peluqueria' %}">Insumos por servicio</a>
+      </div>
+    </details>
+  </div>
+</div>

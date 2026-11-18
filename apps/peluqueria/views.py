@@ -26,6 +26,15 @@ Usuario = get_user_model()
 # Mismos roles que ven «Peluquería» en el menú lateral.
 ROLES_PELUQUERIA = ('administrador', 'groomer', 'auxiliar')
 
+# Cuándo recordar el próximo baño (pantalla Recordatorios). Por defecto, 1 mes.
+INTERVALOS_BANO = [
+    (7, 'En 1 semana'),
+    (15, 'En 15 días'),
+    (30, 'En 1 mes'),
+    (45, 'En 45 días'),
+    (60, 'En 2 meses'),
+]
+
 # Duración sugerida del servicio según el tamaño de la mascota (minutos).
 DURACION_POR_TAMANO = {'PEQUENO': 60, 'MEDIANO': 90, 'GRANDE': 120}
 
@@ -118,6 +127,7 @@ def _guardar_borrador(request, mascota=None):
         'mascota':       _mascota_a_dict(mascota) if mascota else None,
         'servicio':      request.POST.get('servicio', ''),
         'condicion_pelaje': request.POST.get('condicion_pelaje', ''),
+        'intervalo_recordatorio_dias': request.POST.get('intervalo_recordatorio_dias', ''),
         'groomer_id':    request.POST.get('groomer_id', ''),
         'fecha_hora':    request.POST.get('fecha_hora', ''),
         'duracion_min':  request.POST.get('duracion_min', ''),
@@ -155,6 +165,7 @@ def panel_peluqueria(request):
         'groomers': groomers,
         'opciones_duracion': OPCIONES_DURACION,
         'servicios': CitaPeluqueria.SERVICIO_CHOICES,
+        'intervalos_bano': INTERVALOS_BANO,
         'descargar_url': descargar_url,
         'cita_creada': cita_creada,
         'comision_formateada': (
@@ -289,7 +300,12 @@ def guardar_cita(request):
 def _crear_cita_con_insumos(
     request, mascota, servicio, fecha_hora, duracion_min, precio, groomer, condicion_pelaje
 ):
+    extra = {}
+    intervalo = (request.POST.get('intervalo_recordatorio_dias') or '').strip()
+    if servicio == 'BANO' and intervalo.isdigit() and 1 <= int(intervalo) <= 3650:
+        extra['intervalo_recordatorio_dias'] = int(intervalo)
     cita = CitaPeluqueria.objects.create(
+        **extra,
         mascota=mascota,
         nombre_mascota=mascota.nombre,
         raza=mascota.raza or 'No especificada',

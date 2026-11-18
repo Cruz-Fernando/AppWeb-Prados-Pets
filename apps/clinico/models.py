@@ -362,3 +362,43 @@ class TrazaClinica(models.Model):
 
     def __str__(self):
         return f"{self.fecha:%d/%m/%Y %H:%M} · {self.get_accion_display()} · {self.mascota.nombre}"
+
+class AvisoRecordatorio(models.Model):
+    """
+    Marca que alguien ya avisó al propietario de un recordatorio
+    (vacunación o baño) para una fecha concreta.
+
+    Los recordatorios se calculan al vuelo (apps/clinico/recordatorios.py), así
+    que aquí solo se guarda quién avisó y cuándo. Mientras no exista esta marca,
+    el recordatorio sigue apareciendo en las notificaciones aunque su día ya haya
+    pasado (hasta DIAS_ATRASO días), para que no se pierda si nadie entró ese día.
+    """
+
+    TIPO_CHOICES = [
+        ('vacunacion', 'Vacunación'),
+        ('bano', 'Baño'),
+    ]
+
+    tipo = models.CharField(max_length=12, choices=TIPO_CHOICES)
+    # Cita (vacunación) o CitaPeluqueria (baño), según `tipo`.
+    cita_id = models.PositiveIntegerField()
+    fecha_recordatorio = models.DateField()
+    avisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='avisos_recordatorio',
+    )
+    avisado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Aviso de recordatorio"
+        verbose_name_plural = "Avisos de recordatorios"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tipo', 'cita_id', 'fecha_recordatorio'],
+                name='aviso_recordatorio_unico',
+            ),
+        ]
+        indexes = [models.Index(fields=['fecha_recordatorio'], name='clinico_aviso_fecha_idx')]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · cita {self.cita_id} · {self.fecha_recordatorio:%d/%m/%Y}"

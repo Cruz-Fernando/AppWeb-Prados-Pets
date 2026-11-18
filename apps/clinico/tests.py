@@ -249,8 +249,7 @@ class HistorialClinicoTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["vacunas_programadas"])
         self.assertFalse(response.context["banos_programados"])
-        self.assertContains(response, "No hay recordatorios de vacunación registrados")
-        self.assertContains(response, "No hay recordatorios de baño registrados")
+        self.assertContains(response, "Aún no hay recordatorios")
 
     def test_recordatorios_usan_las_fechas_agendadas_en_el_calendario(self):
         hoy = timezone.localdate()
@@ -345,7 +344,8 @@ class HistorialClinicoTests(TestCase):
             hoy + timedelta(days=20),
         )
         self.assertEqual(response.context["recordatorios_hoy"], [recordatorio])
-        self.assertContains(response, 'id="reminder-modal"')
+        self.assertContains(response, 'id="recordatorios-por-avisar"')
+        self.assertEqual(response.context["recordatorios_pendientes"], [recordatorio])
 
     def test_cita_pasada_fuera_de_ciclo_salta_al_siguiente_ciclo_futuro(self):
         # Hace 50 días con intervalo de 20: los ciclos caen en -30, -10 y +10,

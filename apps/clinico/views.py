@@ -4,10 +4,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, Max, Q
-from django.http import Http404, HttpResponseForbidden
+from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from apps.agendamiento.models import Cita
@@ -26,6 +27,7 @@ from .forms import (
     RegistroClinicoForm,
 )
 from .models import (
+    AvisoRecordatorio,
     ConsultaMedica,
     EvolucionHospitalaria,
     Hospitalizacion,
@@ -33,7 +35,7 @@ from .models import (
     TrazaClinica,
 )
 from .pdf import render_pdf
-from .recordatorios import calcular_recordatorios
+from .recordatorios import DIAS_ATRASO, calcular_recordatorios, describir_intervalo, fechas_recordatorio
 from .registros import TIPOS, obtener_tipo
 
 # La historia clínica es información sensible: solo la consulta el personal
@@ -42,14 +44,23 @@ ROLES_CLINICO = ('administrador', 'veterinario', 'auxiliar')
 ROLES_RECORDATORIOS = ROLES_CLINICO + ('groomer',)
 
 
+def _puede_editar_intervalos(user):
+    return user.is_superuser or getattr(user, 'es_administrador', False)
+
+
+def _cita_de_recordatorio(tipo, cita_id):
+    if tipo == 'vacunacion':
+        return get_object_or_404(Cita.objects.select_related('mascota'),
+                                 pk=int(cita_id), tipo_servicio='vacunacion')
+    return get_object_or_404(CitaPeluqueria.objects.select_related('mascota'),
+                             pk=int(cita_id), servicio='BANO', mascota__isnull=False)
+
+
 @login_required
 @rol_requerido(*ROLES_RECORDATORIOS)
 def recordatorios(request):
     hoy = timezone.localdate()
-    puede_editar_intervalos = (
-        request.user.is_superuser
-        or getattr(request.user, 'es_administrador', False)
-    )
+    puede_editar_intervalos = _puede_editar_intervalos(request.user)
 
     if request.method == 'POST' and 'guardar_intervalo_recordatorio' in request.POST:
         if not puede_editar_intervalos:
@@ -71,37 +82,79 @@ def recordatorios(request):
         if intervalo_dias < 1:
             messages.error(request, 'El intervalo debe ser de al menos 1 día.')
             return redirect('clinico:recordatorios')
+        if intervalo_dias > 3650:
+            messages.error(request, 'El intervalo no puede pasar de 10 años (3650 días).')
+            return redirect('clinico:recordatorios')
 
-        if tipo == 'vacunacion':
-            cita = get_object_or_404(
-                Cita,
-                pk=int(cita_id),
-                tipo_servicio='vacunacion',
-            )
-        else:
-            cita = get_object_or_404(
-                CitaPeluqueria,
-                pk=int(cita_id),
-                servicio='BANO',
-                mascota__isnull=False,
-            )
-
+        cita = _cita_de_recordatorio(tipo, cita_id)
         cita.intervalo_recordatorio_dias = intervalo_dias
         cita.save(update_fields=['intervalo_recordatorio_dias'])
-        messages.success(request, 'El intervalo del recordatorio fue actualizado.')
+
+        fecha_base = cita.fecha if tipo == 'vacunacion' else timezone.localdate(cita.fecha_hora)
+        proxima, _ = fechas_recordatorio(fecha_base, intervalo_dias, hoy)
+        servicio = 'la vacunación' if tipo == 'vacunacion' else 'el baño'
+        messages.success(
+            request,
+            f'Listo: a {cita.mascota.nombre} se le recordará {servicio} cada '
+            f'{describir_intervalo(intervalo_dias)}. Próximo aviso: {proxima:%d/%m/%Y}.',
+        )
         return redirect('clinico:recordatorios')
 
-    # Una sola regla para la pantalla y el panel principal (apps/clinico/recordatorios.py)
+    # Una sola regla para la pantalla, el panel y la campana (apps/clinico/recordatorios.py)
     datos = calcular_recordatorios(hoy)
+    todos = sorted(datos['vacunas'] + datos['banos'], key=lambda r: r['fecha_recordatorio'])
 
     return render(request, 'clinico/recordatorios.html', {
         'vacunas_programadas': datos['vacunas'],
         'banos_programados': datos['banos'],
+        'todos_recordatorios': todos,
         'recordatorios_hoy': datos['hoy'],
+        'recordatorios_pendientes': datos['pendientes'],
+        'recordatorios_avisados': [r for r in todos if r['avisado']],
+        'recordatorios_proximos': datos['proximos'],
+        'dias_atraso': DIAS_ATRASO,
         'puede_editar_intervalos': puede_editar_intervalos,
     })
 
 
+@login_required
+@rol_requerido(*ROLES_RECORDATORIOS)
+@require_POST
+def recordatorio_avisado(request):
+    """
+    Marca (o desmarca con accion=deshacer) que ya se avisó al propietario.
+    Responde JSON si la pide la campana (fetch); si no, vuelve a la página.
+    """
+    tipo = request.POST.get('tipo_recordatorio')
+    cita_id = request.POST.get('cita_id', '')
+    try:
+        fecha = date.fromisoformat(request.POST.get('fecha', ''))
+    except ValueError:
+        fecha = None
+    if tipo not in ('vacunacion', 'bano') or not cita_id.isdigit() or fecha is None:
+        return HttpResponseBadRequest('Recordatorio no válido.')
+
+    cita = _cita_de_recordatorio(tipo, cita_id)
+    deshacer = request.POST.get('accion') == 'deshacer'
+    if deshacer:
+        AvisoRecordatorio.objects.filter(tipo=tipo, cita_id=cita.pk, fecha_recordatorio=fecha).delete()
+        texto = f'Se quitó la marca de avisado de {cita.mascota.nombre}.'
+    else:
+        AvisoRecordatorio.objects.get_or_create(
+            tipo=tipo, cita_id=cita.pk, fecha_recordatorio=fecha,
+            defaults={'avisado_por': request.user},
+        )
+        texto = f'{cita.mascota.nombre}: marcado como avisado.'
+
+    if request.headers.get('X-Requested-With') == 'fetch':
+        return JsonResponse({'ok': True, 'mensaje': texto})
+
+    messages.success(request, texto)
+    siguiente = request.POST.get('next', '')
+    if not url_has_allowed_host_and_scheme(siguiente, allowed_hosts={request.get_host()},
+                                           require_https=request.is_secure()):
+        siguiente = reverse('clinico:recordatorios')
+    return redirect(siguiente)
 
 
 # ===========================================================================

@@ -1,0 +1,69 @@
+{% comment %}
+  Contenido de la campana de notificaciones. Lo carga static/js/notificaciones.js
+  desde usuarios:notificaciones; data-total es el número de la burbuja.
+{% endcomment %}
+<div class="notif-contenido" data-total="{{ total }}">
+  <div class="notif-cabeza">
+    <h2 id="notif-titulo">Notificaciones</h2>
+    {% if total %}<span class="notif-cabeza__total">{{ total }} por atender</span>{% endif %}
+  </div>
+
+  {% if not recordatorios and not inventario %}
+  <p class="notif-vacio">
+    <span aria-hidden="true">✓</span>
+    Todo al día. No hay nada pendiente.
+  </p>
+  {% endif %}
+
+  {% if recordatorios %}
+  <section class="notif-grupo" aria-labelledby="notif-grupo-rec">
+    <h3 id="notif-grupo-rec">Avisar a propietarios <small>{{ total_recordatorios }}</small></h3>
+    <ul class="notif-lista">
+      {% for r in recordatorios %}
+      <li class="notif-item notif-item--{% if r.estado == 'atrasado' %}peligro{% else %}aviso{% endif %}">
+        <div class="notif-item__texto">
+          <b>{{ r.mascota.nombre }} · {{ r.tipo }}</b>
+          <span>{{ r.mascota.id_dueno.nombre_completo }} · {% if r.estado == 'atrasado' %}tocaba {{ r.cuando_aviso|lower }}{% else %}le toca hoy{% endif %}</span>
+        </div>
+        <div class="notif-item__acciones">
+          {% if r.whatsapp %}
+          <a href="{{ r.whatsapp }}" target="_blank" rel="noopener" class="notif-mini notif-mini--wa" title="Escribir por WhatsApp" aria-label="Escribir por WhatsApp a {{ r.mascota.id_dueno.nombre_completo }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+          </a>
+          {% endif %}
+          <form method="post" action="{% url 'clinico:recordatorio_avisado' %}" class="js-notif-avisado">
+            {% csrf_token %}
+            <input type="hidden" name="tipo_recordatorio" value="{{ r.tipo_clave }}">
+            <input type="hidden" name="cita_id" value="{{ r.cita_id }}">
+            <input type="hidden" name="fecha" value="{{ r.fecha_aviso|date:'Y-m-d' }}">
+            <button type="submit" class="notif-mini notif-mini--ok" title="Marcar como avisado">✓ Avisé</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'clinico:recordatorios' %}" class="notif-ver">
+      {% if total_recordatorios > recordatorios|length %}Ver los {{ total_recordatorios }} recordatorios →{% else %}Abrir recordatorios →{% endif %}
+    </a>
+  </section>
+  {% endif %}
+
+  {% if inventario %}
+  <section class="notif-grupo" aria-labelledby="notif-grupo-inv">
+    <h3 id="notif-grupo-inv">Inventario</h3>
+    <ul class="notif-lista">
+      {% for a in inventario %}
+      <li>
+        <a href="{{ a.url }}" class="notif-item notif-item--{{ a.nivel }} notif-item--enlace">
+          <div class="notif-item__texto">
+            <b>{{ a.texto }}</b>
+            <span>{{ a.ayuda }}</span>
+          </div>
+          <span class="notif-item__flecha" aria-hidden="true">›</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>

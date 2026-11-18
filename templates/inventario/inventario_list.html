@@ -1,18 +1,21 @@
 {% extends 'inventario/_layout.html' %}
-{% block titulo %}Inventario y Stock{% endblock %}
-{% block migas %}<span class="app-topbar__current">Inventario y Stock</span>{% endblock %}
+{% block titulo %}Inventario{% endblock %}
+{% block migas %}<span class="app-topbar__current">Inventario</span>{% endblock %}
 
 {% block contenido %}
-  <div>
-    <h1>Inventario y stock</h1>
-    <p class="inv-sub">Cada producto tiene su cantidad. Usa <b>Añadir</b> para sumar unidades y <b>Quitar</b> para restarlas (uso, vencimiento, daño, venta…). Todo queda en el Kardex.</p>
-  </div>
+  {% include "inventario/_encabezado.html" %}
 
   <div class="inv-kpis">
     <div class="inv-kpi"><span>Valor total del inventario</span><b>${{ total_valor_inventario|default:0|floatformat:"0g" }}</b></div>
-    <div class="inv-kpi inv-kpi--alerta"><span>Productos en stock mínimo o menos</span><b>{{ productos_bajo_stock }}</b></div>
-    <div class="inv-kpi inv-kpi--alerta"><span>Productos vencidos con unidades</span><b>{{ productos_vencidos }}</b></div>
+    <a href="{% url 'inventario:lista' %}?estado=reabastecer" class="inv-kpi inv-kpi--alerta inv-kpi--enlace{% if estado == 'reabastecer' %} is-activo{% endif %}">
+      <span>Productos en stock mínimo o menos</span><b>{{ productos_bajo_stock }}</b><em>Ver cuáles →</em>
+    </a>
+    <a href="{% url 'inventario:lista' %}?estado=vencidos" class="inv-kpi inv-kpi--alerta inv-kpi--enlace{% if estado == 'vencidos' %} is-activo{% endif %}">
+      <span>Productos vencidos con unidades</span><b>{{ productos_vencidos }}</b><em>Ver cuáles →</em>
+    </a>
   </div>
+
+  {% include "inventario/_pestanas.html" %}
 
   <div class="inv-barra">
     <form method="get" class="inv-buscar" role="search" id="form-buscar">
@@ -21,23 +24,16 @@
       <input type="search" name="q" id="buscar-producto" value="{{ q }}" autocomplete="off"
              placeholder="Buscar producto por nombre, código o código de barras…">
       {% if ver_retirados %}<input type="hidden" name="retirados" value="1">{% endif %}
+      {% if estado %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}
       <span class="inv-buscar__estado" aria-hidden="true"></span>
     </form>
-
-    <div class="inv-acciones">
-      <a href="{% url 'inventario:crear_producto' %}" class="inv-btn inv-btn--primario">+ Nuevo producto</a>
-      <a href="{% url 'inventario:reposicion' %}" class="inv-btn">Añadir unidades</a>
-      <a href="{% url 'inventario:salida' %}" class="inv-btn">Quitar unidades</a>
-      <a href="{% url 'inventario:cargar_excel' %}" class="inv-btn">Carga Excel</a>
-      <a href="{% url 'inventario:exportar_excel' %}" class="inv-btn">Exportar Excel</a>
-      <a href="{% url 'inventario:insumos_peluqueria' %}" class="inv-btn">Insumos por servicio</a>
-    </div>
+    {% if estado %}
+    <p class="inv-filtro-activo">
+      Mostrando: <b>{{ estado_texto }}</b>
+      <a href="{% url 'inventario:lista' %}{% if q %}?q={{ q|urlencode }}{% endif %}" aria-label="Quitar filtro {{ estado_texto }}">✕ Quitar filtro</a>
+    </p>
+    {% endif %}
   </div>
-
-  <nav class="inv-tabs" aria-label="Productos">
-    <a href="{% url 'inventario:lista' %}" class="inv-tab{% if not ver_retirados %} is-activa{% endif %}"{% if not ver_retirados %} aria-current="page"{% endif %}>En inventario</a>
-    <a href="{% url 'inventario:lista' %}?retirados=1" class="inv-tab{% if ver_retirados %} is-activa{% endif %}"{% if ver_retirados %} aria-current="page"{% endif %}>Retirados <small>{{ total_retirados }}</small></a>
-  </nav>
 
   <div id="tabla-productos" aria-live="polite">
     {% include "inventario/_tabla_productos.html" %}

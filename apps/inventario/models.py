@@ -199,6 +199,10 @@ class MovimientoInventario(models.Model):
     # True cuando la salida ya se devolvió al inventario (anulación o cancelación)
     devuelto = models.BooleanField(default=False, db_default=False)
 
+    @property
+    def es_entrada(self):
+        return self.tipo.startswith('ENTRADA')
+
     class Meta:
         verbose_name = "Movimiento de Inventario"
         verbose_name_plural = "Movimientos de Inventario"

@@ -5,6 +5,17 @@ from django.utils import timezone
 from .models import Cita, hora_fin_por_defecto
 
 
+# Cuándo recordar la próxima vacuna (pantalla Recordatorios). Lo que más se usa:
+# refuerzo de cachorro a las 3 semanas y la anual.
+INTERVALOS_VACUNA = [
+    (21, "En 3 semanas"),
+    (30, "En 1 mes"),
+    (90, "En 3 meses"),
+    (180, "En 6 meses"),
+    (365, "En 1 año"),
+]
+
+
 class CitaForm(forms.ModelForm):
     """
     HU06-fix / SW-04:
@@ -26,9 +37,21 @@ class CitaForm(forms.ModelForm):
         label="Buscar mascota",
     )
 
+    # Solo aplica a vacunación; si no se envía, queda el valor del modelo (1 año).
+    intervalo_recordatorio_dias = forms.TypedChoiceField(
+        choices=INTERVALOS_VACUNA,
+        coerce=int,
+        required=False,
+        empty_value=365,
+        initial=365,
+        label="Recordar la próxima vacuna",
+        widget=forms.RadioSelect,
+    )
+
     class Meta:
         model = Cita
-        fields = ["mascota", "veterinario", "tipo_servicio", "fecha", "hora_inicio", "hora_fin"]
+        fields = ["mascota", "veterinario", "tipo_servicio", "fecha", "hora_inicio", "hora_fin",
+                  "intervalo_recordatorio_dias"]
         widgets = {
             "mascota": forms.HiddenInput(attrs={"id": "id_mascota_hidden"}),
             "veterinario": forms.Select(attrs={"class": "form-control"}),
