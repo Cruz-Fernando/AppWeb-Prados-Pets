@@ -26,6 +26,7 @@
       <a href="{% url 'clinico:editar_registro' r.pk %}" class="btn btn--ghost">{% include "clinico/_icono.html" with nombre="editar" size=16 %} Editar</a>
       <button type="button" class="btn btn--rose" onclick="document.getElementById('modal-anular').showModal()">{% include "clinico/_icono.html" with nombre="anular" size=16 %} Anular</button>
       {% endif %}
+      {% if receta_items %}<a href="{% url 'clinico:receta_pdf' r.pk %}" class="btn btn--ghost">{% include "clinico/_icono.html" with nombre="descargar" size=16 %} Récipe PDF</a>{% endif %}
       <a href="{% url 'clinico:registro_pdf' r.pk %}" class="btn btn--primary" id="btn-pdf">{% include "clinico/_icono.html" with nombre="descargar" size=16 %} Descargar PDF</a>
     </div>
   </div>

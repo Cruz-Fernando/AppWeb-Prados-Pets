@@ -467,7 +467,13 @@ def editar_registro(request, pk):
     form = RegistroClinicoForm(request.POST or None, request.FILES or None, instance=registro,
                                tipo=definicion, mascota=registro.mascota)
 
-    if request.method == 'POST' and form.is_valid():
+    # PB-15: el récipe también se puede corregir; el cambio queda en la trazabilidad
+    receta_antes = texto_guardado(registro)
+    receta, filas_receta, errores_receta = [], filas_de_registro(registro), []
+    if request.method == 'POST' and definicion.usa_evaluacion:
+        receta, filas_receta, errores_receta = leer_receta(request.POST)
+
+    if request.method == 'POST' and form.is_valid() and not errores_receta:
         specs = {c.nombre: c for c in definicion.campos}
         cambios = {}
         for nombre in form.changed_data:
@@ -493,6 +499,8 @@ def editar_registro(request, pk):
             registro = form.save(commit=False)
             registro.actualizado_por = request.user
             registro.save()
+            if definicion.usa_evaluacion and reemplazar_receta(registro, receta):
+                cambios['Récipe médico'] = [receta_antes or '—', texto_items(receta) or '—']
             if cambios:
                 registrar_traza(request, registro.mascota, 'editar',
                                 f"{registro.numero}: {len(cambios)} campo(s) modificado(s)",
@@ -500,6 +508,12 @@ def editar_registro(request, pk):
         messages.success(request, 'Registro actualizado. Los cambios quedaron en la trazabilidad.'
                          if cambios else 'No hubo cambios que guardar.')
         return redirect('clinico:registro_detalle', pk=registro.pk)
+
+    if request.method == 'POST':
+        for error in errores_receta:
+            messages.error(request, error)
+        if form.errors:
+            messages.error(request, 'Revisa los campos marcados en rojo.')
 
     return render(request, 'clinico/registro_form.html', {
         'mascota': registro.mascota, 'tipo': definicion, 'form': form, 'registro': registro,
