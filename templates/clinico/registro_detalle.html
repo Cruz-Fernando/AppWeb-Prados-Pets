@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block contenido %}
-<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=2">
 <div class="t-{{ tipo.color|default:'gray' }}">
   <div class="cl-head">
     <div class="cl-head__text">
@@ -84,6 +84,23 @@
           {% endfor %}
         </ul>
         <p class="ins-nota">{% if r.anulado %}Al anular el registro, lo descontado volvió al inventario.{% else %}Se descontó del inventario al guardar el registro. Si anulas el registro, vuelve al inventario.{% endif %} <a href="{% url 'inventario:kardex' %}">Ver Kardex</a></p>
+      </section>
+      {% endif %}
+
+      {% if receta_items %}
+      <section class="cl-card">
+        <div class="cl-card__head"><h2 class="cl-card__title">{% include "clinico/_icono.html" with nombre="archivo" size=16 %} Récipe médico · {{ r.numero_receta }}</h2></div>
+        <ul class="rec-detalle">
+          {% for i in receta_items %}
+          <li>
+            <b>{{ i.producto.nombre }}</b>
+            {% if i.producto.medicamento %}<small>{{ i.producto.medicamento.principio_activo|default:"" }}{% if i.producto.medicamento.concentracion %} · {{ i.producto.medicamento.concentracion }}{% endif %}{% if i.producto.medicamento.presentacion %} · {{ i.producto.medicamento.presentacion }}{% endif %}</small>{% endif %}
+            <span>Dosis: {{ i.dosis }} · Frecuencia: {{ i.frecuencia }} · Duración: {{ i.duracion }}</span>
+            {% if i.indicaciones %}<span class="rec-detalle__ind">{{ i.indicaciones }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="ins-nota">Emitir el récipe no descuenta stock del inventario.</p>
       </section>
       {% endif %}
 

@@ -19,6 +19,10 @@ from apps.usuarios.permissions import rol_requerido
 
 from . import presentacion
 from .insumos import descontar_insumos, leer_insumos
+from .receta import (
+    filas_de_registro, guardar_receta, leer_receta, reemplazar_receta,
+    texto_guardado, texto_items,
+)
 from .forms import (
     AltaForm,
     AnularRegistroForm,
@@ -376,22 +380,29 @@ def nuevo_registro(request, mascota_id, tipo):
     form = RegistroClinicoForm(request.POST or None, request.FILES or None,
                                tipo=definicion, mascota=mascota, initial=initial)
     insumos, filas_insumos, errores_insumos = [], [], []
+    receta, filas_receta, errores_receta = [], [], []
     if request.method == 'POST':
         # PB-17: medicamentos e insumos usados en la atención
         insumos, filas_insumos, errores_insumos = leer_insumos(request.POST)
+        # PB-15: récipe médico (solo en los tipos que tienen diagnóstico y plan)
+        if definicion.usa_evaluacion:
+            receta, filas_receta, errores_receta = leer_receta(request.POST)
 
-    if request.method == 'POST' and form.is_valid() and not errores_insumos:
+    if request.method == 'POST' and form.is_valid() and not errores_insumos and not errores_receta:
         try:
             with transaction.atomic():
                 registro = form.save(commit=False)
                 registro.profesional = request.user
                 registro.save()
+                guardar_receta(registro, receta)   # PB-15
 
                 # PB-17: descuento automático del stock. Si un producto no alcanza
                 # se lanza StockInsuficiente y se deshace TODO (registro incluido).
                 movimientos = descontar_insumos(registro, insumos, request.user)
 
                 descripcion = f"{registro.numero} · {definicion.nombre}: {registro.motivo}"
+                if receta:
+                    descripcion += f". Récipe con {len(receta)} medicamento(s)"
                 if movimientos:
                     descripcion += ". Descontado del inventario: " + ", ".join(
                         f"{m.cantidad} × {m.producto.nombre}" for m in movimientos)
@@ -410,6 +421,8 @@ def nuevo_registro(request, mascota_id, tipo):
             errores_insumos = [str(error)]
         else:
             messages.success(request, f"{definicion.nombre} registrada en la historia clínica ({registro.numero}).")
+            if receta:
+                messages.success(request, f"Récipe médico {registro.numero_receta} emitido con {len(receta)} medicamento(s).")
             if movimientos:
                 messages.info(request, "Se descontó del inventario: "
                               + ", ".join(f"{m.cantidad} × {m.producto.nombre}" for m in movimientos) + ".")
@@ -420,7 +433,7 @@ def nuevo_registro(request, mascota_id, tipo):
             return redirect('clinico:registro_detalle', pk=registro.pk)
 
     if request.method == 'POST':
-        for error in errores_insumos:
+        for error in errores_insumos + errores_receta:
             messages.error(request, error)
         if form.errors:
             messages.error(request, 'Revisa los campos marcados en rojo.')
@@ -428,6 +441,7 @@ def nuevo_registro(request, mascota_id, tipo):
     return render(request, 'clinico/registro_form.html', {
         'mascota': mascota, 'tipo': definicion, 'form': form, 'fallecido': _fallecido(mascota),
         'filas_insumos': filas_insumos, 'errores_insumos': errores_insumos,
+        'filas_receta': filas_receta, 'errores_receta': errores_receta,
     })
 
 
@@ -448,6 +462,7 @@ def registro_detalle(request, pk):
         'especificos': presentacion.detalle_legible(registro),
         'trazas': registro.trazas.select_related('usuario'),
         'insumos_usados': registro.insumos_usados,
+        'receta_items': registro.receta_items.select_related('producto__medicamento'),
         'puede_editar': puede_editar(request.user, registro),
         'puede_anular': puede_editar(request.user, registro),
         'form_anular': AnularRegistroForm(),
@@ -518,6 +533,7 @@ def editar_registro(request, pk):
     return render(request, 'clinico/registro_form.html', {
         'mascota': registro.mascota, 'tipo': definicion, 'form': form, 'registro': registro,
         'insumos_usados': registro.insumos_usados,
+        'filas_receta': filas_receta, 'errores_receta': errores_receta,
     })
 
 
@@ -566,6 +582,26 @@ def registro_pdf(request, pk):
         'evaluacion': presentacion.evaluacion(registro),
         'especificos': presentacion.detalle_legible(registro),
     }, f"{registro.numero}-{registro.tipo}-{registro.mascota.nombre}")
+
+
+@login_required
+@rol_requerido(*ROLES_CLINICO)
+def receta_pdf(request, pk):
+    """PDF del récipe médico de un registro (PB-15)."""
+    registro = get_object_or_404(
+        RegistroClinico.objects.select_related('mascota__id_dueno', 'profesional', 'anulado_por'), pk=pk)
+    items = list(registro.receta_items.select_related('producto__medicamento'))
+    if not items:
+        messages.error(request, 'Este registro no tiene récipe médico.')
+        return redirect('clinico:registro_detalle', pk=pk)
+    registrar_traza(request, registro.mascota, 'pdf', f"PDF del récipe {registro.numero_receta} ({registro.numero})",
+                    registro=registro)
+    return render_pdf(request, 'clinico/pdf/receta.html', {
+        'r': registro,
+        'mascota': registro.mascota,
+        'dueno': registro.mascota.id_dueno,
+        'items': items,
+    }, f"{registro.numero_receta}-{registro.mascota.nombre}")
 
 
 @login_required

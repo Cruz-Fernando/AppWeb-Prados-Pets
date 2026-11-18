@@ -407,3 +407,25 @@ class AvisoRecordatorio(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} · cita {self.cita_id} · {self.fecha_recordatorio:%d/%m/%Y}"
+
+
+class RecetaItem(models.Model):
+    """Una línea del récipe médico de un registro clínico (PB-15 / RF07)."""
+
+    registro = models.ForeignKey(RegistroClinico, on_delete=models.CASCADE,
+                                 related_name='receta_items')
+    producto = models.ForeignKey('inventario.Producto', on_delete=models.PROTECT,
+                                 related_name='usos_en_recetas', verbose_name="Medicamento")
+    dosis = models.CharField(max_length=100, verbose_name="Dosis")
+    frecuencia = models.CharField(max_length=100, verbose_name="Frecuencia")
+    duracion = models.CharField(max_length=100, verbose_name="Duración")
+    indicaciones = models.CharField(max_length=500, blank=True, verbose_name="Indicaciones")
+    orden = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden', 'pk']
+        verbose_name = "Medicamento del récipe"
+        verbose_name_plural = "Medicamentos del récipe"
+
+    def __str__(self):
+        return f"{self.producto.nombre} · {self.dosis} · {self.frecuencia} · {self.duracion}"
