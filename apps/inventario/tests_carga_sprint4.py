@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from apps.usuarios.models import Rol
 
-from .models import Producto, StockLote
+from .models import Producto
 from .tests import ENCABEZADOS, excel
 
 
@@ -68,16 +68,19 @@ class CargaMasivaCierreSprint4Tests(TestCase):
         self.assertEqual(response.context["errores"][0]["fila"], 1)
         self.assertFalse(Producto.objects.exists())
 
-    def test_lote_sin_cantidad_se_rechaza_en_vez_de_perderse(self):
-        response = self._subir(excel(self._fila(lote="L-1")))
-        self.assertIn("CantidadLote", response.context["errores"][0]["error"])
-        self.assertFalse(Producto.objects.exists())
+    def test_fecha_sin_cantidad_carga_el_producto_sin_stock(self):
+        # Inventario simple: NumeroLote se ignora; la fecha queda en el producto.
+        venc = timezone.localdate() + timedelta(days=200)
+        response = self._subir(excel(self._fila(lote="L-1", venc=venc.isoformat())))
+        self.assertEqual(response.context["errores"], [])
+        producto = Producto.objects.get(codigo="P-1")
+        self.assertEqual((producto.stock_actual, producto.fecha_vencimiento), (0, venc))
 
-    def test_lote_vencido_no_entra_como_stock(self):
+    def test_fecha_vencida_no_entra_como_stock(self):
         vencido = timezone.localdate() - timedelta(days=1)
-        response = self._subir(excel(self._fila(lote="L-1", venc=vencido.isoformat(), cant=10)))
-        self.assertIn("venció", response.context["errores"][0]["error"])
-        self.assertFalse(StockLote.objects.exists())
+        response = self._subir(excel(self._fila(venc=vencido.isoformat(), cant=10)))
+        self.assertIn("ya pasó", response.context["errores"][0]["error"])
+        self.assertFalse(Producto.objects.exists())
 
     def test_acepta_precio_con_signo_y_fecha_dia_mes_anio(self):
         venc = (timezone.localdate() + timedelta(days=400)).strftime("%d/%m/%Y")

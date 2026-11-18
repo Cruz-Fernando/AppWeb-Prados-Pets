@@ -131,6 +131,16 @@
     }
 
 
+    // Peluquería: reenviar la confirmación al cliente
+    var enviar = document.getElementById("cal-enviar");
+    var wa = document.getElementById("cal-enviar-wa");
+    enviar.hidden = !d.pdfCliente;
+    if (d.pdfCliente) {
+      document.getElementById("cal-enviar-pdf").href = d.pdfCliente;
+      wa.hidden = !d.whatsapp;
+      if (d.whatsapp) wa.href = d.whatsapp;
+    }
+
     lastFocus = ev;
     modal.classList.remove("is-closing");
     modal.hidden = false;

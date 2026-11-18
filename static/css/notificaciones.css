@@ -1,0 +1,111 @@
+/* =====================================================================
+   Campana de notificaciones (esquina superior derecha) y mensajes flash
+   ===================================================================== */
+
+.notif { position: fixed; top: 8px; right: 20px; z-index: 150; }
+/* Deja libre la esquina de la barra superior para la campana */
+.app-topbar { padding-right: 76px !important; }
+
+.notif .sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.notif-boton {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px;
+  color: var(--text-muted); cursor: pointer;
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.notif-boton:hover, .notif-boton[aria-expanded="true"] { color: var(--text); border-color: var(--accent); background: var(--surface-hover); }
+.notif-boton:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.notif-boton.tiene-pendientes svg { color: #FBBF24; animation: notif-timbre 1.2s ease 1; transform-origin: 50% 10%; }
+@keyframes notif-timbre {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); } 60% { transform: rotate(-5deg); }
+}
+.notif-burbuja {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 700; line-height: 1; color: #fff;
+  background: #ef4444; border: 2px solid var(--bg); border-radius: 999px;
+}
+.notif-burbuja[hidden] { display: none; }
+
+.notif-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: min(380px, calc(100vw - 24px)); max-height: min(560px, calc(100vh - 80px)); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow-lg); animation: notif-entrar .16s ease both;
+}
+.notif-panel[hidden] { display: none; }
+@keyframes notif-entrar { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.notif-cabeza {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 14px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.notif-cabeza h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.notif-cabeza__total { font-size: 12px; font-weight: 600; color: #FCA5A5; }
+
+.notif-vacio { margin: 0; padding: 22px 16px; text-align: center; font-size: 13.5px; color: var(--text-muted); }
+.notif-vacio span { display: block; margin-bottom: 6px; font-size: 22px; color: var(--success); }
+
+.notif-grupo { padding: 12px 12px 6px; }
+.notif-grupo + .notif-grupo { border-top: 1px solid var(--border-subtle); }
+.notif-grupo h3 {
+  margin: 0 4px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-dim);
+}
+.notif-grupo h3 small { margin-left: 4px; padding: 1px 7px; font-size: 11px; color: var(--text); background: var(--accent-soft); border-radius: 999px; }
+
+.notif-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.notif-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+  background: var(--surface-alt); border-left: 3px solid var(--border);
+  color: var(--text); text-decoration: none;
+}
+.notif-item--aviso { border-left-color: #FBBF24; }
+.notif-item--peligro { border-left-color: #F87171; }
+.notif-item--info { border-left-color: #38BDF8; }
+.notif-item--enlace:hover { background: var(--surface-hover); }
+.notif-item__texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.notif-item__texto b { font-size: 13.5px; font-weight: 600; }
+.notif-item__texto span { font-size: 12px; color: var(--text-muted); }
+.notif-item__flecha { font-size: 20px; color: var(--text-dim); }
+.notif-item__acciones { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.notif-item__acciones form { margin: 0; }
+.notif-item.is-hecho { opacity: .45; }
+
+.notif-mini {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; padding: 0 9px;
+  font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; text-decoration: none;
+  border-radius: 8px; border: 1px solid transparent;
+}
+.notif-mini--wa { width: 30px; padding: 0; color: #4ade80; background: rgba(34, 197, 94, .12); border-color: rgba(34, 197, 94, .3); }
+.notif-mini--wa:hover { background: rgba(34, 197, 94, .24); }
+.notif-mini--ok { color: var(--accent-light); background: var(--accent-soft); border-color: rgba(167, 139, 250, .35); }
+.notif-mini--ok:hover { color: #fff; background: #8b5cf6; }
+.notif-mini:disabled { opacity: .5; cursor: wait; }
+
+.notif-ver { display: block; margin: 8px 4px 4px; font-size: 13px; font-weight: 600; color: var(--accent); }
+
+@media (max-width: 768px) {
+  .notif { right: 12px; }
+  .app-topbar { padding-right: 64px !important; }
+}
+
+/* ---------- Mensajes flash (se pueden cerrar y los de éxito se van solos) ---------- */
+.app-messages__item { position: relative; padding-right: 40px; transition: opacity .3s, transform .3s; }
+.app-messages__item.is-saliendo { opacity: 0; transform: translateY(-4px); }
+.app-messages__cerrar {
+  position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+  width: 26px; height: 26px; display: grid; place-items: center; padding: 0;
+  font-size: 18px; line-height: 1; color: inherit; opacity: .7; cursor: pointer;
+  background: transparent; border: 0; border-radius: 6px;
+}
+.app-messages__cerrar:hover { opacity: 1; background: rgba(255, 255, 255, .08); }
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-boton.tiene-pendientes svg, .notif-panel { animation: none; }
+  .app-messages__item { transition: none; }
+}

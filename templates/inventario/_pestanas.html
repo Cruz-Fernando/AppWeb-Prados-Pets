@@ -1,0 +1,7 @@
+{% with vista=request.resolver_match.url_name %}
+<nav class="inv-tabs" aria-label="Secciones del inventario">
+  <a href="{% url 'inventario:lista' %}" class="inv-tab{% if vista == 'lista' and not ver_retirados %} is-activa{% endif %}"{% if vista == 'lista' and not ver_retirados %} aria-current="page"{% endif %}>Productos</a>
+  <a href="{% url 'inventario:lista' %}?retirados=1" class="inv-tab{% if ver_retirados %} is-activa{% endif %}"{% if ver_retirados %} aria-current="page"{% endif %}>Retirados <small>{{ total_retirados }}</small></a>
+  <a href="{% url 'inventario:kardex' %}" class="inv-tab{% if vista == 'kardex' %} is-activa{% endif %}"{% if vista == 'kardex' %} aria-current="page"{% endif %}>Movimientos (Kardex)</a>
+</nav>
+{% endwith %}

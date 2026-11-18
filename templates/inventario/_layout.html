@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+{% comment %}
+  Diseño común de las pantallas de Inventario: menú lateral, barra superior y mensajes.
+  Bloques: titulo, migas, contenido, scripts.
+{% endcomment %}
+{% block title %}{% block titulo %}Inventario{% endblock %} · Prados Pets{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/inventario.css' %}?v=2">
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <span class="app-topbar__sep">›</span>
+        {% block migas %}<span class="app-topbar__current">Inventario</span>{% endblock %}
+      </div>
+    </header>
+
+    <main class="app-content app-content--wide inv">
+      {% if messages %}
+      <ul class="app-messages">
+        {% for message in messages %}<li class="app-messages__item app-messages__item--{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% block scripts %}{% endblock %}
+{% endblock %}

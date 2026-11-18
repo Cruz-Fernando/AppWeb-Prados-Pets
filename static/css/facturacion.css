@@ -1,0 +1,86 @@
+/* =====================================================================
+   Facturación · Ganancias por groomer
+   Se apoya en inventario.css (tablas, botones, etiquetas) y en los colores
+   del tema (styles.css).
+   ===================================================================== */
+
+.fac-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+
+.fac-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.fac-periodos {
+  display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px;
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px;
+}
+.fac-periodo { position: relative; cursor: pointer; }
+.fac-periodo input { position: absolute; opacity: 0; pointer-events: none; }
+.fac-periodo span {
+  display: block; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--text-muted);
+  border-radius: 7px; white-space: nowrap;
+}
+.fac-periodo:hover span { color: var(--text); }
+.fac-periodo.is-activo span { color: #fff; background: #8b5cf6; }
+.fac-periodo input:focus-visible + span { box-shadow: 0 0 0 3px rgba(167, 139, 250, .35); }
+
+.fac-rango { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fac-rango[hidden] { display: none; }
+.fac-rango label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.fac-rango input, .fac-groomer select {
+  padding: 8px 10px; font-size: 13.5px; color: var(--text);
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+}
+.fac-groomer select { min-width: 200px; }
+.fac-groomer select option { background: var(--surface-alt); }
+.fac-rango input:focus, .fac-groomer select:focus { outline: none; border-color: var(--accent); }
+
+.fac-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.fac-kpi { padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.fac-kpi span { display: block; font-size: 12.5px; color: var(--text-muted); }
+.fac-kpi b { display: block; margin-top: 6px; font-size: 1.45rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.fac-kpi small { display: block; margin-top: 2px; font-size: 12px; color: var(--text-dim); }
+.fac-kpi--destacado { border-color: rgba(52, 211, 153, .35); background: linear-gradient(180deg, rgba(52, 211, 153, .08), transparent); }
+.fac-kpi--destacado b { color: #34d399; }
+.fac-kpi--alerta b { color: #fbbf24; }
+
+.fac-tabla tfoot td { padding: 11px 14px; background: var(--surface-alt); border-top: 1px solid var(--border); }
+.fac-nombre { font-weight: 600; color: var(--accent-light); text-decoration: none; }
+.fac-nombre:hover { text-decoration: underline; }
+.fac-sin { color: var(--text-dim); font-weight: 500; }
+.fac-comision { color: #34d399; font-weight: 700; }
+.fac-tenue { color: var(--text-dim); }
+.fac-fecha { white-space: nowrap; text-transform: capitalize; }
+.fac-fecha small { display: block; font-size: 11.5px; color: var(--text-dim); text-transform: none; }
+.fac-fila--cancelado td { opacity: .55; }
+
+.fac-detalle-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.fac-detalle-head h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.fac-link { font-size: 13px; color: var(--accent-light); text-decoration: none; }
+.fac-link:hover { text-decoration: underline; }
+
+.fac-cerrar { display: flex; align-items: flex-start; justify-content: flex-end; gap: 6px; }
+.fac-cerrar form { margin: 0; }
+.fac-cancelar { position: relative; }
+.fac-cancelar summary { list-style: none; }
+.fac-cancelar summary::-webkit-details-marker { display: none; }
+.fac-cancelar[open] summary { color: #f87171; border-color: rgba(239, 68, 68, .4); }
+.fac-cancelar__form {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; display: flex; gap: 6px; padding: 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, .4);
+}
+.fac-cancelar__form input {
+  width: 190px; padding: 7px 9px; font-size: 13px; color: var(--text);
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 7px;
+}
+
+@media (max-width: 900px) {
+  .fac-tabla td.inv-num { text-align: left; }
+  .fac-tabla thead { display: none; }
+  .fac-tabla, .fac-tabla tbody, .fac-tabla tfoot, .fac-tabla tr, .fac-tabla td { display: block; width: 100%; }
+  .fac-tabla tr { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); }
+  .fac-tabla tfoot tr { background: var(--surface-alt); }
+  .fac-tabla tfoot td { padding: 2px 0; background: transparent; border: 0; }
+  .fac-tabla td { padding: 2px 0; border: 0; }
+  .fac-tabla td[data-label] { display: flex; justify-content: space-between; gap: 12px; }
+  .fac-tabla td[data-label]::before { content: attr(data-label); color: var(--text-dim); font-weight: 400; }
+  .fac-cerrar { justify-content: flex-start; margin-top: 8px; }
+  .fac-cancelar__form { left: 0; right: auto; }
+}

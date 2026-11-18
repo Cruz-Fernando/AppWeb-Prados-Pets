@@ -1,0 +1,107 @@
+{# RUTA EXACTA (desde la carpeta donde está manage.py): templates/inventario/salida_form.html #}
+{# ACCIÓN: REEMPLAZAR COMPLETO · Rama: Pruebas_V2. Copia TODO; estas líneas son comentarios. #}
+{% extends 'inventario/_layout.html' %}
+{% block titulo %}Quitar unidades{% endblock %}
+{% block migas %}
+  <a href="{{ volver }}">Inventario</a>
+  <span class="app-topbar__sep">›</span>
+  <span class="app-topbar__current">Quitar unidades</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="inv-form-wrap">
+
+{% if not producto %}
+  {# Se entró sin elegir producto: primero se elige cuál #}
+  <div>
+    <h1>Quitar unidades</h1>
+    <p class="inv-sub">Elige el producto. También puedes usar el botón «Quitar» de cada producto en el inventario.</p>
+  </div>
+  <section class="inv-card">
+    <div class="inv-card__head"><h2>Productos con unidades</h2></div>
+    {% if productos %}
+    <ul class="inv-elegir">
+      {% for p in productos %}
+      <li><a href="?producto={{ p.pk }}"><span>{{ p.nombre }}<small>{{ p.codigo }}</small></span><b>{{ p.stock_actual }}</b></a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="inv-vacio">No hay productos con unidades en el inventario.</p>
+    {% endif %}
+  </section>
+
+{% else %}
+  <div class="inv-producto">
+    <span class="inv-producto__ico" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </span>
+    <div>
+      <h1>Quitar unidades · {{ producto.nombre }}</h1>
+      <p>{{ producto.codigo }}{% if producto.medicamento %} · Medicamento{% endif %}</p>
+    </div>
+  </div>
+
+  <div class="inv-cifras">
+    <div class="inv-cifra"><span>Hay ahora</span><b>{{ producto.stock_actual }}</b></div>
+    <div class="inv-cifra{% if producto.necesita_reposicion %} inv-cifra--alerta{% endif %}"><span>Stock mínimo</span><b>{{ producto.stock_minimo }}</b></div>
+    <div class="inv-cifra{% if producto.vencido %} inv-cifra--alerta{% endif %}"><span>Vence</span><b>{% if producto.fecha_vencimiento %}{{ producto.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}</b></div>
+  </div>
+
+  {% if producto.vencido %}
+  <div class="inv-aviso">Este producto está vencido. Para darlo de baja, pulsa «Todo» y elige el motivo «Vencimiento».</div>
+  {% endif %}
+
+  <form method="post" class="inv-card" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="producto" value="{{ producto.pk }}">
+    {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+    <div class="inv-card__head"><h2>¿Cuánto vas a quitar?</h2></div>
+    <div class="inv-card__body">
+      {% for e in form.non_field_errors %}<div class="inv-aviso inv-aviso--peligro">{{ e }}</div>{% endfor %}
+      <div class="inv-grid">
+        <div class="inv-campo{% if form.cantidad.errors %} has-error{% endif %}">
+          <label for="id_cantidad">Cantidad a quitar</label>
+          <div class="inv-con-boton">
+            {{ form.cantidad }}
+            <button type="button" class="inv-btn" id="btn-todo" data-cantidad="{{ producto.stock_actual }}"
+                    data-vencido="{% if producto.vencido %}si{% else %}no{% endif %}">Todo ({{ producto.stock_actual }})</button>
+          </div>
+          {% for e in form.cantidad.errors %}<span class="inv-error">{{ e }}</span>{% endfor %}
+        </div>
+        <div class="inv-campo{% if form.motivo.errors %} has-error{% endif %}">
+          <label for="id_motivo">Motivo</label>
+          {{ form.motivo }}
+          {% for e in form.motivo.errors %}<span class="inv-error">{{ e }}</span>{% endfor %}
+        </div>
+        <div class="inv-campo inv-campo--full">
+          <label for="id_observacion">Observación <span class="inv-ayuda">(opcional)</span></label>
+          {{ form.observacion }}
+        </div>
+      </div>
+    </div>
+    <div class="inv-card__pie">
+      <a href="{{ volver }}" class="inv-btn">Cancelar</a>
+      <button type="submit" class="inv-btn inv-btn--primario">Quitar del inventario</button>
+    </div>
+  </form>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if producto %}
+<script>
+/* «Todo»: pone la cantidad completa; si el producto está vencido, sugiere el motivo */
+(function () {
+  const btn = document.getElementById('btn-todo');
+  const cantidad = document.getElementById('id_cantidad');
+  const motivo = document.getElementById('id_motivo');
+  btn.addEventListener('click', function () {
+    cantidad.value = btn.dataset.cantidad;
+    if (btn.dataset.vencido === 'si' && !motivo.value) motivo.value = 'VENCIMIENTO';
+    (motivo.value ? cantidad : motivo).focus();
+  });
+}());
+</script>
+{% endif %}
+{% endblock %}

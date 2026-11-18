@@ -9,6 +9,9 @@ quemados en el código; si una no está definida, simplemente no se imprime.
     CLINICA_TELEFONO="+57 300 000 0000"
     CLINICA_CORREO="contacto@pradospets.com"
     CLINICA_INSTAGRAM="@pradospets"
+    CLINICA_WHATSAPP="+57 300 000 0000"      (si es distinto del teléfono)
+    CLINICA_HORARIO="Lunes a sábado, 8:00 a. m. – 6:00 p. m."
+    CLINICA_MEDIOS_PAGO="Efectivo, Nequi, Daviplata y transferencia"
 """
 
 import os
@@ -34,6 +37,9 @@ CLINICA = {
     "telefono": os.environ.get("CLINICA_TELEFONO", ""),
     "correo": os.environ.get("CLINICA_CORREO", ""),
     "instagram": os.environ.get("CLINICA_INSTAGRAM", ""),
+    "whatsapp": os.environ.get("CLINICA_WHATSAPP", "") or os.environ.get("CLINICA_TELEFONO", ""),
+    "horario": os.environ.get("CLINICA_HORARIO", ""),
+    "medios_pago": os.environ.get("CLINICA_MEDIOS_PAGO", ""),
 }
 
 

@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import RolForm, UsuarioCreacionForm, UsuarioRolForm
 from .models import Rol, Usuario
+from .notificaciones import obtener_notificaciones
 from .permissions import rol_requerido
 
 
@@ -74,10 +75,19 @@ def dashboard(request):
 
     context = {
         "es_administrador": request.user.es_administrador,
-        # PB-14: los recordatorios del día aparecen solos al entrar al sistema
-        "recordatorios_hoy": calcular_recordatorios()["hoy"],
+        # PB-14: los recordatorios por avisar aparecen solos al entrar al sistema
+        "recordatorios_pendientes": calcular_recordatorios()["pendientes"],
     }
     return render(request, "usuarios/dashboard.html", context)
+
+
+@login_required
+def notificaciones(request):
+    """Contenido de la campana. Lo pide el navegador después de cargar la página."""
+    datos = obtener_notificaciones(request.user)
+    response = render(request, "usuarios/_notificaciones_panel.html", datos)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 # Roles base: el código los referencia por nombre, así que no se pueden

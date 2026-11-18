@@ -9,6 +9,7 @@ urlpatterns = [
     path("login/", views.LoginSeguroView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("panel/", views.dashboard, name="dashboard"),
+    path("notificaciones/", views.notificaciones, name="notificaciones"),
 
     # HU02 — gestión de roles
     path("roles/", views.roles_lista, name="roles_lista"),

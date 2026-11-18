@@ -80,16 +80,41 @@ TIME_ZONE = "America/Bogota"
 USE_I18N = True
 USE_TZ = True
 
+from config.db import comprobar_conexion  # noqa: E402
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'postgres'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
+        'USER': os.environ.get('DB_USER', ''),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', ''),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        # Rendimiento: las conexiones se reutilizan (ver config/db.py).
+        # Con pool, CONN_MAX_AGE debe quedar en 0 (lo exige Django).
+        'CONN_MAX_AGE': 0,
+        # Los cursores del servidor (que Django usa en .iterator() y en los
+        # <select> de formularios) cuestan varias idas y vueltas al pooler;
+        # con el volumen de datos de la clínica no aportan nada.
+        'DISABLE_SERVER_SIDE_CURSORS': True,
+        'OPTIONS': {
+            'pool': {
+                'min_size': 1,
+                # Pocas por proceso: el pooler de Supabase limita las conexiones
+                # totales y todo el equipo comparte la misma base.
+                'max_size': int(os.environ.get('DB_POOL_MAX', '4')),
+                'timeout': 15,          # espera máxima por una conexión libre
+                'max_idle': 300,        # cierra las sobrantes tras 5 min sin uso
+                'max_lifetime': 1800,   # renueva cada conexión a los 30 min
+                'check': comprobar_conexion,
+            },
+        },
     }
 }
+
+# Carga el rol junto con el usuario (una consulta menos en cada página: el menú
+# lateral y los permisos siempre consultan el rol).
+AUTHENTICATION_BACKENDS = ["apps.usuarios.backends.UsuarioConRolBackend"]
 
 STATIC_URL = 'static/'
 

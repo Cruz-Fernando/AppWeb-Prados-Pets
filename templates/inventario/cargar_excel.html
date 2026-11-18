@@ -21,16 +21,22 @@
       <div class="app-topbar__breadcrumb">
         <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
         <span class="app-topbar__sep">›</span>
-        <span class="app-topbar__current">Carga Masiva de Catálogo</span>
+        <a href="{% url 'inventario:lista' %}">Inventario</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Carga masiva desde Excel</span>
       </div>
     </header>
 
     <main class="app-content app-content--wide">
       <div class="card" style="max-width: 800px; margin: 1.5rem auto; background: linear-gradient(170deg, #1C1530, var(--surface, #120e1c)); border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
         <h2 style="color: #fff; margin-bottom: 8px; font-size: 1.5rem; font-weight: 700;">Carga masiva de catálogo (Excel)</h2>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">
           Sube la plantilla de Excel (.xlsx) con la lista de productos, medicamentos y servicios.
         </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;">
+          <a href="{% url 'inventario:descargar_plantilla' %}" class="btn btn--ghost btn--sm">Descargar plantilla vacía</a>
+          <a href="{% url 'inventario:lista' %}" class="btn btn--ghost btn--sm">← Volver al inventario</a>
+        </div>
 
         {% if messages %}
           {% for message in messages %}

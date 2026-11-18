@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
@@ -16,8 +17,10 @@ from apps.agendamiento.recomendaciones import RECOMENDACIONES_PELUQUERIA
 from apps.directorio.models import Mascota
 from apps.inventario.services import StockInsuficiente, avisos_stock_bajo
 from apps.usuarios.permissions import rol_requerido
+from config.marca import contexto_marca
 from config.pdf import render_pdf
 
+from . import confirmacion
 from .insumos import descontar_insumos_cita, vista_previa
 from .models import CitaPeluqueria
 
@@ -25,6 +28,15 @@ Usuario = get_user_model()
 
 # Mismos roles que ven «Peluquería» en el menú lateral.
 ROLES_PELUQUERIA = ('administrador', 'groomer', 'auxiliar')
+
+# Cuándo recordar el próximo baño (pantalla Recordatorios). Por defecto, 1 mes.
+INTERVALOS_BANO = [
+    (7, 'En 1 semana'),
+    (15, 'En 15 días'),
+    (30, 'En 1 mes'),
+    (45, 'En 45 días'),
+    (60, 'En 2 meses'),
+]
 
 # Duración sugerida del servicio según el tamaño de la mascota (minutos).
 DURACION_POR_TAMANO = {'PEQUENO': 60, 'MEDIANO': 90, 'GRANDE': 120}
@@ -117,6 +129,8 @@ def _guardar_borrador(request, mascota=None):
     request.session['peluqueria_borrador'] = {
         'mascota':       _mascota_a_dict(mascota) if mascota else None,
         'servicio':      request.POST.get('servicio', ''),
+        'condicion_pelaje': request.POST.get('condicion_pelaje', ''),
+        'intervalo_recordatorio_dias': request.POST.get('intervalo_recordatorio_dias', ''),
         'groomer_id':    request.POST.get('groomer_id', ''),
         'fecha_hora':    request.POST.get('fecha_hora', ''),
         'duracion_min':  request.POST.get('duracion_min', ''),
@@ -144,18 +158,29 @@ def panel_peluqueria(request):
     # el navegador descarga el comprobante a partir de este enlace.
     descargar_url = None
     cita_creada = None
+    whatsapp_cliente = pdf_cliente_url = ''
     descargar = request.GET.get('descargar', '')
     if descargar.isdigit():
-        cita_creada = CitaPeluqueria.objects.select_related('groomer').filter(pk=int(descargar)).first()
+        cita_creada = (CitaPeluqueria.objects.select_related('groomer', 'mascota__id_dueno')
+                       .filter(pk=int(descargar)).first())
         if cita_creada:
             descargar_url = reverse('peluqueria:comprobante_pdf', args=[cita_creada.pk])
+            whatsapp_cliente = confirmacion.enlace_whatsapp_cita(
+                request, cita_creada, _formatear_precio(cita_creada.precio))
+            pdf_cliente_url = confirmacion.url_publica(request, cita_creada)
 
     return render(request, 'peluqueria/agendar_peluqueria.html', {
         'groomers': groomers,
         'opciones_duracion': OPCIONES_DURACION,
         'servicios': CitaPeluqueria.SERVICIO_CHOICES,
+        'intervalos_bano': INTERVALOS_BANO,
         'descargar_url': descargar_url,
         'cita_creada': cita_creada,
+        'whatsapp_cliente': whatsapp_cliente,
+        'pdf_cliente_url': pdf_cliente_url,
+        'comision_formateada': (
+            _formatear_precio(cita_creada.comision_groomer) if cita_creada else None
+        ),
         'ahora_min': timezone.localtime().strftime('%Y-%m-%dT%H:%M'),
         'borrador': request.session.pop('peluqueria_borrador', None),
         'insumos_previa': vista_previa(),
@@ -201,7 +226,14 @@ def guardar_cita(request):
     if servicio not in dict(CitaPeluqueria.SERVICIO_CHOICES):
         return _rechazar(request, 'Selecciona un tipo de servicio válido.', mascota)
 
-    # 3. Groomer: debe ser un usuario activo con rol de groomer
+    # 3. Condición del pelaje: debe quedar registrada con la atención.
+    condicion_pelaje = (request.POST.get('condicion_pelaje') or '').strip()
+    if not condicion_pelaje:
+        return _rechazar(request, 'Describe la condición del pelaje de la mascota.', mascota)
+    if len(condicion_pelaje) > 100:
+        return _rechazar(request, 'La condición del pelaje no puede superar 100 caracteres.', mascota)
+
+    # 4. Groomer: debe ser un usuario activo con rol de groomer
     groomer = None
     groomer_id = (request.POST.get('groomer_id') or '').strip()
     if groomer_id.isdigit():
@@ -211,7 +243,7 @@ def guardar_cita(request):
     if groomer is None:
         return _rechazar(request, 'Selecciona un groomer activo para la cita.', mascota)
 
-    # 4. Fecha y hora (con zona horaria) y que no sea pasada
+    # 5. Fecha y hora (con zona horaria) y que no sea pasada
     fecha_hora = _parsear_fecha_hora(request.POST.get('fecha_hora'))
     if fecha_hora is None:
         return _rechazar(request, 'Indica una fecha y hora válidas para la cita.', mascota)
@@ -222,7 +254,7 @@ def guardar_cita(request):
             mascota,
         )
 
-    # 5. Duración: la que eligió el usuario (si es válida); si no eligió, la sugerida por tamaño
+    # 6. Duración: la que eligió el usuario (si es válida); si no eligió, la sugerida por tamaño
     duracion_txt = (request.POST.get('duracion_min') or '').strip()
     if duracion_txt:
         if not duracion_txt.isdigit() or int(duracion_txt) not in DURACIONES_PERMITIDAS:
@@ -231,7 +263,7 @@ def guardar_cita(request):
     else:
         duracion_min = _duracion_por_defecto(mascota.tamano)
 
-    # 6. Precio: número entero de pesos, mayor que cero
+    # 7. Precio ingresado manualmente: número entero de pesos, mayor que cero
     precio = _parsear_precio(request.POST.get('precio'))
     if precio <= 0:
         return _rechazar(request, 'Ingresa el precio del servicio (debe ser mayor a $0).', mascota)
@@ -242,7 +274,7 @@ def guardar_cita(request):
             mascota,
         )
 
-    # 7. El groomer no puede tener dos citas que se crucen
+    # 8. El groomer no puede tener dos citas que se crucen
     if _groomer_ocupado(groomer, fecha_hora, duracion_min):
         return _rechazar(
             request,
@@ -251,12 +283,13 @@ def guardar_cita(request):
             mascota,
         )
 
-    # 8. PB-17: se crea la cita y se descuentan sus insumos en una sola operación.
+    # 9. PB-17: se crea la cita y se descuentan sus insumos en una sola operación.
     #    Si un insumo no alcanza, no se agenda nada y se explica cuál falta.
     try:
         with transaction.atomic():
             cita, movimientos = _crear_cita_con_insumos(request, mascota, servicio, fecha_hora,
-                                                        duracion_min, precio, groomer)
+                                                        duracion_min, precio, groomer,
+                                                        condicion_pelaje)
     except StockInsuficiente as error:
         return _rechazar(
             request,
@@ -274,13 +307,21 @@ def guardar_cita(request):
     return redirect(reverse('peluqueria:panel_peluqueria') + f'?descargar={cita.pk}')
 
 
-def _crear_cita_con_insumos(request, mascota, servicio, fecha_hora, duracion_min, precio, groomer):
+def _crear_cita_con_insumos(
+    request, mascota, servicio, fecha_hora, duracion_min, precio, groomer, condicion_pelaje
+):
+    extra = {}
+    intervalo = (request.POST.get('intervalo_recordatorio_dias') or '').strip()
+    if servicio == 'BANO' and intervalo.isdigit() and 1 <= int(intervalo) <= 3650:
+        extra['intervalo_recordatorio_dias'] = int(intervalo)
     cita = CitaPeluqueria.objects.create(
+        **extra,
         mascota=mascota,
         nombre_mascota=mascota.nombre,
         raza=mascota.raza or 'No especificada',
         tamano=(mascota.tamano or 'pequeno').upper(),
         servicio=servicio,
+        condicion_pelaje=condicion_pelaje,
         fecha_hora=fecha_hora,
         duracion_estimada_min=duracion_min,
         precio=precio,
@@ -313,3 +354,48 @@ def comprobante_pdf(request, pk):
         'precio_formateado': _formatear_precio(cita.precio) if cita.precio else 'Valor no especificado',
         'recomendaciones': RECOMENDACIONES_PELUQUERIA,
     }, f'Peluqueria_{cita.pk:05d}_{slugify(cita.nombre_mascota)}')
+
+def confirmacion_cliente(request, token):
+    """
+    PDF de confirmación para el dueño de la mascota. Público: se entra con el
+    enlace firmado que se manda por WhatsApp (no pide iniciar sesión).
+    """
+    try:
+        pk = confirmacion.cita_desde_token(token)
+    except signing.BadSignature:
+        return render(request, 'peluqueria/confirmacion_no_disponible.html',
+                      {'motivo': 'invalido', **contexto_marca()}, status=404)
+
+    cita = (CitaPeluqueria.objects.select_related('groomer', 'mascota__id_dueno')
+            .filter(pk=pk).first())
+    if cita is None or cita.estado == 'Cancelada':
+        return render(request, 'peluqueria/confirmacion_no_disponible.html',
+                      {'motivo': 'cancelada' if cita else 'invalido', 'cita': cita, **contexto_marca()},
+                      status=410 if cita else 404)
+    if confirmacion.enlace_vencido(cita):
+        return render(request, 'peluqueria/confirmacion_no_disponible.html',
+                      {'motivo': 'vencido', 'cita': cita, **contexto_marca()}, status=410)
+
+    duracion = cita.duracion_estimada_min or 60
+    inicio = timezone.localtime(cita.fecha_hora)
+    nombre_mascota = cita.mascota.nombre if cita.mascota else cita.nombre_mascota
+    respuesta = render_pdf(request, 'peluqueria/pdf_cliente.html', {
+        'cita': cita,
+        'mascota': cita.mascota,
+        'nombre_mascota': nombre_mascota,
+        'dueno_nombre': confirmacion.nombre_corto(
+            cita.mascota.id_dueno.nombre_completo if cita.mascota else ''),
+        'groomer_nombre': confirmacion.nombre_corto(cita.groomer.nombre_completo) if cita.groomer else '',
+        'inicio': inicio,
+        'llegada': inicio - timedelta(minutes=10),
+        'entrega': inicio + timedelta(minutes=duracion),
+        'duracion_texto': _etiqueta_duracion(duracion),
+        'precio_formateado': _formatear_precio(cita.precio) if cita.precio else 'Por confirmar',
+        'codigo_reserva': confirmacion.codigo_reserva(cita),
+        'proximo_bano': confirmacion.proximo_bano(cita),
+        'antes_de_venir': confirmacion.ANTES_DE_VENIR,
+    }, f'Confirmacion_{confirmacion.codigo_reserva(cita)}_{slugify(nombre_mascota)}', descargar=False)
+    # El enlace es privado: que no lo guarden cachés compartidas ni buscadores.
+    respuesta['Cache-Control'] = 'private, no-store'
+    respuesta['X-Robots-Tag'] = 'noindex, nofollow'
+    return respuesta

@@ -1,10 +1,10 @@
-1{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static l10n %}
 
 {% block title %}Calendario · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=11">
 
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -160,7 +160,8 @@
                  data-estado="{{ e.estado_display }}"
                  {% if e.id_cita %}data-cancelar-url="{% url 'agendamiento:cancelar_cita' e.id_cita %}"{% endif %}
                  data-cancelable="{% if e.cancelable %}1{% else %}0{% endif %}"
-                 data-motivo="{{ e.motivo_cancelacion }}">
+                 data-motivo="{{ e.motivo_cancelacion }}"
+                 {% if e.pdf_cliente_url %}data-pdf-cliente="{{ e.pdf_cliente_url }}" data-whatsapp="{{ e.whatsapp_url }}"{% endif %}>
               <span class="cal-event__head">
                 <span class="cal-event__time">{{ e.inicio|time:"g:i a" }}</span>
                 <span class="cal-event__title">{{ e.titulo }}</span>
@@ -176,7 +177,7 @@
 
         {% if not total_citas and not total_canceladas %}
         <div class="cal-empty">
-          <img src="{% static 'img/mascotas_prados_pets.png' %}" alt="" class="cal-empty__img">
+          <img src="{% static 'img/mascotas_prados_pets.webp' %}" alt="" class="cal-empty__img">
           <h3>Agenda libre</h3>
           <p>No hay citas {% if vista == 'dia' %}para este día{% else %}esta semana{% endif %}. ¡Buen momento para agendar!</p>
           <a href="{% url 'agendamiento:agendar_cita' %}" class="cal-btn cal-btn--consulta">Agendar cita</a>
@@ -208,6 +209,11 @@
       <div class="cal-modal__full"><dt id="cal-modal-resp-label">Responsable</dt><dd id="cal-modal-resp"></dd></div>
       <div class="cal-modal__full" id="cal-modal-motivo-box" hidden><dt>Motivo de cancelación</dt><dd id="cal-modal-motivo"></dd></div>
     </dl>
+    <!-- Peluquería: reenviar la confirmación al cliente -->
+    <div class="cal-enviar" id="cal-enviar" hidden>
+      <a class="cal-enviar__wa" id="cal-enviar-wa" target="_blank" rel="noopener">Enviar confirmación por WhatsApp</a>
+      <a class="cal-enviar__pdf" id="cal-enviar-pdf" target="_blank" rel="noopener">Ver PDF del cliente</a>
+    </div>
     <!-- RF05: cancelación de la cita (solo consultas programadas) -->
     <div class="cal-cancel" id="cal-cancel" hidden>
       <button type="button" class="cal-cancel__toggle" id="cal-cancel-toggle" aria-expanded="false" aria-controls="cal-cancel-form">
@@ -233,5 +239,5 @@
   </div>
 </div>
 
-<script src="{% static 'js/calendario.js' %}?v=3" defer></script>
+<script src="{% static 'js/calendario.js' %}?v=4" defer></script>
 {% endblock %}

@@ -368,24 +368,42 @@ class TrazaClinica(models.Model):
     def __str__(self):
         return f"{self.fecha:%d/%m/%Y %H:%M} · {self.get_accion_display()} · {self.mascota.nombre}"
 
+class AvisoRecordatorio(models.Model):
+    """
+    Marca que alguien ya avisó al propietario de un recordatorio
+    (vacunación o baño) para una fecha concreta.
 
-class RecetaItem(models.Model):
-    """Una línea del récipe médico de un registro clínico (PB-15 / RF07)."""
+    Los recordatorios se calculan al vuelo (apps/clinico/recordatorios.py), así
+    que aquí solo se guarda quién avisó y cuándo. Mientras no exista esta marca,
+    el recordatorio sigue apareciendo en las notificaciones aunque su día ya haya
+    pasado (hasta DIAS_ATRASO días), para que no se pierda si nadie entró ese día.
+    """
 
-    registro = models.ForeignKey(RegistroClinico, on_delete=models.CASCADE,
-                                 related_name='receta_items')
-    producto = models.ForeignKey('inventario.Producto', on_delete=models.PROTECT,
-                                 related_name='usos_en_recetas', verbose_name="Medicamento")
-    dosis = models.CharField(max_length=100, verbose_name="Dosis")
-    frecuencia = models.CharField(max_length=100, verbose_name="Frecuencia")
-    duracion = models.CharField(max_length=100, verbose_name="Duración")
-    indicaciones = models.CharField(max_length=500, blank=True, verbose_name="Indicaciones")
-    orden = models.PositiveSmallIntegerField(default=0)
+    TIPO_CHOICES = [
+        ('vacunacion', 'Vacunación'),
+        ('bano', 'Baño'),
+    ]
+
+    tipo = models.CharField(max_length=12, choices=TIPO_CHOICES)
+    # Cita (vacunación) o CitaPeluqueria (baño), según `tipo`.
+    cita_id = models.PositiveIntegerField()
+    fecha_recordatorio = models.DateField()
+    avisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='avisos_recordatorio',
+    )
+    avisado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['orden', 'pk']
-        verbose_name = "Medicamento del récipe"
-        verbose_name_plural = "Medicamentos del récipe"
+        verbose_name = "Aviso de recordatorio"
+        verbose_name_plural = "Avisos de recordatorios"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tipo', 'cita_id', 'fecha_recordatorio'],
+                name='aviso_recordatorio_unico',
+            ),
+        ]
+        indexes = [models.Index(fields=['fecha_recordatorio'], name='clinico_aviso_fecha_idx')]
 
     def __str__(self):
-        return f"{self.producto.nombre} · {self.dosis} · {self.frecuencia} · {self.duracion}"
+        return f"{self.get_tipo_display()} · cita {self.cita_id} · {self.fecha_recordatorio:%d/%m/%Y}"

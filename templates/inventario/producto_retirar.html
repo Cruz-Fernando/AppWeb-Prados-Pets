@@ -1,0 +1,64 @@
+{% extends 'inventario/_layout.html' %}
+{% block titulo %}Retirar producto{% endblock %}
+{% block migas %}
+  <a href="{{ volver }}">Inventario</a>
+  <span class="app-topbar__sep">›</span>
+  <span class="app-topbar__current">Retirar producto</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="inv-form-wrap">
+  <div class="inv-producto">
+    <span class="inv-producto__ico" aria-hidden="true" style="color:#f87171;background:rgba(239,68,68,.12);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </span>
+    <div>
+      <h1>Retirar «{{ producto.nombre }}»</h1>
+      <p>{{ producto.codigo }}{% if producto.medicamento %} · Medicamento{% endif %}</p>
+    </div>
+  </div>
+
+  <div class="inv-aviso">
+    El producto deja de aparecer en el inventario, en el buscador de la consulta y en los insumos de peluquería.
+    <b>No se borra:</b> su historial sigue en el Kardex y puedes reactivarlo desde la pestaña «Retirados».
+  </div>
+
+  {% if producto.stock_actual %}
+  <div class="inv-aviso inv-aviso--peligro">
+    Todavía tiene <b>{{ producto.stock_actual }} unidad{{ producto.stock_actual|pluralize:"es" }}</b>.
+    Al retirarlo se darán de baja todas con el motivo que elijas.
+  </div>
+  {% endif %}
+  {% if en_servicios %}
+  <div class="inv-aviso">Está configurado en {{ en_servicios }} insumo{{ en_servicios|pluralize }} de peluquería; dejará de descontarse en esos servicios.</div>
+  {% endif %}
+
+  <form method="post" class="inv-card" novalidate>
+    {% csrf_token %}
+    {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+    <div class="inv-card__head"><h2>Confirmar retiro</h2></div>
+    <div class="inv-card__body">
+      <div class="inv-grid">
+        {% if producto.stock_actual %}
+        <div class="inv-campo">
+          <label for="id_motivo">{{ form.motivo.label }}</label>
+          {{ form.motivo }}
+        </div>
+        {% endif %}
+        <div class="inv-campo{% if not producto.stock_actual %} inv-campo--full{% endif %}">
+          <label for="id_observacion">Observación <span class="inv-ayuda">(opcional)</span></label>
+          {{ form.observacion }}
+        </div>
+        <div class="inv-campo inv-campo--full{% if form.confirmar.errors %} has-error{% endif %}">
+          <label class="inv-check">{{ form.confirmar }} <span>{{ form.confirmar.label }}</span></label>
+          {% for e in form.confirmar.errors %}<span class="inv-error">{{ e }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="inv-card__pie">
+      <a href="{{ volver }}" class="inv-btn">Cancelar</a>
+      <button type="submit" class="inv-btn inv-btn--peligro">Retirar del inventario</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

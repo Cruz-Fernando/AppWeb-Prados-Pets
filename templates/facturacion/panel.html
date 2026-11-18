@@ -1,0 +1,203 @@
+{% extends 'inventario/_layout.html' %}
+{% load static %}
+{% block titulo %}Facturación{% endblock %}
+{% block migas %}<span class="app-topbar__current">Facturación · Ganancias por groomer</span>{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=1">
+
+<div class="fac-head">
+  <div>
+    <h1>{% if es_groomer %}Mis ganancias{% else %}Ganancias por groomer{% endif %}</h1>
+    <p class="inv-sub">Comisión del 40 % sobre cada servicio de peluquería <b>realizado</b>. Del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}.</p>
+  </div>
+  <a href="{% url 'facturacion:exportar_excel' %}?{{ query }}" class="inv-btn">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Exportar Excel
+  </a>
+</div>
+
+<!-- Filtros: periodo y groomer -->
+<form method="get" class="fac-filtros" id="form-filtros">
+  <div class="fac-periodos" role="radiogroup" aria-label="Periodo">
+    {% for clave, nombre in periodos %}
+    <label class="fac-periodo{% if periodo == clave %} is-activo{% endif %}">
+      <input type="radio" name="periodo" value="{{ clave }}" {% if periodo == clave %}checked{% endif %}>
+      <span>{{ nombre }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <div class="fac-rango"{% if periodo != 'rango' %} hidden{% endif %} id="fac-rango">
+    <label>Desde <input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}"></label>
+    <label>Hasta <input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}"></label>
+    <button type="submit" class="inv-btn">Ver</button>
+  </div>
+  {% if not es_groomer %}
+  <label class="fac-groomer">
+    <span class="sr-only">Groomer</span>
+    <select name="groomer" id="fac-groomer">
+      <option value="">Todos los groomers</option>
+      {% for g in groomers %}<option value="{{ g.pk }}" {% if groomer and groomer.pk == g.pk %}selected{% endif %}>{{ g.nombre_completo|default:g.username }}</option>{% endfor %}
+    </select>
+  </label>
+  {% endif %}
+  <noscript><button type="submit" class="inv-btn">Aplicar</button></noscript>
+</form>
+
+<!-- Totales -->
+<div class="fac-kpis">
+  {% if es_groomer %}
+  <div class="fac-kpi fac-kpi--destacado"><span>Tu comisión ganada</span><b>${{ r.comision|floatformat:"0g" }}</b><small>{{ r.servicios }} servicio{{ r.servicios|pluralize }} realizado{{ r.servicios|pluralize }}</small></div>
+  <div class="fac-kpi"><span>Facturado por tus servicios</span><b>${{ r.facturado|floatformat:"0g" }}</b></div>
+  {% else %}
+  <div class="fac-kpi"><span>Facturado (realizados)</span><b>${{ r.facturado|floatformat:"0g" }}</b><small>{{ r.servicios }} servicio{{ r.servicios|pluralize }}</small></div>
+  <div class="fac-kpi fac-kpi--destacado"><span>Comisiones a pagar (40 %)</span><b>${{ r.comision|floatformat:"0g" }}</b></div>
+  <div class="fac-kpi"><span>Queda a la clínica (60 %)</span><b>${{ r.clinica|floatformat:"0g" }}</b></div>
+  {% endif %}
+  <div class="fac-kpi{% if r.por_cerrar %} fac-kpi--alerta{% endif %}"><span>Por cerrar</span><b>{{ r.por_cerrar }}</b><small>ya pasaron y siguen programados</small></div>
+</div>
+
+{% if r.por_cerrar %}
+<div class="inv-aviso">
+  {{ r.por_cerrar }} servicio{{ r.por_cerrar|pluralize }} ya pasó{{ r.por_cerrar|pluralize:"aron" }} y sigue{{ r.por_cerrar|pluralize:"n" }} como «Programada». No cuenta{{ r.por_cerrar|pluralize:"n" }} para la comisión hasta marcarlo{{ r.por_cerrar|pluralize }} como <b>Realizada</b>{% if puede_cerrar %} en el detalle de abajo{% else %}; pídeselo al administrador o al auxiliar{% endif %}.
+</div>
+{% endif %}
+
+<!-- Por groomer -->
+{% if not es_groomer %}
+<section class="inv-tabla-wrap">
+  <table class="inv-tabla fac-tabla">
+    <thead>
+      <tr>
+        <th>Groomer</th>
+        <th class="inv-num">Servicios</th>
+        <th class="inv-num">Facturado</th>
+        <th class="inv-num">Comisión 40 %</th>
+        <th class="inv-num">Clínica</th>
+        <th class="inv-num">Por cerrar</th>
+        <th class="inv-num">Agendado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in r.filas %}
+      <tr>
+        <td class="inv-prod">
+          {% if f.groomer %}<a href="?{% if periodo == 'rango' %}periodo=rango&amp;desde={{ desde|date:'Y-m-d' }}&amp;hasta={{ hasta|date:'Y-m-d' }}{% else %}periodo={{ periodo }}{% endif %}&amp;groomer={{ f.groomer.pk }}" class="fac-nombre">{{ f.nombre }}</a>
+          {% else %}<b class="fac-sin">{{ f.nombre }}</b>{% endif %}
+        </td>
+        <td class="inv-num" data-label="Servicios">{{ f.servicios }}</td>
+        <td class="inv-num" data-label="Facturado">${{ f.facturado|floatformat:"0g" }}</td>
+        <td class="inv-num fac-comision" data-label="Comisión 40 %">${{ f.comision|floatformat:"0g" }}</td>
+        <td class="inv-num" data-label="Clínica">${{ f.clinica|floatformat:"0g" }}</td>
+        <td class="inv-num" data-label="Por cerrar">{% if f.por_cerrar %}<span class="inv-tag inv-tag--aviso">{{ f.por_cerrar }}</span>{% else %}—{% endif %}</td>
+        <td class="inv-num fac-tenue" data-label="Agendado">{% if f.agendados %}{{ f.agendados }} · ${{ f.agendado_comision|floatformat:"0g" }}{% else %}—{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="inv-vacio">No hay servicios de peluquería en este periodo.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if r.filas|length > 1 %}
+    <tfoot>
+      <tr>
+        <td><b>Total</b></td>
+        <td class="inv-num" data-label="Servicios"><b>{{ r.servicios }}</b></td>
+        <td class="inv-num" data-label="Facturado"><b>${{ r.facturado|floatformat:"0g" }}</b></td>
+        <td class="inv-num fac-comision" data-label="Comisión 40 %"><b>${{ r.comision|floatformat:"0g" }}</b></td>
+        <td class="inv-num" data-label="Clínica"><b>${{ r.clinica|floatformat:"0g" }}</b></td>
+        <td class="inv-num" data-label="Por cerrar"><b>{{ r.por_cerrar }}</b></td>
+        <td class="inv-num" data-label="Agendado"><b>{{ r.agendados }}</b></td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</section>
+{% endif %}
+
+<!-- Detalle de servicios -->
+<section class="inv-tabla-wrap">
+  <div class="fac-detalle-head">
+    <h2>Servicios {% if groomer %}de {{ groomer.nombre_completo|default:groomer.username }}{% endif %}</h2>
+    {% if groomer and not es_groomer %}<a href="?{% if periodo == 'rango' %}periodo=rango&amp;desde={{ desde|date:'Y-m-d' }}&amp;hasta={{ hasta|date:'Y-m-d' }}{% else %}periodo={{ periodo }}{% endif %}" class="fac-link">Ver todos los groomers</a>{% endif %}
+  </div>
+  <table class="inv-tabla fac-tabla fac-detalle">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        {% if not groomer %}<th>Groomer</th>{% endif %}
+        <th>Mascota y servicio</th>
+        <th class="inv-num">Precio</th>
+        <th class="inv-num">Comisión</th>
+        <th>Estado</th>
+        {% if puede_cerrar %}<th class="inv-num"><span class="sr-only">Cerrar</span></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in r.citas %}
+      <tr class="fac-fila--{{ c.estado_cobro }}">
+        <td class="fac-fecha">{{ c.fecha_hora|date:"D d/m" }}<small>{{ c.fecha_hora|date:"h:i A" }}</small></td>
+        {% if not groomer %}<td>{% if c.groomer %}{{ c.groomer.nombre_completo|default:c.groomer.username }}{% else %}<span class="fac-sin">Sin groomer</span>{% endif %}</td>{% endif %}
+        <td class="inv-prod"><b>{{ c.nombre_mascota }}</b><small>{{ c.get_servicio_display }}</small></td>
+        <td class="inv-num" data-label="Precio">${{ c.precio|floatformat:"0g" }}</td>
+        <td class="inv-num{% if c.estado_cobro == 'ganado' %} fac-comision{% else %} fac-tenue{% endif %}" data-label="Comisión">${{ c.comision_calculada|floatformat:"0g" }}</td>
+        <td>
+          {% if c.estado_cobro == 'ganado' %}<span class="inv-tag">Realizada</span>
+          {% elif c.estado_cobro == 'por_cerrar' %}<span class="inv-tag inv-tag--aviso">Por cerrar</span>
+          {% elif c.estado_cobro == 'agendado' %}<span class="inv-tag inv-tag--gris">Agendada</span>
+          {% else %}<span class="inv-tag inv-tag--bajo">Cancelada</span>{% endif %}
+        </td>
+        {% if puede_cerrar %}
+        <td>
+          {% if c.estado_cobro == 'por_cerrar' %}
+          <div class="fac-cerrar">
+            <form method="post" action="{% url 'facturacion:cerrar_servicio' c.pk %}">
+              {% csrf_token %}<input type="hidden" name="query" value="{{ query }}">
+              <button type="submit" name="accion" value="realizada" class="inv-mini inv-mini--anadir">Realizada</button>
+            </form>
+            <details class="fac-cancelar">
+              <summary class="inv-mini inv-mini--icono" aria-label="Cancelar el servicio de {{ c.nombre_mascota }}">Cancelar</summary>
+              <form method="post" action="{% url 'facturacion:cerrar_servicio' c.pk %}" class="fac-cancelar__form">
+                {% csrf_token %}<input type="hidden" name="query" value="{{ query }}">
+                <input type="text" name="motivo" placeholder="Motivo (opcional)" maxlength="200" aria-label="Motivo de la cancelación">
+                <button type="submit" name="accion" value="cancelada" class="inv-mini inv-mini--quitar">Confirmar</button>
+              </form>
+            </details>
+          </div>
+          {% endif %}
+        </td>
+        {% endif %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="inv-vacio">No hay servicios en este periodo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Cambiar el periodo o el groomer aplica el filtro al momento */
+(function () {
+  const form = document.getElementById('form-filtros');
+  const rango = document.getElementById('fac-rango');
+  form.querySelectorAll('input[name="periodo"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      form.querySelectorAll('.fac-periodo').forEach(l => l.classList.toggle('is-activo', l.contains(r) && r.checked));
+      if (r.value === 'rango') { rango.hidden = false; rango.querySelector('input').focus(); return; }
+      enviar();
+    });
+  });
+  // Las fechas solo viajan cuando el periodo es «Elegir fechas»; el groomer vacío no viaja
+  function enviar() {
+    const enRango = form.querySelector('input[name="periodo"]:checked').value === 'rango';
+    rango.querySelectorAll('input').forEach(i => { i.disabled = !enRango; });
+    const g = document.getElementById('fac-groomer');
+    if (g && !g.value) g.disabled = true;
+    form.submit();
+  }
+  form.addEventListener('submit', function (e) { e.preventDefault(); enviar(); });
+  const groomer = document.getElementById('fac-groomer');
+  if (groomer) groomer.addEventListener('change', enviar);
+}());
+</script>
+{% endblock %}

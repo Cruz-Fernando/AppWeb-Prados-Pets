@@ -14,16 +14,14 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["DB_NAME"],
-        "USER": os.environ["DB_USER"],
-        "PASSWORD": os.environ["DB_PASSWORD"],
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
-    }
-}
+# La conexión (con su pool) se define en base.py. En producción las
+# credenciales son obligatorias: si falta alguna, la app no arranca (KeyError).
+DATABASES["default"].update({  # noqa: F405
+    "NAME": os.environ["DB_NAME"],
+    "USER": os.environ["DB_USER"],
+    "PASSWORD": os.environ["DB_PASSWORD"],
+    "HOST": os.environ.get("DB_HOST", "localhost"),
+})
 
 # Whitenoise sirve los archivos estáticos sin necesitar Nginx
 

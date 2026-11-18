@@ -58,6 +58,7 @@ class DuracionYPrecioTests(TestCase):
             "groomer_id": self.groomer.pk,
             "fecha_hora": self.manana.strftime("%Y-%m-%dT%H:%M"),
             "precio": "$50.000",
+            "condicion_pelaje": "Normal",
             "observaciones": "",
         }
         datos.update(cambios)

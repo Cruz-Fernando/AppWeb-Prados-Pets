@@ -163,6 +163,20 @@ class CancelarCitaRF05Tests(TestCase):
         self.assertEqual(nueva.estado, "programada")
         self.assertEqual(Cita.objects.filter(veterinario=self.vet, fecha=self.fecha).count(), 2)
 
+    def test_vacunacion_guarda_cuando_recordar_la_proxima(self):
+        datos = {
+            "mascota": self.mascota.pk, "veterinario": self.vet.pk, "tipo_servicio": "vacunacion",
+            "fecha": self.fecha.isoformat(), "hora_inicio": "15:00", "hora_fin": "15:30",
+        }
+        form = CitaForm({**datos, "intervalo_recordatorio_dias": "21"})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().intervalo_recordatorio_dias, 21)
+        # Sin elegir, queda 1 año
+        form = CitaForm({**datos, "hora_inicio": "16:00", "hora_fin": "16:30"})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().intervalo_recordatorio_dias, 365)
+        self.assertFalse(CitaForm({**datos, "intervalo_recordatorio_dias": "999"}).is_valid())
+
     def test_calendario_muestra_cancelada_tachada_con_motivo_y_boton(self):
         url_cal = reverse("agendamiento:calendario") + f"?vista=dia&fecha={self.fecha.isoformat()}"
         html = self.client.get(url_cal).content.decode()

@@ -1,0 +1,128 @@
+{% extends "agendamiento/pdf_base.html" %}
+{% comment %}
+  Confirmación de la cita de peluquería que recibe el dueño por WhatsApp.
+  No lleva datos internos (observaciones del personal, comisión, teléfono o
+  dirección del propietario). Lo genera peluqueria.views.confirmacion_cliente.
+{% endcomment %}
+{% block titulo %}Confirmación {{ codigo_reserva }}{% endblock %}
+{% block eslogan %}Peluquería &amp; Spa para mascotas{% endblock %}
+{% block tipo_doc %}Confirmación de cita{% endblock %}
+{% block numero %}{{ codigo_reserva }}{% endblock %}
+
+{% block estilos %}
+  .hola { margin-top: 7pt; }
+  .hola td { vertical-align: middle; }
+  .saludo { font-size: 11pt; font-weight: bold; color: {{ marca.texto }}; }
+  .intro { font-size: 8.4pt; color: {{ marca.gris }}; margin-top: 2pt; }
+  .mascota { font-size: 22pt; font-weight: bold; color: {{ marca.rosa }}; line-height: 1; margin-top: 3pt; }
+  .ok { text-align: right; width: 34%; }
+  .ok span { color: #15803D; background-color: #DCFCE7; font-size: 7.5pt; font-weight: bold; padding: 3pt 7pt; }
+
+  .tarjeta { margin-top: 8pt; border: 1px solid {{ marca.borde }}; }
+  .tarjeta td { padding: 4pt 8pt; }
+  .tarjeta .cabeza { background-color: {{ marca.suave }}; font-size: 6.8pt; font-weight: bold; color: {{ marca.primario_oscuro }};
+                     text-transform: uppercase; letter-spacing: .5pt; padding: 2pt 8pt; }
+
+
+  .costo td { background-color: {{ marca.primario }}; color: #ffffff; padding: 4pt 10pt; vertical-align: middle; }
+  .costo .et-costo { font-size: 8pt; text-transform: uppercase; letter-spacing: .5pt; }
+  .costo .monto { text-align: right; font-size: 16pt; font-weight: bold; }
+  .pago { font-size: 7.5pt; color: {{ marca.gris }}; margin-top: 3pt; text-align: right; }
+
+  .lista td { padding: 1.2pt 0; font-size: 8pt; }
+  .lista .vi { width: 11pt; color: {{ marca.verde }}; font-weight: bold; }
+
+  .proximo { margin-top: 8pt; background-color: #FFF7ED; border-left: 4pt solid #F59E0B; }
+  .proximo td { padding: 4pt 9pt; font-size: 8pt; color: {{ marca.texto }}; }
+  .proximo b { color: #B45309; }
+
+  .ayuda { margin-top: 8pt; background-color: {{ marca.suave }}; }
+  .ayuda td { padding: 5pt 9pt 3pt; font-size: 8pt; }
+  .ayuda .titulo { font-size: 9pt; font-weight: bold; color: {{ marca.primario_oscuro }}; }
+
+  .contacto { background-color: {{ marca.suave }}; }
+  .contacto td { padding: 1pt 9pt; font-size: 7.6pt; }
+  .contacto .k { width: 28%; color: {{ marca.gris }}; }
+
+  .gracias { margin-top: 8pt; text-align: center; font-size: 9pt; color: {{ marca.primario_oscuro }}; font-weight: bold; }
+  .gracias-sub { text-align: center; font-size: 7.5pt; color: {{ marca.gris }}; margin-top: 2pt; }
+{% endblock %}
+
+{% block contenido %}
+
+<!-- Saludo -->
+<table class="hola"><tr>
+  <td>
+    <div class="saludo">{% if dueno_nombre %}¡Hola, {{ dueno_nombre }}!{% else %}¡Hola!{% endif %}</div>
+    <div class="intro">Ya tenemos todo listo para consentir a</div>
+    <div class="mascota">{{ nombre_mascota }}</div>
+  </td>
+  <td class="ok"><span>CITA CONFIRMADA</span></td>
+</tr></table>
+
+<!-- Cuándo -->
+<table class="cuando"><tr>
+  <td style="width:36%;">
+    <div class="et">Fecha</div>
+    <div class="grande">{{ inicio|date:"j \d\e F"|lower }}</div>
+    <div class="sub">{{ inicio|date:"l, Y"|capfirst }}</div>
+  </td>
+  <td style="width:32%;">
+    <div class="et">Hora de la cita</div>
+    <div class="grande">{{ inicio|time:"g:i a" }}</div>
+    <div class="sub">Llega a las {{ llegada|time:"g:i a" }}</div>
+  </td>
+  <td class="ult">
+    <div class="et">Lista para recoger</div>
+    <div class="grande">{{ entrega|time:"g:i a" }}</div>
+    <div class="sub">aprox.{% if entrega|date:"Ymd" != inicio|date:"Ymd" %} · {{ entrega|date:"d/m" }}{% endif %}</div>
+  </td>
+</tr></table>
+
+<!-- Servicio y costo -->
+<table class="tarjeta">
+  <tr><td class="cabeza" colspan="2">Tu servicio</td></tr>
+  <tr><td colspan="2" style="padding-bottom:2pt;">
+    <div class="medio">{{ cita.get_servicio_display }}</div>
+    <div class="sub">Mascota de tamaño {{ cita.get_tamano_display|lower }} · Duración aprox. {{ duracion_texto }}{% if groomer_nombre %} · Te atiende {{ groomer_nombre }}{% endif %}</div>
+  </td></tr>
+</table>
+<table class="costo"><tr>
+  <td class="et-costo">Costo total<br><span style="font-size:6.8pt; text-transform:none; letter-spacing:0;">{{ cita.get_servicio_display }} · {{ nombre_mascota }}</span></td>
+  <td class="monto">{{ precio_formateado }}</td>
+</tr></table>
+{% if clinica.medios_pago %}<p class="pago">Medios de pago: {{ clinica.medios_pago }}</p>{% endif %}
+
+<!-- Antes de venir -->
+<h2 style="margin-top:7pt;">Antes de venir</h2>
+<table class="lista">
+  {% for r in antes_de_venir %}<tr><td class="vi">•</td><td>{{ r }}</td></tr>{% endfor %}
+</table>
+
+{% if proximo_bano %}
+<table class="proximo"><tr><td>
+  Para que {{ nombre_mascota }} luzca siempre así, te sugerimos su próximo baño alrededor del
+  <b>{{ proximo_bano|date:"j \d\e F"|lower }}</b>. Te escribiremos para recordártelo.
+</td></tr></table>
+{% endif %}
+
+<!-- Cambios y contacto -->
+<table class="ayuda"><tr><td>
+  <div class="titulo">¿Necesitas cambiar la hora?</div>
+  <div style="margin-top:2pt;">
+    Escríbenos{% if clinica.whatsapp %} al WhatsApp <b>{{ clinica.whatsapp }}</b>{% else %} por el mismo chat de WhatsApp donde recibiste esta confirmación{% endif %}
+    con tu código <b>{{ codigo_reserva }}</b> y con gusto te ayudamos a reprogramar.
+  </div>
+</td></tr></table>
+  {% if clinica.direccion or clinica.horario or clinica.instagram or clinica.correo %}
+  <table class="contacto">
+    {% if clinica.direccion %}<tr><td class="k">Dónde estamos</td><td>{{ clinica.direccion }}{% if clinica.ciudad %}, {{ clinica.ciudad }}{% endif %}</td></tr>{% endif %}
+    {% if clinica.horario %}<tr><td class="k">Horario</td><td>{{ clinica.horario }}</td></tr>{% endif %}
+    {% if clinica.instagram %}<tr><td class="k">Instagram</td><td>{{ clinica.instagram }}</td></tr>{% endif %}
+    {% if clinica.correo %}<tr><td class="k">Correo</td><td>{{ clinica.correo }}</td></tr>{% endif %}
+  </table>
+  {% endif %}
+
+<p class="gracias">¡Gracias por confiarnos a {{ nombre_mascota }}!</p>
+<p class="gracias-sub">En {{ clinica.nombre }} lo cuidamos como si fuera de la familia.</p>
+{% endblock %}

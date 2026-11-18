@@ -3,7 +3,7 @@
 {% block title %}Agendar Cita · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/agenda.css' %}?v=3">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
@@ -24,7 +24,7 @@
 
     <main class="ag">
       <div class="ag-head">
-        <img class="ag-head__logo" src="{% static 'img/Logo_PradosPets.png' %}" alt="Prados Pets">
+        <img class="ag-head__logo" src="{% static 'img/Logo_PradosPets.webp' %}" alt="Prados Pets">
         <div>
           <div class="ag-eyebrow">Consulta médica</div>
           <h1>Agendar cita</h1>
@@ -102,6 +102,19 @@
             {% for e in form.tipo_servicio.errors %}<p class="ag-error">{{ e }}</p>{% endfor %}
           </div>
 
+          <div class="ag-field ag-recordar" id="campo-recordar"{% if form.tipo_servicio.value != 'vacunacion' %} hidden{% endif %}>
+            <span class="ag-label">Recordar la próxima vacuna</span>
+            <div class="ag-recordar__opciones" role="radiogroup" aria-label="Recordar la próxima vacuna">
+              {% for valor, texto in form.fields.intervalo_recordatorio_dias.choices %}
+              <label class="ag-recordar__opcion">
+                <input type="radio" name="intervalo_recordatorio_dias" value="{{ valor }}"{% if form.intervalo_recordatorio_dias.value|stringformat:'s' == valor|stringformat:'s' %} checked{% endif %}>
+                <span>{{ texto }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <p class="ag-hint">Ese día aparecerá en Recordatorios y en la campana para avisar al propietario.</p>
+          </div>
+
           <div class="ag-field{% if form.veterinario.errors %} has-error{% endif %}">
             <label for="{{ form.veterinario.id_for_label }}" class="ag-label">Veterinario <span class="ag-req">*</span></label>
             {{ form.veterinario }}
@@ -154,7 +167,7 @@
       <!-- RESUMEN TIPO TICKET -->
       <aside class="ag-card ag-ticket" aria-label="Resumen de la cita">
         <div class="ag-ticket__head">
-          <img src="{% static 'img/Logo_PradosPets.png' %}" alt="">
+          <img src="{% static 'img/Logo_PradosPets.webp' %}" alt="">
           <div class="ag-ticket__brand">Prados Pets<small>Resumen de la cita</small></div>
           <span class="ag-status pp-summary__status" id="sum_estado" role="status" aria-live="polite">● Faltan datos</span>
         </div>
@@ -238,6 +251,15 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
   function servicioSeleccionado() { return radios.find(r => r.checked); }
+
+  // El lapso del recordatorio solo se pide para vacunación
+  const campoRecordar = document.getElementById('campo-recordar');
+  function mostrarRecordar() {
+    const r = servicioSeleccionado();
+    if (campoRecordar) campoRecordar.hidden = !(r && r.value === 'vacunacion');
+  }
+  radios.forEach(r => r.addEventListener('change', mostrarRecordar));
+  mostrarRecordar();
 
   // ---------- Buscador de mascota (con teclado) ----------
   input.addEventListener('input', function () {

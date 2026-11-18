@@ -24,4 +24,5 @@ urlpatterns = [
 
     # Recordatorios (la vista existía pero faltaba la ruta)
     path('recordatorios/', views.recordatorios, name='recordatorios'),
+    path('recordatorios/avisado/', views.recordatorio_avisado, name='recordatorio_avisado'),
 ]

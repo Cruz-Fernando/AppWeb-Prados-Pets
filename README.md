@@ -283,7 +283,7 @@ Variables de entorno en Railway (ver `.env.example`):
 | PB-13 | 4 | RF09 | Carga masiva del catálogo por Excel | 93 | ✅ | Probada con 41 ítems de ejemplo sin errores. Mejora: importar categoría, proveedor, código de barras y precio de compra. |
 | PB-14 | 4 | RF12 | Recordatorios de vacunación y baño | 68 | ⚠️ | Funciona. 2 pruebas fallan: una por BUG-05 y otra por BUG-06 (fecha del recordatorio). |
 | PB-15 | 5 | RF07 | Récipe médico con medicamentos del catálogo | 92 | 🟡 | Existe la "Fórmula médica" como texto libre. Falta: seleccionar medicamentos del inventario, dosis e indicaciones por ítem, y PDF del récipe. |
-| PB-16 | 5 | RF08 | Cobro de peluquería por raza, tamaño y pelaje, con comisión del 40 % | 67 | 🟡 | Hay tamaño, servicio y precio. Falta: condición del pelaje, tipo de corte, tabla de tarifas y cálculo de la comisión del groomer. |
+| PB-16 | 5 | RF08 | Cobro de peluquería por raza, tamaño y pelaje, con comisión del 40 % | 67 | ✅ | Registra mascota, raza, tamaño, condición del pelaje, tipo de servicio/corte, groomer, precio manual y comisión calculada del 40 %. |
 | PB-17 | 5 | RF10 | Descuento automático de stock en consulta y peluquería | 75 | 🟡 | Existe `descontar_stock_consulta()` en `inventario/services.py`, pero **ninguna vista la usa todavía**. |
 | PB-18 | 5 | RF15 | Clasificación por colores de clientes recurrentes | 29 | 🔄 | Solo existe el campo `es_recurrente`. Falta acordar los criterios con el patrocinador, calcularlos y mostrar los colores. |
 | PB-19 | 6 | RF13 | Factura consolidada y registro de ingresos y gastos | 109 | ⏳ | La app `facturacion` está vacía. Hay modelos `Venta` y `DetalleVenta` en inventario con una migración pendiente (BUG-02). |

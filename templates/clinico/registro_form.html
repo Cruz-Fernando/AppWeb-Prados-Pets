@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block contenido %}
-<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/insumos.css' %}?v=1">
 <div class="t-{{ tipo.color }}">
   <div class="cl-head">
     <div class="cl-head__text">
@@ -98,7 +98,7 @@
     {% if not registro %}
     <section class="cl-form-section" id="insumos">
       <h2 class="cl-form-section__title"><span class="cl-step">{% if tipo.usa_evaluacion %}6{% else %}5{% endif %}</span> Medicamentos e insumos usados</h2>
-      <p class="ins-intro">Lo que agregues aquí se descuenta del inventario al guardar, empezando por el lote que vence primero. Si un producto no alcanza, no se guarda nada y te avisamos cuál.</p>
+      <p class="ins-intro">Lo que agregues aquí se descuenta del inventario al guardar. Si un producto no alcanza o está vencido, no se guarda nada y te avisamos cuál.</p>
 
       <div class="ins-buscar">
         <span class="ins-buscar__icono" aria-hidden="true">
@@ -130,29 +130,6 @@
     </section>
     {% endif %}
 
-    <!-- PB-15 / RF07: récipe médico con medicamentos del catálogo -->
-    {% if tipo.usa_evaluacion %}
-    <section class="cl-form-section" id="receta">
-      <h2 class="cl-form-section__title"><span class="cl-step">{% if registro %}6{% else %}7{% endif %}</span> Récipe médico</h2>
-      <p class="ins-intro">Receta aquí los medicamentos del catálogo con su dosis, frecuencia y duración. El récipe queda asociado a esta consulta y se descarga en PDF. Recetar no descuenta stock: lo que se usa en la clínica se registra arriba, en «Medicamentos e insumos usados».</p>
-
-      <div class="ins-buscar">
-        <span class="ins-buscar__icono" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </span>
-        <input type="search" id="receta-buscar" class="cl-input" autocomplete="off"
-               placeholder="Buscar medicamento por nombre o código…"
-               role="combobox" aria-expanded="false" aria-controls="receta-opciones" aria-autocomplete="list"
-               data-url="{% url 'inventario:buscar_producto' %}">
-        <ul id="receta-opciones" class="ins-opciones" role="listbox" hidden></ul>
-      </div>
-
-      <ul class="rec-lista" id="receta-filas"></ul>
-      <p class="ins-vacio" id="receta-vacio"{% if filas_receta %} hidden{% endif %}>No has agregado medicamentos al récipe. Si esta consulta no lleva fórmula, déjalo así.</p>
-      {{ filas_receta|json_script:"receta-previa" }}
-    </section>
-    {% endif %}
-
     <div class="cl-actions">
       <a href="{% if registro %}{% url 'clinico:registro_detalle' registro.pk %}{% else %}{% url 'clinico:historial_clinico' mascota.id_mascota %}{% endif %}" class="btn btn--ghost">Cancelar</a>
       {% if not registro %}
@@ -167,102 +144,6 @@
 {% endblock %}
 
 {% block scripts %}
-{% if tipo.usa_evaluacion %}
-<script>
-/* PB-15: récipe médico (solo medicamentos del catálogo) */
-(function () {
-  const buscar = document.getElementById('receta-buscar');
-  if (!buscar) return;
-  const opciones = document.getElementById('receta-opciones');
-  const lista = document.getElementById('receta-filas');
-  const vacio = document.getElementById('receta-vacio');
-  let resultados = [], activa = -1, temporizador = null, ultimaConsulta = '';
-
-  function esc(t) { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
-  function detalle(p) {
-    return [p.principio_activo, p.concentracion, p.presentacion].filter(Boolean).join(' · ');
-  }
-  function cerrar() { opciones.hidden = true; buscar.setAttribute('aria-expanded', 'false'); activa = -1; }
-  function actualizarVacio() { vacio.hidden = lista.children.length > 0; }
-
-  function agregar(p, previo) {
-    previo = previo || {};
-    const li = document.createElement('li');
-    li.className = 'rec-item';
-    li.innerHTML = `
-      <div class="rec-item__cab">
-        <span class="rec-item__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${detalle(p) ? ' · ' + esc(detalle(p)) : ''}</small></span>
-        <input type="hidden" name="receta_producto" value="${esc(p.id)}">
-        <button type="button" class="ins-quitar" aria-label="Quitar ${esc(p.nombre)} del récipe">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      </div>
-      <div class="rec-item__campos">
-        <label>Dosis<input type="text" name="receta_dosis" class="cl-input" maxlength="100" placeholder="Ej: 1 tableta (10 mg/kg)" value="${esc(previo.dosis)}" required></label>
-        <label>Frecuencia<input type="text" name="receta_frecuencia" class="cl-input" maxlength="100" placeholder="Ej: cada 12 horas" value="${esc(previo.frecuencia)}" required></label>
-        <label>Duración<input type="text" name="receta_duracion" class="cl-input" maxlength="100" placeholder="Ej: 7 días" value="${esc(previo.duracion)}" required></label>
-        <label class="rec-item__ancho">Indicaciones<input type="text" name="receta_indicaciones" class="cl-input" maxlength="500" placeholder="Ej: administrar con comida; no suspender el tratamiento" value="${esc(previo.indicaciones)}"></label>
-      </div>`;
-    lista.appendChild(li);
-    li.querySelector('.ins-quitar').addEventListener('click', () => { li.remove(); actualizarVacio(); });
-    actualizarVacio();
-    if (!previo.dosis) li.querySelector('input[name="receta_dosis"]').focus();
-  }
-
-  function pintar() {
-    if (!resultados.length) {
-      opciones.innerHTML = '<li class="ins-opcion__vacio">No hay medicamentos con ese nombre o código.</li>';
-    } else {
-      opciones.innerHTML = resultados.map((p, i) => `
-        <li class="ins-opcion${i === activa ? ' is-activa' : ''}" role="option" data-i="${i}" aria-selected="${i === activa}">
-          <span class="ins-opcion__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${detalle(p) ? ' · ' + esc(detalle(p)) : ''}</small></span>
-        </li>`).join('');
-    }
-    opciones.hidden = false; buscar.setAttribute('aria-expanded', 'true');
-  }
-
-  function elegir(i) {
-    const p = resultados[i];
-    if (!p) return;
-    agregar(p); buscar.value = ''; cerrar();
-  }
-
-  buscar.addEventListener('input', function () {
-    clearTimeout(temporizador);
-    const q = this.value.trim();
-    if (q.length < 2) { cerrar(); return; }
-    temporizador = setTimeout(() => {
-      ultimaConsulta = q;
-      const url = new URL(buscar.dataset.url, window.location.origin);
-      url.searchParams.set('q', q);
-      url.searchParams.set('solo_medicamentos', '1');
-      fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
-        .then(r => r.ok ? r.json() : [])
-        .then(datos => { if (q !== ultimaConsulta) return; resultados = datos; activa = -1; pintar(); })
-        .catch(() => { resultados = []; pintar(); });
-    }, 220);
-  });
-  buscar.addEventListener('keydown', function (e) {
-    if (opciones.hidden || !resultados.length) {
-      if (e.key === 'Enter') e.preventDefault();
-      return;
-    }
-    if (e.key === 'ArrowDown') { e.preventDefault(); activa = Math.min(activa + 1, resultados.length - 1); pintar(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); activa = Math.max(activa - 1, 0); pintar(); }
-    else if (e.key === 'Enter') { e.preventDefault(); elegir(activa >= 0 ? activa : 0); }
-    else if (e.key === 'Escape') { cerrar(); }
-  });
-  opciones.addEventListener('mousedown', function (e) {
-    const li = e.target.closest('.ins-opcion'); if (!li) return;
-    e.preventDefault(); elegir(parseInt(li.dataset.i, 10));
-  });
-  document.addEventListener('click', e => { if (!e.target.closest('#receta .ins-buscar')) cerrar(); });
-
-  // Filas guardadas (edición) o devueltas por el servidor con errores
-  JSON.parse(document.getElementById('receta-previa').textContent || '[]').forEach(f => agregar(f, f));
-  actualizarVacio();
-}());
-</script>
-{% endif %}
 {% if not registro %}
 <script>
 /* PB-17: buscador de medicamentos e insumos del inventario */
@@ -327,7 +208,7 @@
       opciones.innerHTML = resultados.map((p, i) => `
         <li class="ins-opcion${p.disponible <= 0 ? ' is-agotada' : ''}${i === activa ? ' is-activa' : ''}" role="option"
             data-i="${i}" aria-disabled="${p.disponible <= 0}" aria-selected="${i === activa}">
-          <span class="ins-opcion__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${p.vencidas ? ' · ' + p.vencidas + ' vencida(s) no se usan' : ''}</small></span>
+          <span class="ins-opcion__nombre">${esc(p.nombre)}<small>${esc(p.codigo)}${p.vencidas ? ' · vencido, no se puede usar' : ''}</small></span>
           <span>${p.es_medicamento ? '<span class="ins-tag ins-tag--med">Med.</span> ' : ''}${etiquetaStock(p)}</span>
         </li>`).join('');
     }

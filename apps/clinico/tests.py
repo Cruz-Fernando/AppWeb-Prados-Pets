@@ -249,8 +249,7 @@ class HistorialClinicoTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["vacunas_programadas"])
         self.assertFalse(response.context["banos_programados"])
-        self.assertContains(response, "No hay recordatorios de vacunación registrados")
-        self.assertContains(response, "No hay recordatorios de baño registrados")
+        self.assertContains(response, "Aún no hay recordatorios")
 
     def test_recordatorios_usan_las_fechas_agendadas_en_el_calendario(self):
         hoy = timezone.localdate()
@@ -345,7 +344,30 @@ class HistorialClinicoTests(TestCase):
             hoy + timedelta(days=20),
         )
         self.assertEqual(response.context["recordatorios_hoy"], [recordatorio])
-        self.assertContains(response, 'id="reminder-modal"')
+        self.assertContains(response, 'id="recordatorios-por-avisar"')
+        self.assertEqual(response.context["recordatorios_pendientes"], [recordatorio])
+
+    def test_cita_pasada_fuera_de_ciclo_salta_al_siguiente_ciclo_futuro(self):
+        # Hace 50 días con intervalo de 20: los ciclos caen en -30, -10 y +10,
+        # así que el próximo recordatorio es dentro de 10 días (no hoy).
+        hoy = timezone.localdate()
+        Cita.objects.create(
+            mascota=self.mascota,
+            veterinario=self.profesional,
+            tipo_servicio="vacunacion",
+            fecha=hoy - timedelta(days=50),
+            hora_inicio=time(9, 0),
+            hora_fin=time(9, 30),
+            intervalo_recordatorio_dias=20,
+        )
+
+        response = self.client.get(reverse("clinico:recordatorios"))
+
+        self.assertEqual(response.status_code, 200)
+        recordatorio = response.context["vacunas_programadas"][0]
+        self.assertEqual(recordatorio["fecha_recordatorio"], hoy + timedelta(days=10))
+        self.assertEqual(recordatorio["fecha_siguiente"], hoy + timedelta(days=30))
+        self.assertEqual(response.context["recordatorios_hoy"], [])
 
     def test_cita_pasada_fuera_de_ciclo_salta_al_siguiente_ciclo_futuro(self):
         # Hace 50 días con intervalo de 20: los ciclos caen en -30, -10 y +10,
