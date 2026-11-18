@@ -1,5 +1,7 @@
 Django==6.1.1
 python-dotenv==1.0.1
-psycopg[binary]>=3.2.3
+psycopg[binary,pool]==3.2.10
+psycopg-pool==3.3.3
 whitenoise==6.7.0
 xhtml2pdf==0.2.16
+openpyxl==3.1.5

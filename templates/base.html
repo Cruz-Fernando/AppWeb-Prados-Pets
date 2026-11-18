@@ -4,14 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Prados Pets{% endblock %}</title>
+  {# La pantalla de carga solo se activa si hay JavaScript (sin JS nunca bloquea la página). #}
+  <script>document.documentElement.classList.add('pp-cargando');</script>
+  <link rel="stylesheet" href="{% static 'css/pp-loader.css' %}?v=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/Logo_PradosPets.png' %}">
   <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3.0">
   <link rel="stylesheet" href="{% static 'css/pp-forms.css' %}?v=1.0">
+  <script src="{% static 'js/pp-loader.js' %}?v=1.0" defer></script>
 </head>
 <body>
+  <div class="pp-loader" role="status" aria-live="polite">
+    <div class="pp-loader__marco">
+      <span class="pp-loader__anillo" aria-hidden="true"></span>
+      <img class="pp-loader__logo" src="{% static 'img/Logo_PradosPets.webp' %}" alt="" width="116" height="116">
+    </div>
+    <p class="pp-loader__texto">Cargando…</p>
+  </div>
   <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   {% block body %}{% endblock %}
   <script src="{% static 'js/sidebar.js' %}"></script>

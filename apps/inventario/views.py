@@ -74,14 +74,28 @@ class InventarioListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['categorias'] = CategoriaProducto.objects.all()
-        productos = Producto.objects.filter(activo=True)
-        context['total_valor_inventario'] = sum(p.valor_total_inventario for p in productos)
-        context['productos_bajo_stock'] = productos.filter(stock_actual__lte=models.F('stock_minimo')).count()
-        context['total_retirados'] = Producto.objects.filter(activo=False).count()
+        # Los indicadores salen de UNA sola consulta (antes eran cuatro COUNT y
+        # un recorrido en Python de todos los productos activos).
+        activo = models.Q(activo=True)
+        resumen = Producto.objects.aggregate(
+            valor=models.Sum(
+                models.F('stock_actual') * models.F('precio_compra'),
+                filter=activo,
+                output_field=models.DecimalField(max_digits=20, decimal_places=2),
+            ),
+            bajo_stock=models.Count(
+                'pk', filter=activo & models.Q(stock_actual__lte=models.F('stock_minimo'))),
+            vencidos=models.Count(
+                'pk', filter=activo & models.Q(
+                    stock_actual__gt=0, fecha_vencimiento__lt=timezone.localdate())),
+            retirados=models.Count('pk', filter=models.Q(activo=False)),
+        )
+        context['total_valor_inventario'] = resumen['valor'] or 0
+        context['productos_bajo_stock'] = resumen['bajo_stock']
+        context['total_retirados'] = resumen['retirados']
+        context['productos_vencidos'] = resumen['vencidos']
         context['ver_retirados'] = self.ver_retirados()
         context['q'] = (self.request.GET.get('q') or '').strip()
-        context['productos_vencidos'] = productos.filter(
-            stock_actual__gt=0, fecha_vencimiento__lt=timezone.localdate()).count()
         return context
 
 

@@ -52,6 +52,20 @@ class InventarioSimpleTests(TestCase):
         self.assertNotContains(parcial, "Amoxicilina")
         self.assertNotContains(parcial, "<html")            # solo la tabla
 
+    def test_indicadores_de_la_lista(self):
+        Producto.objects.create(codigo="RET", nombre="Retirado", precio_compra=Decimal("999"),
+                                precio_venta=Decimal("1"), stock_actual=50, activo=False)
+
+        r = self.client.get(reverse("inventario:lista"))
+        activos = Producto.objects.filter(activo=True)
+        # Mismos valores que el cálculo anterior, producto por producto.
+        self.assertEqual(r.context["total_valor_inventario"],
+                         sum(p.valor_total_inventario for p in activos))       # 12×800 + 4×2000
+        self.assertEqual(r.context["total_valor_inventario"], Decimal("17600"))
+        self.assertEqual(r.context["productos_bajo_stock"], 1)                # gasa: 0 ≤ 5
+        self.assertEqual(r.context["productos_vencidos"], 1)                  # suero
+        self.assertEqual(r.context["total_retirados"], 1)
+
     # ---------- Quitar ----------
     def test_quitar_resta_y_queda_en_el_kardex(self):
         r = self.client.post(reverse("inventario:salida"), {

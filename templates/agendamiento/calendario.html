@@ -1,4 +1,4 @@
-1{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static l10n %}
 
 {% block title %}Calendario · Prados Pets{% endblock %}
@@ -176,7 +176,7 @@
 
         {% if not total_citas and not total_canceladas %}
         <div class="cal-empty">
-          <img src="{% static 'img/mascotas_prados_pets.png' %}" alt="" class="cal-empty__img">
+          <img src="{% static 'img/mascotas_prados_pets.webp' %}" alt="" class="cal-empty__img">
           <h3>Agenda libre</h3>
           <p>No hay citas {% if vista == 'dia' %}para este día{% else %}esta semana{% endif %}. ¡Buen momento para agendar!</p>
           <a href="{% url 'agendamiento:agendar_cita' %}" class="cal-btn cal-btn--consulta">Agendar cita</a>
