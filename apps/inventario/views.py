@@ -380,6 +380,10 @@ def _producto_a_dict(producto):
         'codigo': producto.codigo,
         'nombre': producto.nombre,
         'es_medicamento': hasattr(producto, 'medicamento'),
+        # PB-15: datos que se muestran al recetar
+        'principio_activo': getattr(getattr(producto, 'medicamento', None), 'principio_activo', '') or '',
+        'concentracion': getattr(getattr(producto, 'medicamento', None), 'concentracion', '') or '',
+        'presentacion': getattr(getattr(producto, 'medicamento', None), 'presentacion', '') or '',
         'disponible': disponible,
         'vencidas': vencidas,
         'stock_minimo': producto.stock_minimo,
@@ -395,8 +399,10 @@ def buscar_producto(request):
     if len(q) < 2:
         return JsonResponse([], safe=False)
     productos = (Producto.objects.filter(activo=True)
-                 .filter(models.Q(nombre__icontains=q) | models.Q(codigo__icontains=q))
-                 .select_related('medicamento').order_by('nombre')[:12])
+                 .filter(models.Q(nombre__icontains=q) | models.Q(codigo__icontains=q)))
+    if request.GET.get('solo_medicamentos') == '1':   # PB-15: el récipe solo admite medicamentos
+        productos = productos.filter(medicamento__isnull=False)
+    productos = productos.select_related('medicamento').order_by('nombre')[:12]
     return JsonResponse([_producto_a_dict(p) for p in productos], safe=False)
 
 
