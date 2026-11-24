@@ -158,7 +158,7 @@
                  data-fecha="{{ dia.nombre }} {{ dia.fecha.day }}"
                  data-duracion="{{ e.duracion_min }}"
                  data-estado="{{ e.estado_display }}"
-                 {% if e.id_cita %}data-cancelar-url="{% url 'agendamiento:cancelar_cita' e.id_cita %}"{% endif %}
+                 {% if e.cancelable %}data-cancelar-url="{{ e.cancelar_url }}"{% endif %}
                  data-cancelable="{% if e.cancelable %}1{% else %}0{% endif %}"
                  data-motivo="{{ e.motivo_cancelacion }}"
                  {% if e.pdf_cliente_url %}data-pdf-cliente="{{ e.pdf_cliente_url }}" data-whatsapp="{{ e.whatsapp_url }}"{% endif %}>
@@ -214,7 +214,7 @@
       <a class="cal-enviar__wa" id="cal-enviar-wa" target="_blank" rel="noopener">Enviar confirmación por WhatsApp</a>
       <a class="cal-enviar__pdf" id="cal-enviar-pdf" target="_blank" rel="noopener">Ver PDF del cliente</a>
     </div>
-    <!-- RF05: cancelación de la cita (solo consultas programadas) -->
+    <!-- RF05: cancelación de la cita (consulta o peluquería, solo si está programada) -->
     <div class="cal-cancel" id="cal-cancel" hidden>
       <button type="button" class="cal-cancel__toggle" id="cal-cancel-toggle" aria-expanded="false" aria-controls="cal-cancel-form">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -239,5 +239,5 @@
   </div>
 </div>
 
-<script src="{% static 'js/calendario.js' %}?v=4" defer></script>
+<script src="{% static 'js/calendario.js' %}?v=5" defer></script>
 {% endblock %}

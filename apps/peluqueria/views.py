@@ -11,7 +11,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
+from django.views.decorators.http import require_POST
 
 from apps.agendamiento.recomendaciones import RECOMENDACIONES_PELUQUERIA
 from apps.directorio.models import Mascota
@@ -21,6 +23,7 @@ from config.marca import contexto_marca
 from config.pdf import render_pdf
 
 from . import confirmacion
+from .cancelacion import CancelacionNoPermitida, cancelar_cita_peluqueria, puede_cancelar
 from .insumos import descontar_insumos_cita, vista_previa
 from .models import CitaPeluqueria
 
@@ -112,11 +115,12 @@ def _groomer_ocupado(groomer, inicio, duracion_min):
     """True si el groomer ya tiene una cita que se cruza con [inicio, inicio+duración)."""
     fin = inicio + timedelta(minutes=duracion_min)
     # Solo se revisan las citas que pueden cruzarse (±1 día alcanza: máx. 3 h por cita)
+    # Las canceladas no ocupan el horario (PB-11: al cancelar, la franja queda libre)
     candidatas = CitaPeluqueria.objects.filter(
         groomer=groomer,
         fecha_hora__gte=inicio - timedelta(days=1),
         fecha_hora__lt=fin,
-    )
+    ).exclude(estado='Cancelada')
     for c in candidatas:
         c_fin = c.fecha_hora + timedelta(minutes=c.duracion_estimada_min or 60)
         if c.fecha_hora < fin and inicio < c_fin:
@@ -329,6 +333,39 @@ def _crear_cita_con_insumos(
         groomer=groomer,
     )
     return cita, descontar_insumos_cita(cita, request.user)
+
+
+@login_required
+@rol_requerido(*ROLES_PELUQUERIA)
+@require_POST
+def cancelar_cita(request, pk):
+    """
+    PB-11 / RF05: cancelar una cita de peluquería desde el calendario.
+
+    Pide el motivo (obligatorio). Puede hacerlo el administrador, el auxiliar
+    o el groomer de la cita. Los insumos vuelven al inventario y el horario
+    queda libre (ver cancelacion.py).
+    """
+    cita = get_object_or_404(CitaPeluqueria, pk=pk)
+    if not puede_cancelar(request.user, cita):
+        messages.error(request, 'Solo el administrador, el auxiliar o el groomer de la cita pueden cancelarla.')
+        return render(request, '403.html', status=403)
+
+    destino = request.POST.get('next', '')
+    if not url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        fecha = timezone.localtime(cita.fecha_hora).date().isoformat()
+        destino = f"{reverse('agendamiento:calendario')}?fecha={fecha}"
+
+    try:
+        cancelar_cita_peluqueria(cita, request.POST.get('motivo_cancelacion'))
+    except CancelacionNoPermitida as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, f'Cita de peluquería de {cita.nombre_mascota} cancelada. '
+                                  'Los insumos volvieron al inventario y el horario quedó disponible.')
+    return redirect(destino)
 
 
 @login_required

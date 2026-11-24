@@ -191,9 +191,12 @@ class CancelarCitaRF05Tests(TestCase):
 
     def test_evento_cancelable_solo_si_programada(self):
         ev = cal.eventos_desde_citas([self.cita])[0]
+        self.assertFalse(ev.cancelable)        # sin permiso (lo decide la vista) no se ofrece
+        ev.puede_cancelar = True
         self.assertTrue(ev.cancelable)
         self.cita.estado = "cancelada"
         self.cita.motivo_cancelacion = "x"
         ev = cal.eventos_desde_citas([self.cita])[0]
+        ev.puede_cancelar = True
         self.assertFalse(ev.cancelable)
         self.assertEqual(ev.motivo_cancelacion, "x")
