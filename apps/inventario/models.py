@@ -52,6 +52,12 @@ class Servicio(models.Model):
         return f"{self.codigo} - {self.nombre}"
 
 
+# PB-21 / RF11 · Umbrales de stock del acta (no dependen del stock mínimo del producto):
+#   0 unidades = agotado · 1 unidad (menos de 2) = CRÍTICO · 2 a 4 (menos de 5) = BAJO
+UMBRAL_STOCK_CRITICO = 2
+UMBRAL_STOCK_BAJO = 5
+
+
 class Producto(models.Model):
     codigo = models.CharField(max_length=100, unique=True, db_index=True, verbose_name="Código")
     codigo_barras = models.CharField(max_length=100, blank=True, null=True)
@@ -90,6 +96,9 @@ class Producto(models.Model):
     # Inventario simple: cada producto tiene su cantidad y, si aplica, UNA fecha de
     # vencimiento (la más próxima de lo que hay). Sin lotes.
     fecha_vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de vencimiento")
+    # PB-21: lote de las unidades que vencen en esa fecha. Admite vacío (NULL) para
+    # que el código de otras ramas que no lo conoce pueda seguir guardando productos.
+    numero_lote = models.CharField(max_length=100, null=True, blank=True, verbose_name="Número de lote")
     
     activo = models.BooleanField(default=True, verbose_name="Activo")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -103,8 +112,20 @@ class Producto(models.Model):
         return f"{self.codigo} - {self.nombre}"
 
     @property
+    def nivel_stock(self):
+        """PB-21: 'agotado', 'critico' (menos de 2), 'bajo' (menos de 5) o '' si está bien."""
+        if self.stock_actual == 0:
+            return 'agotado'
+        if self.stock_actual < UMBRAL_STOCK_CRITICO:
+            return 'critico'
+        if self.stock_actual < UMBRAL_STOCK_BAJO:
+            return 'bajo'
+        return ''
+
+    @property
     def necesita_reposicion(self):
-        return self.stock_actual <= self.stock_minimo
+        """Menos de 5 unidades (umbral del acta, PB-21)."""
+        return self.stock_actual < UMBRAL_STOCK_BAJO
 
     @property
     def valor_total_inventario(self):

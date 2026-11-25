@@ -14,8 +14,9 @@ from django.views.decorators.http import require_POST
 
 from apps.directorio.models import Mascota
 from apps.peluqueria import confirmacion
+from apps.peluqueria.cancelacion import puede_cancelar as puede_cancelar_peluqueria
 from apps.peluqueria.models import CitaPeluqueria
-from apps.usuarios.permissions import rol_requerido
+from apps.usuarios.permissions import rol_requerido, tiene_rol
 
 from config.pdf import render_pdf
 
@@ -193,14 +194,26 @@ def calendario(request):
 
     desde, hasta = fechas[0], fechas[-1]
     citas = Cita.objects.select_related("mascota", "veterinario").filter(fecha__range=(desde, hasta))
-    citas_pelu = (CitaPeluqueria.objects.select_related("mascota__id_dueno")
-                  .filter(fecha_hora__date__range=(desde, hasta)))
+    citas_pelu = list(CitaPeluqueria.objects.select_related("mascota__id_dueno")
+                      .filter(fecha_hora__date__range=(desde, hasta)))
 
     def enlaces_cliente(cita):
         return (confirmacion.enlace_whatsapp_cita(request, cita),
                 confirmacion.url_publica(request, cita))
 
-    eventos = cal.eventos_desde_citas(citas) + cal.eventos_desde_peluqueria(citas_pelu, enlaces_cliente)
+    eventos_consulta = cal.eventos_desde_citas(citas)
+    eventos_pelu = cal.eventos_desde_peluqueria(citas_pelu, enlaces_cliente)
+
+    # RF05: el botón «Cancelar» solo aparece a quien puede usarlo
+    # (mismos roles que cancelar_cita y peluqueria.cancelar_cita).
+    cancela_consultas = tiene_rol(request.user, "administrador", "veterinario", "recepcionista")
+    for e in eventos_consulta:
+        e.puede_cancelar = cancela_consultas
+    pelu_por_id = {c.pk: c for c in citas_pelu}
+    for e in eventos_pelu:
+        e.puede_cancelar = puede_cancelar_peluqueria(request.user, pelu_por_id[e.id_cita_peluqueria])
+
+    eventos = eventos_consulta + eventos_pelu
     hora_inicio, hora_fin = cal.rango_horas(eventos)
     dias = cal.construir_dias(eventos, fechas, hora_inicio, hora_fin)
 

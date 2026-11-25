@@ -1,0 +1,86 @@
+{% extends 'inventario/_layout.html' %}
+{% load static %}
+{% block titulo %}Facturas{% endblock %}
+{% block migas %}<span class="app-topbar__current">Facturación · Facturas</span>{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=2-tema">
+
+<div class="fac-head">
+  <div>
+    <h1>Facturas</h1>
+    <p class="inv-sub">Una sola factura por atención: consulta, peluquería y productos del mismo propietario.</p>
+  </div>
+  <a href="{% url 'facturacion:factura_nueva' %}" class="inv-btn inv-btn--primario">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nueva factura
+  </a>
+</div>
+
+{% include "facturacion/_pestanas.html" %}
+
+<form method="get" class="fac-filtros fac-filtros--facturas">
+  <label class="fac-campo-filtro fac-campo-filtro--q">
+    <span>Propietario o número</span>
+    <input type="search" name="q" value="{{ filtros.q }}" placeholder="Nombre, teléfono o N.° de factura">
+  </label>
+  <label class="fac-campo-filtro">
+    <span>Estado</span>
+    <select name="estado">
+      <option value="">Todos</option>
+      {% for clave, nombre in estados %}<option value="{{ clave }}" {% if filtros.estado == clave %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="fac-campo-filtro"><span>Desde</span><input type="date" name="desde" value="{{ filtros.desde|date:'Y-m-d' }}"></label>
+  <label class="fac-campo-filtro"><span>Hasta</span><input type="date" name="hasta" value="{{ filtros.hasta|date:'Y-m-d' }}"></label>
+  <button type="submit" class="inv-btn">Filtrar</button>
+  {% if hay_filtros %}<a href="{% url 'facturacion:facturas' %}" class="fac-link">Quitar filtros</a>{% endif %}
+</form>
+
+<div class="fac-kpis">
+  <div class="fac-kpi fac-kpi--destacado"><span>Cobrado{% if hay_filtros %} (con estos filtros){% endif %}</span><b>${{ totales.cobrado|default:0|floatformat:"0g" }}</b><small>{{ totales.pagadas }} factura{{ totales.pagadas|pluralize }} pagada{{ totales.pagadas|pluralize }}</small></div>
+  <div class="fac-kpi{% if totales.borradores %} fac-kpi--alerta{% endif %}"><span>Borradores sin cobrar</span><b>{{ totales.borradores }}</b><small>se cobran desde su detalle</small></div>
+</div>
+
+<section class="inv-tabla-wrap">
+  <table class="inv-tabla fac-tabla">
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Fecha</th>
+        <th>Propietario</th>
+        <th class="inv-num">Ítems</th>
+        <th class="inv-num">Total</th>
+        <th>Medio de pago</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in facturas %}
+      <tr class="{% if f.estado == 'anulada' %}fac-fila--cancelado{% endif %}">
+        <td><a href="{% url 'facturacion:factura_detalle' f.pk %}" class="fac-nombre">{{ f.numero_display }}</a></td>
+        <td class="fac-fecha">{{ f.fecha_ref|date:"d/m/Y" }}<small>{{ f.fecha_ref|date:"h:i A" }}</small></td>
+        <td class="inv-prod"><b>{{ f.dueno.nombre_completo }}</b><small>{{ f.dueno.telefono }}</small></td>
+        <td class="inv-num" data-label="Ítems">{{ f.n_items }}</td>
+        <td class="inv-num" data-label="Total"><b>${{ f.total|floatformat:"0g" }}</b></td>
+        <td>{{ f.get_medio_pago_display|default:"—" }}</td>
+        <td>
+          {% if f.estado == 'pagada' %}<span class="inv-tag">Pagada</span>
+          {% elif f.estado == 'borrador' %}<span class="inv-tag inv-tag--aviso">Borrador</span>
+          {% else %}<span class="inv-tag inv-tag--bajo" title="{{ f.motivo_anulacion }}">Anulada</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="inv-vacio">{% if hay_filtros %}No hay facturas con estos filtros.{% else %}Aún no hay facturas. Crea la primera con «Nueva factura».{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if pagina.paginator.num_pages > 1 %}
+  <div class="inv-paginas">
+    {% if pagina.has_previous %}<a class="inv-btn" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ pagina.previous_page_number }}">‹ Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} · {{ pagina.paginator.count }} facturas</span>
+    {% if pagina.has_next %}<a class="inv-btn" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ pagina.next_page_number }}">Siguiente ›</a>{% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

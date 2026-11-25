@@ -11,7 +11,7 @@ class ProductoForm(forms.ModelForm):
         fields = [
             'codigo', 'codigo_barras', 'nombre', 'descripcion', 
             'categoria', 'proveedor', 'precio_compra', 'precio_venta', 
-            'stock_actual', 'stock_minimo', 'fecha_vencimiento'
+            'stock_actual', 'stock_minimo', 'fecha_vencimiento', 'numero_lote'
         ]
         widgets = {
             'codigo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: PROD-001'}),
@@ -25,11 +25,16 @@ class ProductoForm(forms.ModelForm):
             'stock_actual': forms.NumberInput(attrs={'class': 'form-control'}),
             'stock_minimo': forms.NumberInput(attrs={'class': 'form-control'}),
             'fecha_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'numero_lote': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: L-2026-031'}),
         }
         labels = {
             'stock_actual': 'Cantidad inicial',
             'fecha_vencimiento': 'Fecha de vencimiento (opcional)',
+            'numero_lote': 'Número de lote (opcional)',
         }
+
+    def clean_numero_lote(self):
+        return (self.cleaned_data.get('numero_lote') or '').strip() or None
 
 
 class ReposicionForm(forms.Form):
@@ -46,6 +51,11 @@ class ReposicionForm(forms.Form):
         required=False, label="Fecha de vencimiento",
         help_text="Opcional. Si la escribes, pasa a ser la fecha del producto.",
         widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d')
+    )
+    numero_lote = forms.CharField(
+        max_length=100, required=False, label="Número de lote",
+        help_text="Opcional. El lote de las unidades que vencen en esa fecha.",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: L-2026-031'})
     )
     nuevo_precio_compra = forms.DecimalField(
         max_digits=12, decimal_places=2, required=False, min_value=0,

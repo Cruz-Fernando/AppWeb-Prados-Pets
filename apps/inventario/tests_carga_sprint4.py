@@ -69,12 +69,13 @@ class CargaMasivaCierreSprint4Tests(TestCase):
         self.assertFalse(Producto.objects.exists())
 
     def test_fecha_sin_cantidad_carga_el_producto_sin_stock(self):
-        # Inventario simple: NumeroLote se ignora; la fecha queda en el producto.
+        # Inventario simple: el lote y la fecha quedan en el producto (PB-21).
         venc = timezone.localdate() + timedelta(days=200)
         response = self._subir(excel(self._fila(lote="L-1", venc=venc.isoformat())))
         self.assertEqual(response.context["errores"], [])
         producto = Producto.objects.get(codigo="P-1")
-        self.assertEqual((producto.stock_actual, producto.fecha_vencimiento), (0, venc))
+        self.assertEqual((producto.stock_actual, producto.fecha_vencimiento, producto.numero_lote),
+                         (0, venc, "L-1"))
 
     def test_fecha_vencida_no_entra_como_stock(self):
         vencido = timezone.localdate() - timedelta(days=1)

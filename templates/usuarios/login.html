@@ -1,38 +1,48 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Iniciar sesión · Prados Pets{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{% static 'css/acceso.css' %}?v=1.0">{% endblock %}
 {% block body %}
-<div class="auth-screen--dark">
-  <div class="auth-glow" aria-hidden="true"></div>
-  <div class="auth-card">
-    <img src="{% static 'img/Logo_PradosPets.webp' %}" alt="Prados Pets" class="auth-card__logo">
-    <h1 class="auth-card__title">Prados Pets</h1>
-    <p class="auth-card__subtitle">Ingresa con tu usuario para continuar.</p>
+<div class="acceso">
+  <!-- Columna de marca: el mismo morado del menú que aparece al entrar -->
+  <section class="acceso__marca" aria-label="Prados Pets">
+    <img src="{% static 'img/Logo_PradosPets.webp' %}" alt="" class="acceso__logo" width="112" height="112">
+    <div class="acceso__textos">
+      <p class="acceso__nombre">Prados Pets</p>
+      <p class="acceso__lugar">Clínica veterinaria en Cúcuta</p>
+    </div>
+    <img src="{% static 'img/mascotas_prados_pets.webp' %}" alt="" class="acceso__mascotas" width="561" height="446">
+  </section>
 
-    {% if bloqueado %}
-      <p class="auth-card__error">Demasiados intentos fallidos. Espera 15 minutos antes de volver a intentarlo.</p>
-    {% elif form.errors %}
-      <p class="auth-card__error">Usuario o contraseña incorrectos. Intenta de nuevo.</p>
-    {% endif %}
+  <main class="acceso__lado">
+    <div class="acceso__esquina">{% include "_tema_boton.html" %}</div>
 
-    <form method="post" class="auth-card__form">
-      {% csrf_token %}
+    <div class="acceso__caja">
+      <h1 class="acceso__titulo">Iniciar sesión</h1>
+      <p class="acceso__ayuda">Entra con el usuario que te dio el administrador de la clínica.</p>
 
-      <label for="id_username">Usuario</label>
-      <input type="text" name="username" id="id_username" autofocus required>
+      {% if bloqueado %}
+        <p class="acceso__error" role="alert">Demasiados intentos fallidos. Espera 15 minutos antes de volver a intentarlo.</p>
+      {% elif form.errors %}
+        <p class="acceso__error" role="alert">Usuario o contraseña incorrectos. Intenta de nuevo.</p>
+      {% endif %}
 
-      <label for="id_password">Contraseña</label>
-      <input type="password" name="password" id="id_password" required>
+      <form method="post" class="acceso__form">
+        {% csrf_token %}
 
-      <input type="hidden" name="next" value="{{ next }}">
+        <label for="id_username">Usuario</label>
+        <input type="text" name="username" id="id_username" autocomplete="username" autocapitalize="none" autofocus required>
 
-      <div class="auth-card__forgot">
-        {# Solo interfaz por ahora — la funcionalidad de recuperar contraseña todavía no está implementada. #}
-        <a href="#" class="auth-card__forgot-link" onclick="return false;" title="Próximamente">¿Olvidaste tu contraseña?</a>
-      </div>
+        <label for="id_password">Contraseña</label>
+        <input type="password" name="password" id="id_password" autocomplete="current-password" required>
 
-      <button type="submit" class="auth-card__submit">Iniciar sesión</button>
-    </form>
-  </div>
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <button type="submit" class="acceso__boton">Iniciar sesión</button>
+      </form>
+
+      <p class="acceso__nota">¿Olvidaste tu contraseña? Pídele al administrador que te asigne una nueva desde Usuarios y roles.</p>
+    </div>
+  </main>
 </div>
 {% endblock %}

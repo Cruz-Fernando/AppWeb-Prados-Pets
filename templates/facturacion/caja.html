@@ -1,0 +1,74 @@
+{% extends 'inventario/_layout.html' %}
+{% load static %}
+{% block titulo %}Caja{% endblock %}
+{% block migas %}<span class="app-topbar__current">Facturación · Caja</span>{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=2-tema">
+
+<div class="fac-head">
+  <div>
+    <h1>Caja: ingresos y gastos</h1>
+    <p class="inv-sub">Del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}. Los ingresos salen de las facturas cobradas; los gastos se registran a mano.</p>
+  </div>
+  <a href="{% url 'facturacion:gasto' %}" class="inv-btn inv-btn--primario">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Registrar gasto
+  </a>
+</div>
+
+{% include "facturacion/_pestanas.html" %}
+
+<form method="get" class="fac-filtros fac-filtros--facturas">
+  <label class="fac-campo-filtro"><span>Desde</span><input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}"></label>
+  <label class="fac-campo-filtro"><span>Hasta</span><input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}"></label>
+  <label class="fac-campo-filtro">
+    <span>Categoría</span>
+    <select name="categoria">
+      <option value="">Todas</option>
+      {% for clave, nombre in categorias %}<option value="{{ clave }}" {% if categoria == clave %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit" class="inv-btn">Ver</button>
+</form>
+
+<div class="fac-kpis">
+  {% if r.con_saldo %}<div class="fac-kpi"><span>Saldo inicial</span><b>${{ r.saldo_inicial|floatformat:"0g" }}</b><small>antes del {{ desde|date:"d/m/Y" }}</small></div>{% endif %}
+  <div class="fac-kpi fac-kpi--destacado"><span>Ingresos</span><b>${{ r.ingresos|floatformat:"0g" }}</b></div>
+  <div class="fac-kpi fac-kpi--gasto"><span>Egresos</span><b>${{ r.egresos|floatformat:"0g" }}</b></div>
+  {% if r.con_saldo %}
+  <div class="fac-kpi{% if r.saldo_final < 0 %} fac-kpi--gasto{% endif %}"><span>Saldo al {{ hasta|date:"d/m/Y" }}</span><b>${{ r.saldo_final|floatformat:"0g" }}</b><small>neto del periodo ${{ r.neto|floatformat:"0g" }}</small></div>
+  {% else %}
+  <div class="fac-kpi"><span>Neto de la categoría</span><b>${{ r.neto|floatformat:"0g" }}</b></div>
+  {% endif %}
+</div>
+
+<section class="inv-tabla-wrap">
+  <table class="inv-tabla fac-tabla">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Categoría</th>
+        <th>Descripción</th>
+        <th class="inv-num">Ingreso</th>
+        <th class="inv-num">Egreso</th>
+        {% if r.con_saldo %}<th class="inv-num">Saldo</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in r.movimientos %}
+      <tr>
+        <td class="fac-fecha">{{ m.fecha|date:"d/m/Y" }}<small>{{ m.usuario.nombre_completo|default:m.usuario.username|default:"Sistema" }}</small></td>
+        <td><span class="inv-tag{% if not m.es_ingreso %} inv-tag--aviso{% endif %}">{{ m.get_categoria_display }}</span></td>
+        <td class="inv-prod"><b>{% if m.factura %}<a href="{% url 'facturacion:factura_detalle' m.factura.pk %}" class="fac-nombre">{{ m.descripcion }}</a>{% else %}{{ m.descripcion }}{% endif %}</b></td>
+        <td class="inv-num fac-ingreso" data-label="Ingreso">{% if m.es_ingreso %}${{ m.monto|floatformat:"0g" }}{% endif %}</td>
+        <td class="inv-num fac-egreso" data-label="Egreso">{% if not m.es_ingreso %}${{ m.monto|floatformat:"0g" }}{% endif %}</td>
+        {% if r.con_saldo %}<td class="inv-num" data-label="Saldo"><b>${{ m.saldo|floatformat:"0g" }}</b></td>{% endif %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="inv-vacio">No hay movimientos de caja en este periodo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

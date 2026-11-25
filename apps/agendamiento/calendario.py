@@ -9,6 +9,7 @@ from xhtml2pdf.w3c import cssDOMElementInterface
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
+from django.urls import reverse
 from django.utils import timezone
 
 HORA_INICIO_DEFECTO = 7   # 7:00 a. m.
@@ -37,8 +38,11 @@ class Evento:
     categoria: str
     estado: str = "programada"
     responsable: str = ""     # "Dra. X" (consulta) o "Raza: Y" (peluquería)
-    id_cita: int = None       # solo citas de consulta (RF05: cancelación)
+    id_cita: int = None              # cita de consulta (RF05: cancelación)
+    id_cita_peluqueria: int = None   # cita de peluquería (RF05: cancelación)
     motivo_cancelacion: str = ""
+    # Lo decide la vista según el usuario (ver views.calendario)
+    puede_cancelar: bool = False
     # Peluquería: reenviar la confirmación al cliente
     whatsapp_url: str = ""
     pdf_cliente_url: str = ""
@@ -69,9 +73,17 @@ class Evento:
         return self.estado == "cancelada"
 
     @property
+    def cancelar_url(self):
+        if self.id_cita is not None:
+            return reverse("agendamiento:cancelar_cita", args=[self.id_cita])
+        if self.id_cita_peluqueria is not None:
+            return reverse("peluqueria:cancelar_cita", args=[self.id_cita_peluqueria])
+        return ""
+
+    @property
     def cancelable(self):
-        """RF05: solo las citas de consulta aún programadas se pueden cancelar."""
-        return self.id_cita is not None and self.estado == "programada"
+        """RF05: solo las citas aún programadas, y si el usuario tiene permiso."""
+        return self.puede_cancelar and bool(self.cancelar_url) and self.estado == "programada"
 
     @property
     def estado_display(self):
@@ -162,6 +174,9 @@ def eventos_desde_peluqueria(citas, enlaces=None):
             servicio=c.get_servicio_display(),
             categoria=CATEGORIA_PELUQUERIA,
             responsable=f"Raza: {c.raza}",
+            estado=(c.estado or "Programada").lower(),   # Programada / Realizada / Cancelada
+            id_cita_peluqueria=c.pk,
+            motivo_cancelacion=c.motivo_cancelacion or "",
             **(dict(zip(("whatsapp_url", "pdf_cliente_url"), enlaces(c)))
                if enlaces and c.estado != "Cancelada" and c.mascota_id else {}),
         ))

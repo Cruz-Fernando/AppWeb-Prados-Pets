@@ -10,7 +10,7 @@
   <div class="app-main">
     <header class="app-topbar">
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         <a href="{% url 'buscar_directorio' %}">Directorio</a>
         <span class="app-topbar__sep">›</span>
@@ -20,17 +20,17 @@
 
     <main class="app-content app-content--wide">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="color: #fff; margin: 0;">Listado General de Mascotas (Total: {{ mascotas|length }})</h2>
+        <h2 style="color: var(--text); font-family: var(--font-marca); font-weight: 600; margin: 0;">Listado General de Mascotas (Total: {{ mascotas|length }})</h2>
         <div style="display: flex; gap: 10px;">
-          <a href="{% url 'exportar_mascotas_excel' %}" style="padding: 8px 16px; background: #10b981; border-radius: 8px; color: #fff; text-decoration: none; font-weight: 600;">📥 Exportar a Excel</a>
-          <a href="{% url 'buscar_directorio' %}" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px; color: #fff; text-decoration: none;">Volver al Buscador</a>
+          <a href="{% url 'exportar_mascotas_excel' %}" style="padding: 8px 16px; background: var(--verde-wa); border-radius: 10px; color: #fff; text-decoration: none; font-weight: 700;">📥 Exportar a Excel</a>
+          <a href="{% url 'buscar_directorio' %}" style="padding: 7px 15px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 700;">Volver al buscador</a>
         </div>
       </div>
 
-      <div style="background: var(--surface, #1e1b2e); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
-        <table style="width: 100%; border-collapse: collapse; color: #e2e8f0; text-align: left;">
+      <div style="background: var(--surface, var(--surface)); border-radius: 12px; overflow: hidden; border: 1px solid var(--velo-2);">
+        <table style="width: 100%; border-collapse: collapse; color: var(--c-texto-frio); text-align: left;">
           <thead>
-            <tr style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <tr style="background: var(--velo-1); border-bottom: 1px solid var(--velo-2);">
               <th style="padding: 12px 16px; width: 60px;">#</th>
               <th style="padding: 12px 16px;">Nombre de Mascota</th>
               <th style="padding: 12px 16px;">Especie</th>
@@ -40,18 +40,18 @@
           </thead>
           <tbody>
             {% for m in mascotas %}
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 12px 16px; font-weight: 700; color: #6ee7b7;">{{ forloop.counter }}</td>
+              <tr style="border-bottom: 1px solid var(--velo-1);">
+                <td style="padding: 12px 16px; font-weight: 700; color: var(--accent);">{{ forloop.counter }}</td>
                 <td style="padding: 12px 16px; font-weight: 600;">{{ m.nombre }}</td>
                 <td style="padding: 12px 16px;">{{ m.get_especie_display }}</td>
                 <td style="padding: 12px 16px;">{{ m.id_dueno.nombre_completo }}</td>
                 <td style="padding: 12px 16px; text-align: right;">
-                  <a href="{% url 'editar_mascota' m.id_mascota %}" style="padding: 6px 12px; background: #10b981; border-radius: 6px; color: #fff; text-decoration: none; font-size: 0.85rem;">Editar</a>
+                  <a href="{% url 'editar_mascota' m.id_mascota %}" style="padding: 6px 12px; background: var(--accent-gradient); border-radius: 8px; color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 700;">Editar</a>
                 </td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" style="padding: 20px; text-align: center; color: #94a3b8;">No hay mascotas registradas.</td>
+                <td colspan="5" style="padding: 20px; text-align: center; color: var(--c-gris-frio);">No hay mascotas registradas.</td>
               </tr>
             {% endfor %}
           </tbody>

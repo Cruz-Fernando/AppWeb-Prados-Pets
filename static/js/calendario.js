@@ -111,7 +111,8 @@
     set("cal-modal-resp-label", esRaza ? "Raza" : "Veterinario(a)");
     set("cal-modal-resp", esRaza ? d.responsable.replace("Raza: ", "") : d.responsable);
 
-        // RF05: motivo de cancelación y formulario para cancelar
+    // RF05: motivo de cancelación y formulario para cancelar (consulta o
+    // peluquería). El servidor solo pone data-cancelar-url si el usuario puede.
     var motivo = d.motivo || "";
     document.getElementById("cal-modal-motivo-box").hidden = !(cat === "cancelada" && motivo);
     set("cal-modal-motivo", motivo);

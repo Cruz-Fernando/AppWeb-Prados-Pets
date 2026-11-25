@@ -4,7 +4,7 @@
 {% block migas %}<span class="app-topbar__current">Facturación · Ganancias por groomer</span>{% endblock %}
 
 {% block contenido %}
-<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=2-tema">
 
 <div class="fac-head">
   <div>
@@ -16,6 +16,8 @@
     Exportar Excel
   </a>
 </div>
+
+{% if not es_groomer %}{% include "facturacion/_pestanas.html" %}{% endif %}
 
 <!-- Filtros: periodo y groomer -->
 <form method="get" class="fac-filtros" id="form-filtros">

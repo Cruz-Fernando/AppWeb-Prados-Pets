@@ -114,7 +114,9 @@ class DescuentoEnConsultaTests(TestCase):
         detalle = self.client.get(reverse("clinico:registro_detalle", args=[registro.pk]))
         self.assertContains(detalle, "Medicamentos e insumos descontados")
         self.assertContains(detalle, "Se descontó del inventario: 3 × Producto AMOX, 1 × Producto JER.")
-        self.assertContains(detalle, "quedó con 7 unidades (mínimo 8)")
+        # PB-21: la jeringa quedó con 2 (menos de 5); la amoxicilina con 7 ya no alerta
+        self.assertContains(detalle, "«Producto JER» quedó con 2 unidades: stock bajo (menos de 5)")
+        self.assertNotContains(detalle, "«Producto AMOX» quedó con")
         pdf = self.client.get(reverse("clinico:registro_pdf", args=[registro.pk]))
         self.assertEqual(pdf.status_code, 200)
 

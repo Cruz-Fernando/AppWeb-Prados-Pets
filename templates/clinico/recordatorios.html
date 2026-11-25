@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}Recordatorios · Prados Pets{% endblock %}
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/recordatorios.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/recordatorios.css' %}?v=1-tema">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
   <div class="app-main">
@@ -13,7 +13,7 @@
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         <span class="app-topbar__current">Recordatorios</span>
       </div>

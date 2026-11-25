@@ -22,6 +22,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from openpyxl.styles import Alignment, Font, PatternFill
 
+from apps.peluqueria.cancelacion import CancelacionNoPermitida, cancelar_cita_peluqueria
 from apps.peluqueria.models import CitaPeluqueria
 from apps.usuarios.permissions import obtener_rol, rol_requerido
 
@@ -111,11 +112,13 @@ def cerrar_servicio(request, pk):
         messages.success(request, f'Servicio de {cita.nombre_mascota} marcado como realizado: '
                                   f'suma ${cita.comision_groomer:,.0f} de comisión.'.replace(',', '.'))
     elif accion == 'cancelada':
-        motivo = (request.POST.get('motivo') or '').strip()
-        cita.estado = 'Cancelada'
-        cita.motivo_cancelacion = motivo or 'Cancelada desde Facturación'
-        cita.save()       # la señal de peluquería devuelve los insumos al inventario
-        messages.success(request, f'Servicio de {cita.nombre_mascota} cancelado: no suma comisión.')
+        motivo = (request.POST.get('motivo') or '').strip() or 'Cancelada desde Facturación'
+        try:
+            cancelar_cita_peluqueria(cita, motivo)   # misma regla que el calendario (PB-11)
+        except CancelacionNoPermitida as error:
+            messages.error(request, str(error))
+        else:
+            messages.success(request, f'Servicio de {cita.nombre_mascota} cancelado: no suma comisión.')
     else:
         messages.error(request, 'Acción no válida.')
     return redirect(volver)

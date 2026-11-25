@@ -1,0 +1,60 @@
+{% extends 'inventario/_layout.html' %}
+{% load static %}
+{% block titulo %}Nueva factura{% endblock %}
+{% block migas %}
+  <a href="{% url 'facturacion:facturas' %}">Facturas</a>
+  <span class="app-topbar__sep">›</span>
+  <span class="app-topbar__current">Nueva factura</span>
+{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=2-tema">
+
+<div class="inv-form-wrap">
+  <div class="inv-producto">
+    <span class="inv-producto__ico" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+    </span>
+    <div>
+      <h1>Nueva factura</h1>
+      <p>Paso 1 de 2: busca al propietario. Después verás sus consultas, peluquerías e insumos sin facturar.</p>
+    </div>
+  </div>
+
+  <form method="get" class="inv-card">
+    <div class="inv-card__body">
+      <div class="inv-campo">
+        <label for="buscar-dueno">Propietario</label>
+        <input type="search" id="buscar-dueno" name="q" value="{{ q }}" placeholder="Nombre o teléfono (mínimo 2 letras)" autofocus autocomplete="off">
+      </div>
+    </div>
+    <div class="inv-card__pie">
+      <a href="{% url 'facturacion:facturas' %}" class="inv-btn">Volver</a>
+      <button type="submit" class="inv-btn inv-btn--primario">Buscar</button>
+    </div>
+  </form>
+
+  {% if q %}
+  <section class="inv-tabla-wrap">
+    <table class="inv-tabla fac-tabla">
+      <tbody>
+        {% for d in duenos %}
+        <tr>
+          <td class="inv-prod"><b>{{ d.nombre_completo }}</b><small>{{ d.telefono }} · {{ d.n_mascotas }} mascota{{ d.n_mascotas|pluralize }}</small></td>
+          <td class="inv-num">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="dueno" value="{{ d.pk }}">
+              <button type="submit" class="inv-mini inv-mini--anadir">{% if d.borradores %}Continuar borrador{% else %}Facturar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td class="inv-vacio">{% if q|length < 2 %}Escribe al menos 2 letras.{% else %}No hay propietarios que coincidan con «{{ q }}».{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

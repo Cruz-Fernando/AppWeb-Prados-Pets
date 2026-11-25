@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: center;
   gap: 22px;
-  background: rgba(8, 6, 14, 0.93);
+  background: rgba(67, 19, 90, 0.95);   /* uva-hondo, el morado de la marca */
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   opacity: 0;
@@ -40,7 +40,7 @@ html.pp-cargando .pp-loader {
   position: absolute;
   inset: -9px;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0 55%, #8B5CF6 80%, #C4B5FD 100%);
+  background: conic-gradient(from 0deg, transparent 0 55%, rgba(255, 255, 255, 0.55) 80%, #FFFFFF 100%);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
   animation: pp-loader-giro 0.9s linear infinite;
@@ -51,15 +51,15 @@ html.pp-cargando .pp-loader {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  box-shadow: 0 0 48px rgba(139, 92, 246, 0.38);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.1);
   animation: pp-loader-latido 1.6s ease-in-out infinite;
 }
 
 .pp-loader__texto {
   margin: 0;
-  color: #C4B5FD;
-  font: 500 14px/1.4 'Plus Jakarta Sans', system-ui, sans-serif;
-  letter-spacing: 0.06em;
+  color: #F2EEF7;
+  font: 500 15px/1.4 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  letter-spacing: 0.02em;
 }
 
 @keyframes pp-loader-giro {

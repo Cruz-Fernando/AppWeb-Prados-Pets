@@ -18,8 +18,8 @@
   border-radius: 7px; white-space: nowrap;
 }
 .fac-periodo:hover span { color: var(--text); }
-.fac-periodo.is-activo span { color: #fff; background: #8b5cf6; }
-.fac-periodo input:focus-visible + span { box-shadow: 0 0 0 3px rgba(167, 139, 250, .35); }
+.fac-periodo.is-activo span { color: #fff; background: var(--accent-gradient); }
+.fac-periodo input:focus-visible + span { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
 
 .fac-rango { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .fac-rango[hidden] { display: none; }
@@ -38,14 +38,14 @@
 .fac-kpi b { display: block; margin-top: 6px; font-size: 1.45rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .fac-kpi small { display: block; margin-top: 2px; font-size: 12px; color: var(--text-dim); }
 .fac-kpi--destacado { border-color: rgba(52, 211, 153, .35); background: linear-gradient(180deg, rgba(52, 211, 153, .08), transparent); }
-.fac-kpi--destacado b { color: #34d399; }
-.fac-kpi--alerta b { color: #fbbf24; }
+.fac-kpi--destacado b { color: var(--c-verde); }
+.fac-kpi--alerta b { color: var(--c-ambar); }
 
 .fac-tabla tfoot td { padding: 11px 14px; background: var(--surface-alt); border-top: 1px solid var(--border); }
 .fac-nombre { font-weight: 600; color: var(--accent-light); text-decoration: none; }
 .fac-nombre:hover { text-decoration: underline; }
 .fac-sin { color: var(--text-dim); font-weight: 500; }
-.fac-comision { color: #34d399; font-weight: 700; }
+.fac-comision { color: var(--c-verde); font-weight: 700; }
 .fac-tenue { color: var(--text-dim); }
 .fac-fecha { white-space: nowrap; text-transform: capitalize; }
 .fac-fecha small { display: block; font-size: 11.5px; color: var(--text-dim); text-transform: none; }
@@ -61,7 +61,7 @@
 .fac-cancelar { position: relative; }
 .fac-cancelar summary { list-style: none; }
 .fac-cancelar summary::-webkit-details-marker { display: none; }
-.fac-cancelar[open] summary { color: #f87171; border-color: rgba(239, 68, 68, .4); }
+.fac-cancelar[open] summary { color: var(--c-rojo); border-color: rgba(239, 68, 68, .4); }
 .fac-cancelar__form {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; display: flex; gap: 6px; padding: 8px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, .4);
@@ -69,6 +69,76 @@
 .fac-cancelar__form input {
   width: 190px; padding: 7px 9px; font-size: 13px; color: var(--text);
   background: var(--surface-alt); border: 1px solid var(--border); border-radius: 7px;
+}
+
+/* =====================================================================
+   PB-19 · Factura consolidada y caja
+   ===================================================================== */
+.fac-head h1 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.fac-head h1 .inv-tag { font-size: 12px; }
+
+.fac-filtros--facturas { align-items: flex-end; }
+.fac-campo-filtro { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted); }
+.fac-campo-filtro input, .fac-campo-filtro select {
+  padding: 8px 10px; font-size: 13.5px; color: var(--text);
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+}
+.fac-campo-filtro--q input { min-width: 240px; }
+.fac-campo-filtro select option { background: var(--surface-alt); }
+.fac-campo-filtro input:focus, .fac-campo-filtro select:focus { outline: none; border-color: var(--accent); }
+
+.fac-kpi--gasto b { color: var(--c-rojo); }
+.fac-ingreso { color: var(--c-verde); font-weight: 600; }
+.fac-egreso { color: var(--c-rojo); font-weight: 600; }
+
+.fac-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.fac-layout__main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.fac-layout__side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.fac-contador { margin-left: 6px; padding: 1px 8px; font-size: 11.5px; font-weight: 600; color: var(--text); background: var(--accent-soft); border-radius: 999px; }
+.fac-tipo { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; border-radius: 6px; }
+.fac-tipo--consulta { color: var(--c-azul); background: rgba(59, 130, 246, .15); }
+.fac-tipo--peluqueria { color: var(--c-fucsia); background: rgba(217, 70, 239, .15); }
+.fac-tipo--producto { color: var(--c-verde-2); background: rgba(16, 185, 129, .15); }
+
+.fac-agregar { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.fac-precio {
+  width: 110px; padding: 6px 8px; font-size: 13px; text-align: right; color: var(--text);
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+}
+.fac-precio:focus { outline: none; border-color: var(--accent); }
+.fac-agregar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.fac-agregar-grid .inv-card__body { padding: 16px 18px; gap: 12px; }
+.fac-anular textarea {
+  width: 100%; box-sizing: border-box; padding: 9px 11px; font: inherit; font-size: 13.5px; color: var(--text);
+  resize: vertical; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+}
+
+.fac-totales { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.fac-totales div { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.fac-totales dt { color: var(--text-muted); }
+.fac-totales dd { margin: 0; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.fac-totales--total { padding-top: 10px; border-top: 1px solid var(--border); }
+.fac-totales--total dd { font-size: 1.45rem; font-weight: 700; color: var(--c-verde); }
+.fac-totales--total dd.fac-error { color: var(--c-rojo); }
+.fac-cobrar { width: 100%; justify-content: center; }
+.fac-cobrar:disabled { opacity: .5; cursor: not-allowed; }
+
+.fac-descartar { margin: 0; text-align: center; }
+.fac-link--peligro { padding: 0; font: inherit; font-size: 13px; color: var(--c-rojo); background: none; border: 0; cursor: pointer; }
+.fac-anular summary { padding: 14px 20px; font-size: 14px; font-weight: 600; color: var(--c-rojo); cursor: pointer; list-style: none; }
+.fac-anular summary::-webkit-details-marker { display: none; }
+.fac-anular[open] summary { border-bottom: 1px solid var(--border); }
+.fac-anular form { margin: 0; }
+
+.fac-caja-mini { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--border); }
+.fac-caja-mini__fila { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); }
+.fac-caja-mini__fila--ingreso b { color: var(--c-verde); }
+.fac-caja-mini__fila--egreso b { color: var(--c-rojo); }
+
+@media (max-width: 1100px) {
+  .fac-layout { grid-template-columns: 1fr; }
+  .fac-layout__side { position: static; }
 }
 
 @media (max-width: 900px) {

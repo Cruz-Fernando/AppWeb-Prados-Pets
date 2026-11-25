@@ -22,22 +22,24 @@
         <td class="inv-codigo" data-col="codigo">{{ prod.codigo }}</td>
         <td class="inv-prod inv-col-prod">
           <b>{{ prod.nombre }}</b>
-          <small>{% if prod.categoria %}{{ prod.categoria.nombre }}{% elif prod.medicamento %}Medicamento{% else %}General{% endif %}<span class="inv-solo-movil"> · {{ prod.codigo }}{% if prod.fecha_vencimiento %} · vence {{ prod.fecha_vencimiento|date:"d/m/Y" }}{% endif %}</span></small>
+          <small>{% if prod.categoria %}{{ prod.categoria.nombre }}{% elif prod.medicamento %}Medicamento{% else %}General{% endif %}<span class="inv-solo-movil"> · {{ prod.codigo }}{% if prod.fecha_vencimiento %} · vence {{ prod.fecha_vencimiento|date:"d/m/Y" }}{% endif %}{% if prod.numero_lote %} · lote {{ prod.numero_lote }}{% endif %}</span></small>
         </td>
         <td class="inv-num" data-col="costo">${{ prod.precio_compra|floatformat:"0g" }}</td>
         <td class="inv-num" data-col="precio">${{ prod.precio_venta|floatformat:"0g" }}</td>
         <td class="inv-num inv-col-stock">
-          <span class="inv-stock{% if prod.necesita_reposicion %} is-bajo{% endif %}">{{ prod.stock_actual }}
+          <span class="inv-stock{% if prod.nivel_stock == 'bajo' %} is-aviso{% elif prod.nivel_stock %} is-bajo{% endif %}">{{ prod.stock_actual }}
             <small>mín. {{ prod.stock_minimo }}</small></span>
         </td>
         <td data-col="vence" class="inv-vence{% if prod.vencido %} is-vencido{% elif prod.dias_para_vencer is not None and prod.dias_para_vencer <= 30 %} is-pronto{% endif %}">
           {% if prod.fecha_vencimiento %}{{ prod.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}
+          {% if prod.numero_lote %}<small class="inv-lote">Lote {{ prod.numero_lote }}</small>{% endif %}
         </td>
         <td data-col="estado">
           {% if ver_retirados %}<span class="inv-tag inv-tag--gris">Retirado</span>
           {% elif prod.stock_actual == 0 %}<span class="inv-tag inv-tag--bajo">Agotado</span>
           {% elif prod.vencido %}<span class="inv-tag inv-tag--bajo" title="Quítalo con «Quitar» y el motivo «Vencimiento», o actualiza la fecha con «Añadir»">Vencido</span>
-          {% elif prod.necesita_reposicion %}<span class="inv-tag inv-tag--aviso">Reabastecer</span>
+          {% elif prod.nivel_stock == 'critico' %}<span class="inv-tag inv-tag--bajo" title="Menos de 2 unidades">Crítico</span>
+          {% elif prod.nivel_stock == 'bajo' %}<span class="inv-tag inv-tag--aviso" title="Menos de 5 unidades">Stock bajo</span>
           {% elif prod.dias_para_vencer is not None and prod.dias_para_vencer <= 30 %}<span class="inv-tag inv-tag--aviso">Vence pronto</span>
           {% else %}<span class="inv-tag">OK</span>{% endif %}
         </td>

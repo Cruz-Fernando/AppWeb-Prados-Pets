@@ -5,8 +5,8 @@ Reglas (las mismas que explica la hoja «Instrucciones» de la plantilla):
   - Se lee SOLO la primera hoja, aunque el archivo se haya guardado mirando otra.
   - La fila 1 debe tener los encabezados en el orden de la plantilla.
   - Cada fila se guarda o se rechaza completa (nunca a medias).
-  - Inventario simple (sin lotes): la columna CantidadLote es la cantidad
-    inicial y FechaVencimiento la fecha del producto. NumeroLote se ignora.
+  - Inventario simple: la columna CantidadLote es la cantidad inicial, y
+    NumeroLote y FechaVencimiento son el lote y la fecha del producto (PB-21).
   - Las filas con error se informan con un mensaje en español y no se guardan;
     las demás sí.
 """
@@ -30,6 +30,7 @@ ENCABEZADOS = [
 TIPOS_VALIDOS = ("PRODUCTO", "MEDICAMENTO", "SERVICIO")
 STOCK_MINIMO_DEFECTO = 5
 MAX_LARGO_CODIGO = 50          # Servicio.codigo admite 50 caracteres
+MAX_LARGO_LOTE = 100           # Producto.numero_lote
 MAX_FILAS = 2000               # protege al servidor de archivos enormes
 
 
@@ -132,7 +133,7 @@ def _validar_encabezados(fila):
 
 def _guardar_fila(fila, usuario, hoy):
     (tipo, codigo, nombre, descripcion, precio, stock_min, principio, concentracion,
-     presentacion, receta, _num_lote, fecha_venc, cant_lote) = fila
+     presentacion, receta, num_lote, fecha_venc, cant_lote) = fila
 
     tipo = _normalizar(tipo).upper()
     codigo, nombre = _texto(codigo), _texto(nombre)
@@ -159,8 +160,11 @@ def _guardar_fila(fila, usuario, hoy):
     stock_minimo = STOCK_MINIMO_DEFECTO if _texto(stock_min) == "" else _entero(stock_min, "StockMínimo")
     requiere_receta = _si_no(receta)
 
-    # Inventario simple: CantidadLote = cantidad inicial y FechaVencimiento = fecha
-    # del producto. NumeroLote se acepta en la plantilla pero ya no se usa.
+    # Inventario simple: CantidadLote = cantidad inicial; NumeroLote y
+    # FechaVencimiento = lote y fecha del producto (PB-21).
+    numero_lote = _texto(num_lote)
+    if len(numero_lote) > MAX_LARGO_LOTE:
+        raise ErrorFila(f"El número de lote tiene {len(numero_lote)} caracteres; el máximo es {MAX_LARGO_LOTE}.")
     hay_cantidad = _texto(cant_lote) != ""
     cantidad = _entero(cant_lote, "CantidadLote (cantidad inicial)", minimo=1) if hay_cantidad else 0
     fecha_vencimiento = _fecha(fecha_venc)
@@ -176,6 +180,7 @@ def _guardar_fila(fila, usuario, hoy):
         stock_minimo=stock_minimo,
         stock_actual=cantidad,
         fecha_vencimiento=fecha_vencimiento,
+        numero_lote=numero_lote or None,
     )
     if tipo == "MEDICAMENTO":
         Medicamento.objects.create(

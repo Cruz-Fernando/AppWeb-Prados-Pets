@@ -1,0 +1,84 @@
+{% extends "agendamiento/pdf_base.html" %}
+{% block titulo %}Factura {{ factura.numero_display }}{% endblock %}
+{% block tipo_doc %}{% if factura.estado == 'anulada' %}Factura anulada{% else %}Factura de venta{% endif %}{% endblock %}
+{% block numero %}{{ factura.numero_display }}{% endblock %}
+
+{% block estilos %}
+  .items { margin-top: 8pt; }
+  .items th { background-color: {{ marca.suave }}; color: {{ marca.primario_oscuro }}; font-size: 7pt; text-transform: uppercase;
+              letter-spacing: .3pt; padding: 3pt 5pt; text-align: left; border-bottom: 1px solid {{ marca.borde }}; }
+  .items td { padding: 3pt 5pt; border-bottom: 1px solid {{ marca.borde }}; font-size: 8pt; }
+  .items .num { text-align: right; white-space: nowrap; }
+  .items .tipo { font-size: 6.5pt; color: {{ marca.gris }}; text-transform: uppercase; }
+  .sumas td { padding: 2pt 5pt; font-size: 8.5pt; }
+  .sumas .k { text-align: right; color: {{ marca.gris }}; }
+  .sumas .v { text-align: right; width: 28%; font-weight: bold; }
+  .anulada { margin-top: 8pt; border: 2px solid #B91C1C; color: #B91C1C; padding: 5pt 8pt; font-weight: bold; text-align: center; }
+{% endblock %}
+
+{% block contenido %}
+{% if factura.estado == 'anulada' %}
+<div class="anulada">FACTURA ANULADA el {{ factura.anulada_en|date:"d/m/Y" }} · Motivo: {{ factura.motivo_anulacion }}</div>
+{% endif %}
+
+<table class="cuando"><tr>
+  <td style="width:34%;">
+    <div class="et">Fecha</div>
+    <div class="medio">{{ factura.fecha|date:"d/m/Y" }}</div>
+    <div class="sub">{{ factura.fecha|date:"h:i A" }}</div>
+  </td>
+  <td style="width:33%;">
+    <div class="et">Medio de pago</div>
+    <div class="medio">{{ factura.get_medio_pago_display }}</div>
+  </td>
+  <td class="ult">
+    <div class="et">Atendió</div>
+    <div class="medio">{% if factura.usuario %}{{ factura.usuario.nombre_completo|default:factura.usuario.username }}{% else %}—{% endif %}</div>
+  </td>
+</tr></table>
+
+<table><tr>
+  <td class="col col-izq sec">
+    <h2>Propietario</h2>
+    <table class="datos">
+      <tr><td class="k">Nombre</td><td class="v">{{ dueno.nombre_completo }}</td></tr>
+      <tr><td class="k">Teléfono</td><td class="v">{{ dueno.telefono }}</td></tr>
+      {% if dueno.direccion %}<tr><td class="k">Dirección</td><td class="v">{{ dueno.direccion }}</td></tr>{% endif %}
+    </table>
+  </td>
+  <td class="col col-der sec">
+    <h2>Clínica</h2>
+    <table class="datos">
+      <tr><td class="k">Ciudad</td><td class="v">{{ clinica.ciudad }}</td></tr>
+      {% if clinica.direccion %}<tr><td class="k">Dirección</td><td class="v">{{ clinica.direccion }}</td></tr>{% endif %}
+      {% if clinica.telefono %}<tr><td class="k">Teléfono</td><td class="v">{{ clinica.telefono }}</td></tr>{% endif %}
+      {% if mascotas %}<tr><td class="k">Mascota{{ mascotas|length|pluralize }}</td><td class="v">{{ mascotas|join:", " }}</td></tr>{% endif %}
+    </table>
+  </td>
+</tr></table>
+
+<table class="items">
+  <tr><th>Descripción</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
+  {% for i in items %}
+  <tr>
+    <td><span class="tipo">{{ i.get_tipo_display }}</span><br>{{ i.descripcion }}</td>
+    <td class="num">{{ i.cantidad }}</td>
+    <td class="num">${{ i.precio_unitario|floatformat:"0g" }}</td>
+    <td class="num">${{ i.subtotal|floatformat:"0g" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<table class="sumas" style="margin-top:4pt;">
+  <tr><td class="k">Subtotal</td><td class="v">${{ factura.subtotal|floatformat:"0g" }}</td></tr>
+  {% if factura.descuento %}<tr><td class="k">Descuento</td><td class="v">−${{ factura.descuento|floatformat:"0g" }}</td></tr>{% endif %}
+</table>
+
+<table class="total" style="margin-top:6pt;"><tr>
+  <td>Total pagado<br><span style="font-size:7pt; color:#F3E3FA;">Pesos colombianos</span></td>
+  <td class="monto">${{ factura.total|floatformat:"0g" }}</td>
+</tr></table>
+
+{% if clinica.medios_pago %}<p class="sub" style="margin-top:7pt;">Medios de pago aceptados: {{ clinica.medios_pago }}.</p>{% endif %}
+<p class="sub" style="margin-top:7pt; text-align:center;">Gracias por confiar en {{ clinica.nombre }}.</p>
+{% endblock %}

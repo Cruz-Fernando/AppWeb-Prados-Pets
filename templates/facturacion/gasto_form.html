@@ -1,0 +1,56 @@
+{% extends 'inventario/_layout.html' %}
+{% load static %}
+{% block titulo %}Registrar gasto{% endblock %}
+{% block migas %}
+  <a href="{% url 'facturacion:caja' %}">Caja</a>
+  <span class="app-topbar__sep">›</span>
+  <span class="app-topbar__current">Registrar gasto</span>
+{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=2-tema">
+
+<div class="inv-form-wrap">
+  <div class="inv-producto">
+    <span class="inv-producto__ico" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    </span>
+    <div>
+      <h1>Registrar gasto</h1>
+      <p>Salida de dinero de la clínica: arriendo, servicios públicos, nómina, compras… Queda como egreso en la caja.</p>
+    </div>
+  </div>
+
+  <form method="post" class="inv-card" novalidate>
+    {% csrf_token %}
+    <div class="inv-card__head"><h2>Datos del gasto</h2></div>
+    <div class="inv-card__body">
+      <div class="inv-grid">
+        <div class="inv-campo">
+          <label for="gasto-categoria">Categoría</label>
+          <select id="gasto-categoria" name="categoria" required>
+            <option value="">Selecciona</option>
+            {% for clave, nombre in categorias %}<option value="{{ clave }}" {% if datos.categoria == clave %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="inv-campo">
+          <label for="gasto-monto">Monto</label>
+          <input type="text" inputmode="numeric" id="gasto-monto" name="monto" value="{{ datos.monto }}" placeholder="Ej.: 1.200.000" required>
+        </div>
+        <div class="inv-campo">
+          <label for="gasto-fecha">Fecha</label>
+          <input type="date" id="gasto-fecha" name="fecha" value="{{ datos.fecha }}" max="{{ hoy|date:'Y-m-d' }}" required>
+        </div>
+        <div class="inv-campo inv-campo--full">
+          <label for="gasto-descripcion">Descripción</label>
+          <input type="text" id="gasto-descripcion" name="descripcion" value="{{ datos.descripcion }}" maxlength="255" placeholder="Ej.: Arriendo del local, noviembre" required>
+        </div>
+      </div>
+    </div>
+    <div class="inv-card__pie">
+      <a href="{% url 'facturacion:caja' %}" class="inv-btn">Cancelar</a>
+      <button type="submit" class="inv-btn inv-btn--primario">Registrar gasto</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

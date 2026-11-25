@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from urllib.parse import urlencode
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -18,9 +18,12 @@ from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView
 
 from apps.usuarios.permissions import rol_requerido
+from . import alertas
 from .carga_excel import procesar_catalogo
 from .forms import ProductoForm, ReposicionForm, CargaExcelForm, SalidaManualForm, RetirarProductoForm
-from .models import Producto, Medicamento, Servicio, MovimientoInventario, CategoriaProducto, InsumoServicio
+from .models import (
+    UMBRAL_STOCK_BAJO, Producto, Medicamento, Servicio, MovimientoInventario, CategoriaProducto, InsumoServicio,
+)
 from .services import (
     StockInsuficiente,
     avisos_stock_bajo,
@@ -38,19 +41,18 @@ solo_inventario = method_decorator(rol_requerido(*ROLES_INVENTARIO), name='dispa
 
 
 # Filtros rápidos de la lista (los usan los indicadores y la campana).
-# Cada uno: (texto, condición sobre productos activos).
+# Cada uno: (texto, condición sobre productos activos). Las alertas salen de
+# alertas.py, la misma regla que usa la campana (PB-21).
 def _filtros_estado():
-    hoy = timezone.localdate()
-    con_unidades = models.Q(stock_actual__gt=0)
-    return {
-        # El indicador «stock mínimo o menos» (incluye los agotados)
-        'reabastecer': ('Por reabastecer', models.Q(stock_actual__lte=models.F('stock_minimo'))),
-        'agotados': ('Agotados', models.Q(stock_actual=0)),
-        'bajo': ('En stock mínimo', con_unidades & models.Q(stock_actual__lte=models.F('stock_minimo'))),
-        'vencidos': ('Vencidos con unidades', con_unidades & models.Q(fecha_vencimiento__lt=hoy)),
-        'por_vencer': ('Vencen en 30 días', con_unidades & models.Q(
-            fecha_vencimiento__gte=hoy, fecha_vencimiento__lte=hoy + timedelta(days=30))),
+    condiciones = alertas.condiciones()
+    filtros = {
+        # El indicador «menos de 5 unidades» (incluye los agotados)
+        'reabastecer': (f'Por reabastecer (menos de {UMBRAL_STOCK_BAJO})',
+                        models.Q(stock_actual__lt=UMBRAL_STOCK_BAJO)),
     }
+    for tipo in alertas.TIPOS:
+        filtros[tipo.clave] = (tipo.filtro, condiciones[tipo.clave])
+    return filtros
 
 
 class PestanasInventarioMixin:
@@ -96,7 +98,8 @@ class InventarioListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(
                 models.Q(nombre__icontains=q) |
                 models.Q(codigo__icontains=q) |
-                models.Q(codigo_barras__icontains=q)
+                models.Q(codigo_barras__icontains=q) |
+                models.Q(numero_lote__icontains=q)
             )
         if categoria_id:
             queryset = queryset.filter(categoria_id=categoria_id)
@@ -116,7 +119,7 @@ class InventarioListView(LoginRequiredMixin, ListView):
                 output_field=models.DecimalField(max_digits=20, decimal_places=2),
             ),
             bajo_stock=models.Count(
-                'pk', filter=activo & models.Q(stock_actual__lte=models.F('stock_minimo'))),
+                'pk', filter=activo & models.Q(stock_actual__lt=UMBRAL_STOCK_BAJO)),
             vencidos=models.Count(
                 'pk', filter=activo & models.Q(
                     stock_actual__gt=0, fecha_vencimiento__lt=timezone.localdate())),
@@ -179,6 +182,7 @@ def registrar_reposicion(request):
                 producto.pk, datos['cantidad'], usuario=request.user,
                 costo=datos.get('nuevo_precio_compra'),
                 fecha_vencimiento=datos.get('fecha_vencimiento'),
+                numero_lote=datos.get('numero_lote') or '',
                 nota=datos.get('observacion') or '',
             )
             producto.refresh_from_db()
@@ -305,7 +309,7 @@ def exportar_inventario_excel(request):
 
     headers = [
         'Código', 'Código Barras', 'Nombre', 'Categoría', 'Proveedor',
-        'Precio Compra ($)', 'Precio Venta ($)', 'Stock Actual', 'Stock Mínimo', 'Vence', 'Estado'
+        'Precio Compra ($)', 'Precio Venta ($)', 'Stock Actual', 'Stock Mínimo', 'Vence', 'Lote', 'Estado'
     ]
     ws.append(headers)
 
@@ -319,8 +323,9 @@ def exportar_inventario_excel(request):
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
     productos = Producto.objects.filter(activo=True).select_related('categoria', 'proveedor')
+    niveles = {'agotado': 'AGOTADO', 'critico': 'CRÍTICO', 'bajo': 'BAJO'}   # PB-21
     for prod in productos:
-        estado = "VENCIDO" if prod.vencido and prod.stock_actual else ("REABASTECER" if prod.necesita_reposicion else "OK")
+        estado = "VENCIDO" if prod.vencido and prod.stock_actual else niveles.get(prod.nivel_stock, "OK")
         cat_nombre = prod.categoria.nombre if prod.categoria else "General"
         prov_nombre = prod.proveedor.nombre if prod.proveedor else "N/A"
         
@@ -335,6 +340,7 @@ def exportar_inventario_excel(request):
             prod.stock_actual,
             prod.stock_minimo,
             prod.fecha_vencimiento.strftime('%d/%m/%Y') if prod.fecha_vencimiento else '',
+            prod.numero_lote or '',
             estado
         ])
 

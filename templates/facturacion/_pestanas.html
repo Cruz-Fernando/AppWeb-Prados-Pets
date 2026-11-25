@@ -1,0 +1,10 @@
+{% comment %}
+  Pestañas de Facturación (administrador y auxiliar). El groomer solo ve sus ganancias, sin pestañas.
+{% endcomment %}
+{% with vista=request.resolver_match.url_name %}
+<nav class="inv-tabs" aria-label="Secciones de facturación">
+  <a href="{% url 'facturacion:facturas' %}" class="inv-tab{% if 'factura' in vista %} is-activa{% endif %}"{% if 'factura' in vista %} aria-current="page"{% endif %}>Facturas</a>
+  <a href="{% url 'facturacion:caja' %}" class="inv-tab{% if vista == 'caja' or vista == 'gasto' %} is-activa{% endif %}"{% if vista == 'caja' or vista == 'gasto' %} aria-current="page"{% endif %}>Caja (ingresos y gastos)</a>
+  <a href="{% url 'facturacion:panel' %}" class="inv-tab{% if vista == 'panel' %} is-activa{% endif %}"{% if vista == 'panel' %} aria-current="page"{% endif %}>Ganancias por groomer</a>
+</nav>
+{% endwith %}

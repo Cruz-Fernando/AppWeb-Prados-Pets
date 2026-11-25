@@ -22,7 +22,7 @@
   <div class="inv-cifras">
     <div class="inv-cifra"><span>Hay ahora</span><b>{{ producto.stock_actual }}</b></div>
     <div class="inv-cifra{% if producto.necesita_reposicion %} inv-cifra--alerta{% endif %}"><span>Stock mínimo</span><b>{{ producto.stock_minimo }}</b></div>
-    <div class="inv-cifra{% if producto.vencido %} inv-cifra--alerta{% endif %}"><span>Vence</span><b>{% if producto.fecha_vencimiento %}{{ producto.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}</b></div>
+    <div class="inv-cifra{% if producto.vencido %} inv-cifra--alerta{% endif %}"><span>Vence{% if producto.numero_lote %} · lote {{ producto.numero_lote }}{% endif %}</span><b>{% if producto.fecha_vencimiento %}{{ producto.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}</b></div>
   </div>
   {% endif %}
 
