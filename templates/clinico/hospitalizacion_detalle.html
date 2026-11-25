@@ -95,7 +95,7 @@
             {% if e.apetito %}<span>Apetito <b>{{ e.get_apetito_display }}</b></span>{% endif %}
             <span>Orina <b>{{ e.orina|yesno:"Sí,No" }}</b></span>
             <span>Heces <b>{{ e.defeca|yesno:"Sí,No" }}</b></span>
-            {% if e.vomito %}<span style="color:#FCA5A5;">Vómito</span>{% endif %}
+            {% if e.vomito %}<span style="color:var(--c-rojo-2);">Vómito</span>{% endif %}
           </div>
           {% if e.fluidoterapia %}<p><b>Fluidoterapia:</b> {{ e.fluidoterapia }}</p>{% endif %}
           {% if e.medicamentos %}<p><b>Medicamentos:</b> {{ e.medicamentos }}</p>{% endif %}

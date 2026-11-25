@@ -4,7 +4,7 @@
 {% block title %}Crear Nuevo Producto · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=10-tema">
 
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -19,7 +19,7 @@
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         <a href="{% url 'inventario:lista' %}">Inventario</a>
         <span class="app-topbar__sep">›</span>
@@ -28,28 +28,42 @@
     </header>
 
     <main class="app-content app-content--wide">
-      <div class="card" style="max-width: 750px; margin: 2rem auto; background: linear-gradient(170deg, #1C1530, #120e1c); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-        <h2 style="color: #fff; margin-bottom: 8px; font-weight: 700;">Registrar Nuevo Producto</h2>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">Completa la información del ítem para incluirlo en el catálogo e iniciar su seguimiento en el Kardex.</p>
+      <div class="card" style="max-width: 750px; margin: 2rem auto; background: linear-gradient(170deg, var(--surface-alt), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+        <h2 style="color: var(--text); font-family: var(--font-marca); font-weight: 600; margin-bottom: 8px; font-weight: 700;">Registrar Nuevo Producto</h2>
+        <p style="color: var(--c-gris-frio); font-size: 0.9rem; margin-bottom: 24px;">Completa la información del ítem para incluirlo en el catálogo e iniciar su seguimiento en el Kardex.</p>
 
-        <form method="post" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;">
+        <style>
+          /* Los campos se dibujan con los widgets por defecto de Django: aquí toman el estilo de la app */
+          .producto-form input:not([type="checkbox"]):not([type="radio"]),
+          .producto-form select,
+          .producto-form textarea {
+            width: 100%; padding: 10px 12px; font: inherit; font-size: 15px;
+            color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+          }
+          .producto-form textarea { min-height: 44px; resize: vertical; }
+          .producto-form input:focus, .producto-form select:focus, .producto-form textarea:focus {
+            outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+          }
+          @media (max-width: 640px) { .producto-form { grid-template-columns: 1fr !important; } .producto-form > div:last-child { grid-column: auto !important; } }
+        </style>
+        <form method="post" class="producto-form" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;">
           {% csrf_token %}
 
           {% for field in form %}
             <div>
-              <label for="{{ field.id_for_label }}" style="color: #e2e8f0; font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.875rem;">
+              <label for="{{ field.id_for_label }}" style="color: var(--c-texto-frio); font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.875rem;">
                 {{ field.label }}
               </label>
               {{ field }}
               {% if field.errors %}
-                <span style="color: #f87171; font-size: 0.8rem; display: block; margin-top: 4px;">{{ field.errors.0 }}</span>
+                <span style="color: var(--c-rojo); font-size: 0.8rem; display: block; margin-top: 4px;">{{ field.errors.0 }}</span>
               {% endif %}
             </div>
           {% endfor %}
 
           <div style="grid-column: span 2; display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px;">
-            <a href="{% url 'inventario:lista' %}" class="cal-btn" style="background: rgba(255,255,255,0.1); color: #e2e8f0; padding: 10px 20px; border-radius: 8px; text-decoration: none;">Cancelar</a>
-            <button type="submit" class="cal-btn cal-btn--consulta" style="padding: 10px 24px; border-radius: 8px; color: white; font-weight: 600; border: none; cursor: pointer;">
+            <a href="{% url 'inventario:lista' %}" class="btn btn--ghost">Cancelar</a>
+            <button type="submit" class="btn btn--primary">
               Guardar Producto
             </button>
           </div>

@@ -1,0 +1,397 @@
+/* ============================================================
+   Panel principal (usuarios/dashboard.html)
+   Una hoja del día: la fecha, el buscador del mostrador, a quién
+   hay que avisar hoy y los accesos a cada área.
+   ============================================================ */
+
+.app-content.panel { max-width: 1080px; }
+
+/* ---------- Cabecera: saludo, fecha y las mascotas de la clínica ---------- */
+
+.panel-cabeza {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.panel-cabeza__texto {
+  min-width: 0;
+  margin-bottom: 26px;
+}
+
+.panel-saludo {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.app-content h1.panel-fecha {
+  margin: 0;
+  font-family: var(--font-marca);
+  font-size: 52px;
+  font-weight: 600;
+  font-stretch: 115%;
+  line-height: 1;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+/* Las mascotas se sientan sobre el borde del buscador */
+.panel-mascotas {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 220px;
+  height: auto;
+  margin: 0 32px -19px 0;
+  pointer-events: none;
+}
+
+/* Roles sin directorio (groomer): no hay buscador donde sentarse */
+.panel-cabeza--sin-buscador .panel-mascotas { margin-bottom: 0; }
+
+/* ---------- Buscador del mostrador ---------- */
+
+.panel-buscar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 20px;
+  background: var(--surface);
+  border: 2px solid var(--uva-accion);
+  border-radius: 20px;
+}
+
+.panel-buscar:focus-within { box-shadow: 0 0 0 4px var(--accent-soft); }
+
+.panel-buscar__icono {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.panel-buscar__campo {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 2px;
+  font: inherit;
+  font-size: 19px;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+}
+
+.panel-buscar__campo:focus { outline: none; }
+.panel-buscar__campo::placeholder { color: var(--text-dim); opacity: 1; }
+
+.panel-buscar__boton {
+  flex-shrink: 0;
+  padding: 12px 26px;
+  font-family: var(--font-marca);
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--uva-accion);
+  border-radius: 14px;
+  transition: background-color var(--transition-fast);
+}
+
+.panel-buscar__boton:hover { background: var(--uva-accion-hover); }
+
+/* ---------- Acciones rápidas ---------- */
+
+.panel-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.panel-acciones .btn svg { color: var(--accent); }
+
+/* ---------- Secciones ---------- */
+
+.panel-seccion { margin-top: 52px; }
+
+.panel-seccion__cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 14px;
+}
+
+.panel-seccion__titulo {
+  margin: 0;
+  font-family: var(--font-marca);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.panel-seccion__enlace {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.panel-seccion__enlace:hover { color: var(--accent-strong); }
+
+/* ---------- Recordatorios por avisar ---------- */
+
+.avisos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.aviso {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr) auto;
+  grid-template-areas: "quien tipo cuando acciones";
+  align-items: center;
+  gap: 10px 20px;
+  padding: 16px 16px 16px 22px;
+}
+
+.aviso + .aviso { border-top: 1px solid var(--border-subtle); }
+
+.aviso__quien { grid-area: quien; min-width: 0; }
+
+.aviso__mascota {
+  display: block;
+  font-family: var(--font-marca);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.aviso__dueno {
+  display: block;
+  font-size: 14px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aviso__tipo {
+  grid-area: tipo;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.aviso__tipo svg { flex-shrink: 0; color: var(--accent); }
+
+.aviso__cuando {
+  grid-area: cuando;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.aviso--atrasado .aviso__cuando { color: var(--rosa-texto); }
+
+.aviso__acciones {
+  grid-area: acciones;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.aviso__acciones form { margin: 0; }
+
+.aviso__wa,
+.aviso__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.aviso__wa {
+  color: #fff;
+  background: var(--verde-wa);
+  border: 1px solid var(--verde-wa);
+}
+
+.aviso__wa:hover { color: #fff; filter: brightness(0.9); }
+
+.aviso__tel {
+  padding: 8px 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.aviso__tel:hover { color: var(--accent-strong); text-decoration: underline; }
+
+.aviso__ok {
+  color: var(--accent-strong);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.aviso__ok:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+.avisos__mas {
+  margin: 12px 4px 0;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.avisos-vacio {
+  margin: 0;
+  padding: 22px 24px;
+  font-size: 16px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+}
+
+/* ---------- Accesos a cada área ---------- */
+
+.atajos-marco {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* Cada celda dibuja su línea derecha e inferior; el margen negativo
+   esconde las del borde exterior. */
+.atajos {
+  list-style: none;
+  margin: 0 -1px -1px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.atajos li {
+  display: flex;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.atajo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 2px 14px;
+  width: 100%;
+  padding: 18px 20px;
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.atajo:hover { color: var(--text); background: var(--surface-hover); }
+.atajo:focus-visible { outline-offset: -3px; }
+
+.atajo__icono {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.atajo__nombre {
+  font-family: var(--font-marca);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.atajo:hover .atajo__nombre { color: var(--accent-strong); }
+
+.atajo__desc {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+  .atajos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .aviso {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "quien cuando"
+      "tipo tipo"
+      "acciones acciones";
+    padding: 16px;
+  }
+
+  .aviso__cuando { text-align: right; }
+  .aviso__acciones { justify-content: flex-start; flex-wrap: wrap; }
+}
+
+@media (max-width: 768px) {
+  .panel-cabeza { gap: 12px; }
+  .panel-cabeza__texto { margin-bottom: 18px; }
+  .panel-saludo { font-size: 16px; }
+  .app-content h1.panel-fecha { font-size: 36px; font-stretch: 108%; }
+  .panel-mascotas { width: 132px; margin: 0 6px -12px 0; }
+
+  .panel-buscar { padding: 6px 6px 6px 14px; border-radius: 16px; }
+  .panel-buscar__campo { font-size: 16px; padding: 10px 2px; }
+  .panel-buscar__boton { padding: 10px 16px; font-size: 16px; border-radius: 12px; }
+
+  .panel-acciones {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .panel-acciones .btn {
+    justify-content: flex-start;
+    padding: 10px 12px;
+    font-size: 14px;
+    line-height: 1.25;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .panel-acciones .btn svg { flex-shrink: 0; }
+  .panel-seccion { margin-top: 40px; }
+  .panel-seccion__titulo { font-size: 22px; }
+}
+
+@media (max-width: 560px) {
+  .atajos { grid-template-columns: minmax(0, 1fr); }
+  .panel-mascotas { width: 112px; margin-bottom: -10px; }
+  .app-content h1.panel-fecha { font-size: 32px; }
+}

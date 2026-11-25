@@ -1,0 +1,173 @@
+/* ============================================================
+   Inicio de sesión (usuarios/login.html)
+   La columna morada es el mismo menú que aparece al entrar.
+   ============================================================ */
+
+.acceso {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(340px, 42%) 1fr;
+  background: var(--bg);
+}
+
+/* ---------- Columna de marca ---------- */
+
+.acceso__marca {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16vh 56px 0;
+  color: #fff;
+  background: var(--menu);
+  overflow: hidden;
+}
+
+.acceso__logo {
+  width: 112px;
+  height: 112px;
+  margin-bottom: 28px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px #fff;
+}
+
+.acceso__nombre {
+  margin: 0;
+  font-family: var(--font-marca);
+  font-size: 56px;
+  font-weight: 600;
+  font-stretch: 115%;
+  line-height: 1;
+}
+
+.acceso__lugar {
+  margin: 12px 0 0;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.acceso__mascotas {
+  margin-top: auto;            /* al fondo de la columna */
+  align-self: flex-end;
+  width: min(330px, 78%);
+  height: auto;
+  margin-bottom: -8px;
+  pointer-events: none;
+}
+
+/* ---------- Formulario ---------- */
+
+.acceso__lado {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+}
+
+.acceso__esquina {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+}
+
+.acceso__caja { width: min(400px, 100%); }
+
+.acceso__titulo {
+  margin: 0 0 8px;
+  font-family: var(--font-marca);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.acceso__ayuda {
+  margin: 0 0 28px;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.acceso__error {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 12px;
+}
+
+.acceso__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.acceso__form label {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.acceso__form input[type="text"],
+.acceso__form input[type="password"] {
+  height: 52px;
+  margin-bottom: 20px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 17px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.acceso__form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.acceso__boton {
+  height: 52px;
+  margin-top: 6px;
+  font-family: var(--font-marca);
+  font-size: 19px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--uva-accion);
+  border-radius: 14px;
+  transition: background-color var(--transition-fast);
+}
+
+.acceso__boton:hover { background: var(--uva-accion-hover); }
+
+.acceso__nota {
+  margin: 24px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ---------- Celular: la marca pasa a ser una franja arriba ---------- */
+
+@media (max-width: 860px) {
+  .acceso { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+
+  .acceso__marca {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+  }
+
+  .acceso__logo { width: 56px; height: 56px; margin: 0; box-shadow: 0 0 0 3px #fff; }
+  .acceso__nombre { font-size: 26px; }
+  .acceso__lugar { margin-top: 4px; font-size: 14px; }
+  .acceso__mascotas { display: none; }
+
+  .acceso__lado { place-items: start center; padding: 32px 20px 48px; }
+  .acceso__esquina { position: static; justify-self: end; margin-bottom: 24px; }
+  .acceso__titulo { font-size: 30px; }
+}

@@ -17,7 +17,7 @@
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         <span class="app-topbar__current">Directorio</span>
         <span class="app-topbar__sep">›</span>
@@ -236,9 +236,9 @@
 /* ── Código badge ───────────────────────────────────────────────────── */
 .badge--codigo {
   margin-left: 8px;
-  background: rgba(167,139,250,.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
-  border: 1px solid rgba(167,139,250,.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   font-size: 11px;
   padding: 2px 9px;
   border-radius: var(--radius-pill);
@@ -250,7 +250,7 @@
   align-items: center;
   gap: 2px;
   background: var(--surface-alt);
-  border: 1px dashed rgba(167,139,250,.45);
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
   border-radius: var(--radius-sm);
   padding: 10px 16px;
   font-family: 'Courier New', Courier, monospace;
@@ -325,8 +325,8 @@
 .app-form input[type="date"]:focus,
 .app-form input[type="number"]:focus {
   border-color: var(--accent);
-  background: #1d1530;
-  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+  background: var(--surface-alt);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   outline: none;
 }
 
@@ -345,7 +345,7 @@
 .app-form__input:focus {
   border-color: var(--accent);
   background: #20172e;
-  box-shadow: 0 0 0 3px rgba(167,139,250,.22);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   outline: none;
 }
 .app-form__input--error {
@@ -365,7 +365,7 @@
   right: 0;
   z-index: 200;
   background: var(--surface);
-  border: 1px solid rgba(167,139,250,.35);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: var(--radius-sm);
   box-shadow: 0 8px 24px rgba(0,0,0,.5);
   list-style: none;
@@ -391,7 +391,7 @@
 
 .autocomplete-list li:hover,
 .autocomplete-list li.is-active {
-  background: rgba(167,139,250,.14);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent-light);
 }
 
@@ -409,7 +409,7 @@
 /* Scroll personalizado */
 .autocomplete-list::-webkit-scrollbar { width: 5px; }
 .autocomplete-list::-webkit-scrollbar-thumb {
-  background: rgba(167,139,250,.3);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: 99px;
 }
 

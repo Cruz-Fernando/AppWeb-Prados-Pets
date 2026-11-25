@@ -4,7 +4,7 @@
 {% block title %}Calendario · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=11-tema">
 
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
@@ -19,7 +19,7 @@
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         <span class="app-topbar__current">Calendario</span>
       </div>

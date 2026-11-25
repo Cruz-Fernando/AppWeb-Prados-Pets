@@ -6,15 +6,15 @@
 .cl { max-width: 1120px; }
 
 /* ---------- Colores por tipo de registro ---------- */
-.t-violet { --t: #A78BFA; --t-soft: rgba(167, 139, 250, .14); --t-line: rgba(167, 139, 250, .35); }
-.t-green  { --t: #34D399; --t-soft: rgba(52, 211, 153, .13);  --t-line: rgba(52, 211, 153, .35); }
-.t-amber  { --t: #FBBF24; --t-soft: rgba(251, 191, 36, .13);  --t-line: rgba(251, 191, 36, .35); }
-.t-sky    { --t: #38BDF8; --t-soft: rgba(56, 189, 248, .13);  --t-line: rgba(56, 189, 248, .35); }
-.t-rose   { --t: #FB7185; --t-soft: rgba(251, 113, 133, .13); --t-line: rgba(251, 113, 133, .35); }
-.t-slate  { --t: #CBD5E1; --t-soft: rgba(203, 213, 225, .10); --t-line: rgba(203, 213, 225, .30); }
-.t-teal   { --t: #2DD4BF; --t-soft: rgba(45, 212, 191, .13);  --t-line: rgba(45, 212, 191, .35); }
-.t-gray   { --t: #9B8EC4; --t-soft: rgba(155, 142, 196, .12); --t-line: rgba(155, 142, 196, .30); }
-.t-hosp   { --t: #F472B6; --t-soft: rgba(244, 114, 182, .13); --t-line: rgba(244, 114, 182, .35); }
+.t-violet { --t: var(--c-lavanda-2); --t-soft: color-mix(in srgb, var(--accent) 14%, transparent); --t-line: color-mix(in srgb, var(--accent) 35%, transparent); }
+.t-green  { --t: var(--c-verde); --t-soft: rgba(52, 211, 153, .13);  --t-line: rgba(52, 211, 153, .35); }
+.t-amber  { --t: var(--c-ambar); --t-soft: rgba(251, 191, 36, .13);  --t-line: rgba(251, 191, 36, .35); }
+.t-sky    { --t: var(--c-celeste); --t-soft: rgba(56, 189, 248, .13);  --t-line: rgba(56, 189, 248, .35); }
+.t-rose   { --t: var(--c-rojo-vivo); --t-soft: rgba(251, 113, 133, .13); --t-line: rgba(251, 113, 133, .35); }
+.t-slate  { --t: var(--c-texto-frio-2); --t-soft: rgba(203, 213, 225, .10); --t-line: rgba(203, 213, 225, .30); }
+.t-teal   { --t: var(--c-turquesa); --t-soft: rgba(45, 212, 191, .13);  --t-line: rgba(45, 212, 191, .35); }
+.t-gray   { --t: var(--text-muted); --t-soft: rgba(155, 142, 196, .12); --t-line: rgba(155, 142, 196, .30); }
+.t-hosp   { --t: var(--c-rosa); --t-soft: rgba(244, 114, 182, .13); --t-line: rgba(244, 114, 182, .35); }
 
 /* ---------- Encabezados ---------- */
 .cl-head {
@@ -53,7 +53,7 @@
   width: 56px; height: 56px; border-radius: 16px;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 22px; font-weight: 800; color: var(--accent-light);
-  background: var(--accent-soft); border: 1px solid rgba(167, 139, 250, .25);
+  background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .cl-avatar--sm { width: 36px; height: 36px; border-radius: 10px; font-size: 14px; }
 .cl-patient__name { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
@@ -74,10 +74,10 @@
   font-size: 13.5px; border: 1px solid;
 }
 .cl-banner > span { flex: 1; min-width: 200px; }
-.cl-banner--hosp { color: #F9A8D4; background: rgba(244, 114, 182, .10); border-color: rgba(244, 114, 182, .32); }
-.cl-banner--dead { color: #CBD5E1; background: rgba(148, 163, 184, .10); border-color: rgba(148, 163, 184, .30); }
-.cl-banner--void { color: #FCA5A5; background: rgba(239, 68, 68, .10); border-color: rgba(239, 68, 68, .30); }
-.cl-banner--info { color: var(--accent-light); background: var(--accent-soft); border-color: rgba(167, 139, 250, .3); }
+.cl-banner--hosp { color: var(--c-rosa-2); background: rgba(244, 114, 182, .10); border-color: rgba(244, 114, 182, .32); }
+.cl-banner--dead { color: var(--c-texto-frio-2); background: rgba(148, 163, 184, .10); border-color: rgba(148, 163, 184, .30); }
+.cl-banner--void { color: var(--c-rojo-2); background: rgba(239, 68, 68, .10); border-color: rgba(239, 68, 68, .30); }
+.cl-banner--info { color: var(--accent-light); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 
 /* ---------- Selector de nuevo registro ---------- */
 .cl-types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -150,12 +150,12 @@ a.cl-event__box:hover { background: var(--surface-hover); border-color: var(--t-
   font-size: 11px; font-weight: 700; border-radius: var(--radius-pill);
   color: var(--t, var(--accent)); background: var(--t-soft, var(--accent-soft));
 }
-.cl-badge--void { color: #FCA5A5; background: rgba(239, 68, 68, .14); }
-.cl-badge--live { color: #F9A8D4; background: rgba(244, 114, 182, .14); }
-.cl-badge--ok   { color: #6EE7B7; background: rgba(52, 211, 153, .13); }
-.cl-badge--warn { color: #FCD34D; background: rgba(245, 158, 11, .14); }
-.cl-badge--crit { color: #FCA5A5; background: rgba(239, 68, 68, .16); }
-.cl-badge--muted { color: var(--text-muted); background: rgba(255,255,255,.05); }
+.cl-badge--void { color: var(--c-rojo-2); background: rgba(239, 68, 68, .14); }
+.cl-badge--live { color: var(--c-rosa-2); background: rgba(244, 114, 182, .14); }
+.cl-badge--ok   { color: var(--c-verde-2); background: rgba(52, 211, 153, .13); }
+.cl-badge--warn { color: var(--c-ambar-2); background: rgba(245, 158, 11, .14); }
+.cl-badge--crit { color: var(--c-rojo-2); background: rgba(239, 68, 68, .16); }
+.cl-badge--muted { color: var(--text-muted); background: var(--velo-1); }
 
 /* ---------- Panel lateral ---------- */
 .cl-list { list-style: none; margin: 0; padding: 0; }
@@ -171,8 +171,8 @@ a.cl-event__box:hover { background: var(--surface-hover); border-color: var(--t-
 .cl-log td { color: var(--text); }
 .cl-log tr:last-child td { border-bottom: 0; }
 .cl-diff { margin: 6px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--text-muted); }
-.cl-diff del { color: #FCA5A5; text-decoration: line-through; }
-.cl-diff ins { color: #6EE7B7; text-decoration: none; }
+.cl-diff del { color: var(--c-rojo-2); text-decoration: line-through; }
+.cl-diff ins { color: var(--c-verde-2); text-decoration: none; }
 
 /* ---------- Formularios ---------- */
 .cl-form-section { padding: 20px; border-top: 1px solid var(--border-subtle); }
@@ -195,9 +195,9 @@ a.cl-event__box:hover { background: var(--surface-hover); border-color: var(--t-
 .cl-fields--vitals { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .cl-fields--vitals .cl-field { grid-column: span 1; }
 .cl-label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
-.cl-req { color: #F472B6; }
+.cl-req { color: var(--c-rosa); }
 .cl-help { font-size: 11.5px; color: var(--text-dim); }
-.cl-error { font-size: 12px; color: #F87171; }
+.cl-error { font-size: 12px; color: var(--c-rojo); }
 
 .cl-input {
   width: 100%; padding: 10px 12px; font-size: 14px; font-family: var(--font-ui);
@@ -205,7 +205,7 @@ a.cl-event__box:hover { background: var(--surface-hover); border-color: var(--t-
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.cl-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(167, 139, 250, .18); }
+.cl-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .cl-input::placeholder { color: var(--text-dim); }
 textarea.cl-input { resize: vertical; min-height: 64px; line-height: 1.5; }
 select.cl-input option { background: var(--surface-alt); }
@@ -274,10 +274,10 @@ input[type=file].cl-input::file-selector-button {
 .cl-modal::backdrop { background: rgba(0, 0, 0, .6); backdrop-filter: blur(3px); }
 .cl-modal .cl-card { box-shadow: var(--shadow-lg); }
 
-.btn--rose { background: rgba(239, 68, 68, .12); color: #FCA5A5; border-color: rgba(239, 68, 68, .3); }
-.btn--rose:hover { background: rgba(239, 68, 68, .22); color: #fff; }
-.btn--green { background: rgba(52, 211, 153, .12); color: #6EE7B7; border-color: rgba(52, 211, 153, .32); }
-.btn--green:hover { background: rgba(52, 211, 153, .22); color: #fff; }
+.btn--rose { background: rgba(239, 68, 68, .12); color: var(--c-rojo-2); border-color: rgba(239, 68, 68, .3); }
+.btn--rose:hover { background: rgba(239, 68, 68, .22); color: var(--c-rojo-2); }
+.btn--green { background: rgba(52, 211, 153, .12); color: var(--c-verde-2); border-color: rgba(52, 211, 153, .32); }
+.btn--green:hover { background: rgba(52, 211, 153, .22); color: var(--c-verde-2); }
 
 /* ---------- Tabla de pacientes ---------- */
 .cl-search { display: flex; gap: 8px; margin-bottom: 16px; max-width: 520px; }
