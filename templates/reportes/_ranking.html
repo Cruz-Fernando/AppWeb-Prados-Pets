@@ -1,0 +1,21 @@
+{% load reportes_extras %}
+{% comment %}
+  Barras horizontales ordenadas (una sola serie). Recibe:
+    filas: [{nombre, valor, ancho}] de mayor a menor
+    dinero: True para mostrar el valor en pesos
+    unidad: texto después de una cantidad («citas», «unidades»)
+    vacio: texto si no hay filas
+{% endcomment %}
+{% if filas %}
+<ol class="ranking">
+  {% for f in filas %}
+  <li class="ranking__fila">
+    <span class="ranking__nombre">{{ f.nombre }}</span>
+    <span class="ranking__pista" aria-hidden="true"><span class="ranking__barra" style="width: {{ f.ancho }}%"></span></span>
+    <span class="ranking__valor">{% if dinero %}{{ f.valor|pesos }}{% else %}{{ f.valor }}{% if unidad %} {{ unidad }}{% endif %}{% endif %}</span>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="rep-vacio">{{ vacio }}</p>
+{% endif %}

@@ -1,0 +1,278 @@
+{% load static reportes_extras %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte semanal {{ sabado|date:"d/m/Y" }} · {{ clinica.nombre }}</title>
+{% comment %}
+  PDF del reporte semanal (xhtml2pdf): sin SVG, flexbox ni variables CSS.
+  Las barras son celdas de tabla con ancho proporcional.
+  Colores de las líneas: los mismos validados de la pantalla (modo día).
+{% endcomment %}
+<style>
+  @page {
+    size: a4 portrait;
+    margin: 1.2cm 1.3cm 1.7cm 1.3cm;
+    @frame pie { -pdf-frame-content: pie; bottom: 0.6cm; margin-left: 1.3cm; margin-right: 1.3cm; height: 0.8cm; }
+  }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 8.6pt; color: {{ marca.texto }}; line-height: 1.3; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  p { margin: 0; }
+
+  .cab td { background-color: {{ marca.primario_oscuro }}; color: #ffffff; padding: 8pt 10pt; vertical-align: middle; }
+  .cab .logo { width: 52pt; }
+  .cab .marca { font-size: 15pt; font-weight: bold; }
+  .cab .sub { font-size: 8pt; color: #F3E3FA; }
+  .cab .doc { text-align: right; width: 48%; }
+  .cab .doc-tipo { font-size: 8pt; color: #F3E3FA; }
+  .cab .doc-num { font-size: 12pt; font-weight: bold; }
+
+  h2 { font-size: 11.5pt; color: {{ marca.primario_oscuro }}; margin: 14pt 0 5pt; padding-bottom: 2pt;
+       border-bottom: 1.5pt solid {{ marca.primario }}; }
+  h3 { font-size: 9pt; color: {{ marca.texto }}; margin: 8pt 0 3pt; }
+  .gris { color: {{ marca.gris }}; }
+  .nota { font-size: 7.6pt; color: {{ marca.gris }}; margin-top: 3pt; }
+
+  .cifras td { width: 33%; padding: 6pt 8pt; border: 1pt solid {{ marca.borde }}; background-color: {{ marca.suave }}; }
+  .cifras .k { font-size: 7.5pt; color: {{ marca.gris }}; }
+  .cifras .v { font-size: 13pt; font-weight: bold; color: {{ marca.texto }}; }
+  .cifras .d { font-size: 7.5pt; color: {{ marca.gris }}; }
+  .sube { color: #17663A; }
+  .baja { color: #A3242B; }
+
+  .resumen { padding: 7pt 9pt; border-left: 3pt solid {{ marca.primario }}; background-color: #FBF8FD; font-size: 9pt; }
+  .recos td { padding: 4pt 6pt; border-bottom: 0.6pt solid {{ marca.borde }}; }
+  .recos .tipo { width: 18%; font-weight: bold; font-size: 7.8pt; }
+  .recos .area { width: 14%; font-size: 7.5pt; color: {{ marca.gris }}; text-align: right; }
+  .recos .titulo { font-weight: bold; }
+  .t-alerta { color: #A3242B; }
+  .t-mejora { color: #8A4A06; }
+  .t-oportunidad { color: {{ marca.primario }}; }
+  .t-logro { color: #17663A; }
+
+  .datos th { font-size: 7.4pt; color: {{ marca.gris }}; text-align: left; padding: 3pt 4pt; border-bottom: 1pt solid {{ marca.borde }}; }
+  .datos td { padding: 3pt 4pt; border-bottom: 0.6pt solid {{ marca.borde }}; vertical-align: middle; }
+  .datos .num { text-align: right; }
+  .datos tfoot td { font-weight: bold; border-top: 1pt solid {{ marca.texto }}; border-bottom: 0; }
+  .datos td.muestra { font-size: 1pt; width: 10pt; padding: 0; }
+
+  .col td.mitad { width: 49%; }
+  .col td.hueco { width: 2%; }
+
+  #pie { font-size: 7pt; color: {{ marca.gris }}; border-top: 0.6pt solid {{ marca.borde }}; padding-top: 3pt; }
+</style>
+</head>
+<body>
+<div id="pie">
+  <table><tr>
+    <td><b>{{ clinica.nombre }}</b> · Reporte semanal del {{ semana.desde|date:"d/m/Y" }} al {{ semana.hasta|date:"d/m/Y" }}</td>
+    <td style="text-align:right; width:40%;">Generado {{ fecha_generacion|date:"d/m/Y H:i" }} · Página <pdf:pagenumber></td>
+  </tr></table>
+</div>
+
+<table class="cab"><tr>
+  <td class="logo"><img src="{% static 'img/Logo_PradosPets.png' %}" style="width: 42pt; height: 42pt;"></td>
+  <td><div class="marca">{{ clinica.nombre }}</div><div class="sub">{{ clinica.eslogan }} · {{ clinica.ciudad }}</div></td>
+  <td class="doc">
+    <div class="doc-tipo">Reporte semanal{% if es_hoy %} (en curso){% endif %}</div>
+    <div class="doc-num">{{ semana.desde|date:"j \d\e F"|lower }} al {{ semana.hasta|date:"j \d\e F \d\e Y"|lower }}</div>
+  </td>
+</tr></table>
+
+<!-- Cifras principales -->
+<h2>Resumen de la semana</h2>
+<table class="cifras">
+  <tr>
+    <td><div class="k">Ingresos cobrados</div><div class="v">{{ semana.ingresos|pesos }}</div>
+      <div class="d">{% if variacion.ingresos is not None %}<span class="{% if variacion.ingresos >= 0 %}sube{% else %}baja{% endif %}">{{ variacion.ingresos|variacion }}</span> frente a la semana anterior{% else %}Sin semana anterior para comparar{% endif %}</div></td>
+    <td><div class="k">Balance de caja</div><div class="v">{{ semana.caja.balance|pesos }}</div>
+      <div class="d">Entró {{ semana.caja.ingresos|pesos }} y salió {{ semana.caja.salidas|pesos }}</div></td>
+    <td><div class="k">Atenciones</div><div class="v">{{ semana.atenciones }}</div>
+      <div class="d">{{ semana.consultas }} consultas y {{ semana.peluquerias }} de peluquería{% if variacion.atenciones is not None %} ({{ variacion.atenciones|variacion }}){% endif %}</div></td>
+  </tr>
+  <tr>
+    <td><div class="k">Ticket promedio</div><div class="v">{{ semana.ticket_promedio|pesos }}</div><div class="d">En {{ semana.facturas }} factura{{ semana.facturas|pluralize }}</div></td>
+    <td><div class="k">Gastos</div><div class="v">{{ semana.caja.gastos|pesos }}</div><div class="d">{% if semana.caja.gastos_detalle %}Lo mayor: {{ semana.caja.gastos_detalle.0.nombre|lower }}{% else %}Sin gastos registrados{% endif %}</div></td>
+    <td><div class="k">Clientes nuevos</div><div class="v">{{ semana.duenos_nuevos }}</div><div class="d">{{ semana.mascotas_nuevas }} mascota{{ semana.mascotas_nuevas|pluralize }} nueva{{ semana.mascotas_nuevas|pluralize }}</div></td>
+  </tr>
+</table>
+
+<!-- Simulador de IA -->
+<h2>Análisis de la semana</h2>
+<p class="nota" style="margin: 0 0 4pt;">Simulador de IA: lo redacta el sistema con reglas a partir de las cifras de la semana.</p>
+<div class="resumen">{{ analisis.resumen|join:" " }}</div>
+<h3>Recomendaciones</h3>
+{% if analisis.recomendaciones %}
+<table class="recos">
+  {% for r in analisis.recomendaciones %}
+  <tr>
+    <td class="tipo t-{{ r.tipo }}">{{ r.etiqueta }}</td>
+    <td><div class="titulo">{{ r.titulo }}</div><div class="gris">{{ r.texto }}</div></td>
+    <td class="area">{{ r.area }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="gris">Esta semana no hay nada que corregir.</p>{% endif %}
+
+<!-- Ingresos -->
+<h2>Ingresos</h2>
+<table class="col"><tr>
+  <td class="mitad">
+    <h3>De dónde salieron</h3>
+    <table class="datos">
+      <thead><tr><th></th><th>Línea</th><th class="num">Monto</th><th class="num">%</th></tr></thead>
+      <tbody>
+        {% for l in semana.lineas %}
+        <tr>
+          <td class="muestra" style="background-color: {% if l.css == 'consulta' %}#2a78d6{% elif l.css == 'peluqueria' %}#e87ba4{% else %}#eda100{% endif %};">&nbsp;</td>
+          <td>{{ l.nombre }}</td><td class="num">{{ l.monto|pesos }}</td><td class="num">{{ l.porcentaje }} %</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if semana.descuentos %}<p class="nota">Descuentos de la semana: {{ semana.descuentos|pesos }} (los montos son antes de descuento).</p>{% endif %}
+
+    <h3>Lo que más dinero dejó</h3>
+    {% if semana.mas_vendido %}
+    <table class="datos">
+      {% for f in semana.mas_vendido %}
+      <tr><td style="width:46%;">{{ f.nombre }}</td>
+        <td>{% if f.ancho %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio f.ancho 100 70 %}" height="7" alt="">{% endif %}</td>
+        <td class="num" style="width:24%;">{{ f.valor|pesos }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="gris">Sin ventas cobradas esta semana.</p>{% endif %}
+  </td>
+  <td class="hueco"></td>
+  <td class="mitad">
+    <h3>Ingresos por día</h3>
+    <table class="datos">
+      {% for d in semana.dias %}
+      <tr><td style="width:22%;">{{ d.corto }} {{ d.fecha.day }}</td>
+        <td style="width:50%;">{% if d.ancho_ingresos %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio d.ancho_ingresos 100 110 %}" height="7" alt="">{% endif %}</td>
+        <td class="num" style="width:28%;">{{ d.ingresos|pesos }}</td></tr>
+      {% endfor %}
+    </table>
+
+    <h3>Caja de la semana</h3>
+    <table class="datos">
+      <tr><td>Entró a caja</td><td class="num">{{ semana.caja.ingresos|pesos }}</td></tr>
+      {% if semana.caja.anulaciones %}<tr><td>Facturas anuladas</td><td class="num">−{{ semana.caja.anulaciones|pesos }}</td></tr>{% endif %}
+      {% for g in semana.caja.gastos_detalle %}<tr><td>{{ g.nombre }}</td><td class="num">−{{ g.monto|pesos }}</td></tr>{% endfor %}
+      <tfoot><tr><td>Balance</td><td class="num">{{ semana.caja.balance|pesos }}</td></tr></tfoot>
+    </table>
+  </td>
+</tr></table>
+
+<!-- Agenda -->
+<h2>Agenda y atenciones</h2>
+<table class="col"><tr>
+  <td class="mitad">
+    <h3>Atenciones por día</h3>
+    <table class="datos">
+      <thead><tr><th>Día</th><th></th><th class="num">Consultas</th><th class="num">Peluquería</th><th class="num">Total</th></tr></thead>
+      <tbody>
+      {% for d in semana.dias %}
+      <tr><td style="width:22%;">{{ d.corto }} {{ d.fecha.day }}</td>
+        <td style="width:34%;">{% if d.ancho_atenciones %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio d.ancho_atenciones 100 70 %}" height="7" alt="">{% endif %}</td>
+        <td class="num" style="width:14%;">{{ d.consultas }}</td><td class="num" style="width:16%;">{{ d.peluquerias }}</td><td class="num" style="width:14%;">{{ d.atenciones }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <h3>Cómo se movió la agenda</h3>
+    <table class="datos">
+      <tr><td>Citas agendadas en la semana</td><td class="num">{{ semana.programadas }}</td></tr>
+      <tr><td>Canceladas</td><td class="num">{{ semana.canceladas }} ({{ semana.tasa_cancelacion }} %)</td></tr>
+      <tr><td>Pasadas sin cerrar</td><td class="num">{{ semana.por_cerrar }}</td></tr>
+      <tr><td>Ya agendadas para la semana siguiente</td><td class="num">{{ semana.agenda_siguiente }}</td></tr>
+      {% if semana.hora_pico_texto %}<tr><td>Hora con más citas</td><td class="num">{{ semana.hora_pico_texto }}</td></tr>{% endif %}
+    </table>
+  </td>
+  <td class="hueco"></td>
+  <td class="mitad">
+    <h3>Servicios más pedidos</h3>
+    {% if semana.servicios_pedidos %}
+    <table class="datos">
+      {% for f in semana.servicios_pedidos %}
+      <tr><td style="width:52%;">{{ f.nombre }}</td>
+        <td>{% if f.ancho %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio f.ancho 100 78 %}" height="7" alt="">{% endif %}</td>
+        <td class="num" style="width:14%;">{{ f.valor }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="gris">No hubo citas esta semana.</p>{% endif %}
+  </td>
+</tr></table>
+
+<h3>Comisiones de peluquería (40 % del precio)</h3>
+{% if semana.groomers.filas %}
+<table class="datos">
+  <thead><tr><th>Groomer</th><th class="num">Servicios</th><th class="num">Facturado</th><th class="num">Comisión</th><th class="num">Para la clínica</th><th class="num">Sin cerrar</th></tr></thead>
+  <tbody>
+    {% for f in semana.groomers.filas %}
+    <tr><td>{{ f.nombre }}</td><td class="num">{{ f.servicios }}</td><td class="num">{{ f.facturado|pesos }}</td><td class="num">{{ f.comision|pesos }}</td><td class="num">{{ f.clinica|pesos }}</td><td class="num">{{ f.por_cerrar }}</td></tr>
+    {% endfor %}
+  </tbody>
+  <tfoot><tr><td>Total</td><td class="num">{{ semana.groomers.servicios }}</td><td class="num">{{ semana.groomers.facturado|pesos }}</td><td class="num">{{ semana.groomers.comision|pesos }}</td><td class="num">{{ semana.groomers.clinica|pesos }}</td><td class="num">{{ semana.groomers.por_cerrar }}</td></tr></tfoot>
+</table>
+{% else %}<p class="gris">No hubo servicios de peluquería esta semana.</p>{% endif %}
+
+<!-- Pronóstico -->
+<h2>Tendencia y pronóstico</h2>
+<table class="datos">
+  <thead><tr><th>Semana que cerró el</th><th>Ingresos</th><th class="num"></th><th>Atenciones</th><th class="num"></th></tr></thead>
+  <tbody>
+    {% for x in serie %}
+    <tr>
+      <td style="width:18%;">{{ x.sabado|date:"d/m/Y" }}</td>
+      <td style="width:28%;">{% if x.ancho_ingresos %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio x.ancho_ingresos 100 135 %}" height="7" alt="">{% endif %}</td>
+      <td class="num" style="width:16%;">{{ x.ingresos|pesos }}</td>
+      <td style="width:28%;">{% if x.ancho_atenciones %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio x.ancho_atenciones 100 135 %}" height="7" alt="">{% endif %}</td>
+      <td class="num" style="width:10%;">{{ x.atenciones }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p style="margin-top: 5pt;">
+  {% if pronostico_ingresos %}<b>Próxima semana:</b> unos {{ pronostico_ingresos.valor|pesos }} en ingresos (entre {{ pronostico_ingresos.bajo|pesos }} y {{ pronostico_ingresos.alto|pesos }}){% else %}Aún no hay suficientes semanas con cobros para pronosticar los ingresos{% endif %}{% if pronostico_atenciones %} y unas {{ pronostico_atenciones.valor|floatformat:0 }} atenciones (entre {{ pronostico_atenciones.bajo|floatformat:0 }} y {{ pronostico_atenciones.alto|floatformat:0 }}){% endif %}. Ya hay {{ semana.agenda_siguiente }} citas agendadas.
+</p>
+<p class="nota">Cómo se calcula: una recta de tendencia sobre las semanas con datos; el rango es cuánto se han alejado las semanas reales de esa recta.</p>
+
+<!-- Inventario -->
+<h2>Inventario</h2>
+<table class="col"><tr>
+  <td class="mitad">
+    <h3>Productos que más salieron (unidades)</h3>
+    {% if semana.rotacion %}
+    <table class="datos">
+      {% for f in semana.rotacion %}
+      <tr><td style="width:52%;">{{ f.nombre }}</td>
+        <td>{% if f.ancho %}<img src="{% static 'img/reportes/barra.png' %}" width="{% widthratio f.ancho 100 78 %}" height="7" alt="">{% endif %}</td>
+        <td class="num" style="width:14%;">{{ f.valor }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="gris">No salieron productos esta semana.</p>{% endif %}
+    {% if semana.merma %}<p class="nota">Pérdidas por merma o vencimiento: {{ semana.merma|pesos }}.</p>{% endif %}
+  </td>
+  <td class="hueco"></td>
+  <td class="mitad">
+    <h3>Para revisar (estado actual)</h3>
+    <table class="datos">
+      {% for p in semana.stock_bajo %}<tr><td>{{ p.nombre }}</td><td class="num">{% if p.stock_actual == 0 %}Agotado{% else %}{{ p.stock_actual }} de mín. {{ p.stock_minimo }}{% endif %}</td></tr>{% endfor %}
+      {% for p in semana.vencidos %}<tr><td>{{ p.nombre }}</td><td class="num baja">Venció {{ p.fecha_vencimiento|date:"d/m/Y" }}</td></tr>{% endfor %}
+      {% for p in semana.por_vencer %}<tr><td>{{ p.nombre }}</td><td class="num">Vence {{ p.fecha_vencimiento|date:"d/m/Y" }}</td></tr>{% endfor %}
+      {% if not semana.stock_bajo and not semana.vencidos and not semana.por_vencer %}<tr><td class="gris">Sin stock bajo ni vencimientos cercanos.</td></tr>{% endif %}
+    </table>
+  </td>
+</tr></table>
+
+<!-- Clientes -->
+<h2>Clientes y clínica</h2>
+<table class="cifras">
+  <tr>
+    <td><div class="k">Clientes atendidos</div><div class="v">{{ semana.clientes_atendidos }}</div><div class="d">{{ semana.clientes_recurrentes }} ya eran clientes</div></td>
+    <td><div class="k">Dueños nuevos</div><div class="v">{{ semana.duenos_nuevos }}</div><div class="d">{{ semana.mascotas_nuevas }} mascota{{ semana.mascotas_nuevas|pluralize }} registrada{{ semana.mascotas_nuevas|pluralize }}</div></td>
+    <td><div class="k">Recordatorios avisados</div><div class="v">{{ semana.recordatorios_avisados }}</div><div class="d">{{ semana.hosp_ingresos }} ingreso{{ semana.hosp_ingresos|pluralize }} a hospitalización y {{ semana.hosp_altas }} alta{{ semana.hosp_altas|pluralize }}</div></td>
+  </tr>
+</table>
+</body>
+</html>

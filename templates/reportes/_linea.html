@@ -1,0 +1,43 @@
+{% comment %}Línea semanal con pronóstico. Recibe g (apps/reportes/graficas.linea_con_pronostico).{% endcomment %}
+{% load l10n %}{# Coordenadas SVG: siempre con punto decimal, nunca con la coma de es-co #}
+{% localize off %}<div class="graf">
+  <svg class="graf__svg" viewBox="0 0 {{ g.ancho }} {{ g.alto }}" role="img" aria-label="{{ g.descripcion }}{% if g.futuro %}, con el pronóstico de la semana siguiente{% endif %}">
+    {% for t in g.ticks %}
+      <line class="graf__grid" x1="{{ g.izq }}" x2="{{ g.der }}" y1="{{ t.y }}" y2="{{ t.y }}"></line>
+      <text class="graf__eje" x="{{ g.izq }}" dx="-8" y="{{ t.y }}" dy="4" text-anchor="end">{{ t.texto }}</text>
+    {% endfor %}
+    <line class="graf__base" x1="{{ g.izq }}" x2="{{ g.der }}" y1="{{ g.base }}" y2="{{ g.base }}"></line>
+    {% if g.area %}<path class="graf__area" d="{{ g.area }}"></path>{% endif %}
+    {% if g.futuro %}
+      <line class="graf__proyeccion" x1="{{ g.futuro.desde_x }}" y1="{{ g.futuro.desde_y }}" x2="{{ g.futuro.x }}" y2="{{ g.futuro.y }}"></line>
+      <line class="graf__rango" x1="{{ g.futuro.x }}" x2="{{ g.futuro.x }}" y1="{{ g.futuro.y_alto }}" y2="{{ g.futuro.y_bajo }}"></line>
+    {% endif %}
+    {% if g.camino %}<path class="graf__linea" d="{{ g.camino }}"></path>{% endif %}
+    {% for p in g.puntos %}
+      <g class="graf__marca" tabindex="0" data-tip="Semana que cerró el {{ p.etiqueta }}: {{ p.valor }}" aria-label="Semana que cerró el {{ p.etiqueta }}: {{ p.valor }}">
+        <rect class="graf__hit" x="{{ p.hit_x }}" y="{{ g.hit_y }}" width="28" height="{{ g.hit_alto }}"></rect>
+        <circle class="graf__punto" cx="{{ p.x }}" cy="{{ p.y }}" r="4"></circle>
+        <text class="graf__x" x="{{ p.x }}" y="{{ g.y_etiqueta }}" text-anchor="middle">{{ p.etiqueta }}</text>
+      </g>
+    {% endfor %}
+    {% if g.ultimo %}<text class="graf__valor" x="{{ g.ultimo.x }}" y="{{ g.ultimo.y }}" dy="-12" text-anchor="middle">{{ g.ultimo.valor }}</text>{% endif %}
+    {% if g.futuro %}
+      <g class="graf__marca" tabindex="0" data-tip="Pronóstico para la semana que cierra el {{ g.futuro.etiqueta }}: {{ g.futuro.valor }} (rango {{ g.futuro.rango }})" aria-label="Pronóstico: {{ g.futuro.valor }}, rango {{ g.futuro.rango }}">
+        <rect class="graf__hit" x="{{ g.futuro.hit_x }}" y="{{ g.hit_y }}" width="28" height="{{ g.hit_alto }}"></rect>
+        <circle class="graf__punto graf__punto--futuro" cx="{{ g.futuro.x }}" cy="{{ g.futuro.y }}" r="5"></circle>
+        <text class="graf__valor graf__valor--futuro" x="{{ g.futuro.x }}" dx="10" y="{{ g.futuro.y }}" dy="4" text-anchor="start">{{ g.futuro.valor }}</text>
+        <text class="graf__x graf__x--futuro" x="{{ g.futuro.x }}" y="{{ g.y_etiqueta }}" text-anchor="middle">{{ g.futuro.etiqueta }}</text>
+      </g>
+    {% endif %}
+  </svg>
+</div>{% endlocalize %}
+<details class="graf__tabla">
+  <summary>Ver datos en tabla</summary>
+  <table>
+    <thead><tr><th scope="col">Semana que cerró el</th><th scope="col" class="num">Valor</th></tr></thead>
+    <tbody>
+      {% for p in g.puntos %}<tr><td>{{ p.etiqueta }}</td><td class="num">{{ p.valor }}</td></tr>{% endfor %}
+      {% if g.futuro %}<tr><td>{{ g.futuro.etiqueta }} (pronóstico)</td><td class="num">{{ g.futuro.valor }} <span class="graf__tabla-nota">rango {{ g.futuro.rango }}</span></td></tr>{% endif %}
+    </tbody>
+  </table>
+</details>
