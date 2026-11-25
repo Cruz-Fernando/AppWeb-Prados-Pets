@@ -62,7 +62,8 @@ class InventarioSimpleTests(TestCase):
         self.assertEqual(r.context["total_valor_inventario"],
                          sum(p.valor_total_inventario for p in activos))       # 12×800 + 4×2000
         self.assertEqual(r.context["total_valor_inventario"], Decimal("17600"))
-        self.assertEqual(r.context["productos_bajo_stock"], 1)                # gasa: 0 ≤ 5
+        # PB-21: menos de 5 unidades (umbral del acta, sin stock mínimo): gasa (0) y suero (4)
+        self.assertEqual(r.context["productos_bajo_stock"], 2)
         self.assertEqual(r.context["productos_vencidos"], 1)                  # suero
         self.assertEqual(r.context["total_retirados"], 1)
 

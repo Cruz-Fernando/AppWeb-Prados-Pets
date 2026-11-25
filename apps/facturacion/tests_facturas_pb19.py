@@ -200,6 +200,8 @@ class FacturaConsolidadaTests(FacturaBase):
     def test_consulta_sin_precio_no_se_agrega(self):
         f = self.borrador()
         r = self.agregar(f, tipo="consulta", cita=self.cita.pk, precio="")
+        self.assertIn("Escribe el precio de la consulta.", self.mensajes(r))
+        r = self.agregar(f, tipo="consulta", cita=self.cita.pk, precio="0")
         self.assertIn("El precio de la consulta debe ser mayor que $0.", self.mensajes(r))
         self.assertEqual(f.items.count(), 0)
 

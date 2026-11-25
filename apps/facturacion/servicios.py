@@ -57,6 +57,8 @@ def parsear_monto(texto, nombre='El valor', permitir_cero=False):
             limpio = limpio.replace('.', '').replace(',', '.')
         else:                                   # 45.000 → 45000 (punto de miles)
             limpio = limpio.replace('.', '')
+        if not limpio:
+            raise FacturaError(f'Escribe {nombre[0].lower()}{nombre[1:]}.')
         try:
             valor = Decimal(limpio)
         except InvalidOperation:
@@ -132,7 +134,7 @@ def pendientes(dueno):
 @transaction.atomic
 def agregar_consulta(factura, cita_id, precio):
     factura = _borrador_bloqueado(factura.pk)
-    cita = Cita.objects.select_for_update().select_related('mascota').filter(pk=cita_id).first()
+    cita = Cita.objects.select_for_update(of=('self',)).select_related('mascota').filter(pk=cita_id).first()
     if cita is None or cita.mascota.id_dueno_id != factura.dueno_id:
         raise FacturaError('Esa consulta no es de una mascota de este propietario.')
     if cita.estado == 'cancelada':
@@ -170,7 +172,8 @@ def agregar_peluqueria(factura, cita_id):
 def agregar_insumo(factura, movimiento_id):
     """Insumo o medicamento usado en una consulta (ya descontado del inventario)."""
     factura = _borrador_bloqueado(factura.pk)
-    mov = (MovimientoInventario.objects.select_for_update()
+    # of=('self',): solo se bloquea la salida (PostgreSQL no bloquea el lado opcional de un JOIN)
+    mov = (MovimientoInventario.objects.select_for_update(of=('self',))
            .select_related('producto', 'registro_clinico__mascota').filter(pk=movimiento_id).first())
     registro = mov.registro_clinico if mov else None
     if (mov is None or mov.tipo != 'SALIDA_CLINICA' or registro is None
@@ -273,8 +276,8 @@ def _revalidar(item):
             raise FacturaError(f'La peluquería «{item.descripcion}» se canceló. Quítala de la factura.')
         return cita
     if item.movimiento_id and not item.descuenta_stock:
-        mov = MovimientoInventario.objects.select_for_update().select_related('registro_clinico').get(
-            pk=item.movimiento_id)
+        mov = (MovimientoInventario.objects.select_for_update(of=('self',)).select_related('registro_clinico')
+               .get(pk=item.movimiento_id))
         if mov.devuelto or (mov.registro_clinico and mov.registro_clinico.anulado):
             raise FacturaError(f'El insumo «{item.descripcion}» volvió al inventario. Quítalo de la factura.')
     return None
