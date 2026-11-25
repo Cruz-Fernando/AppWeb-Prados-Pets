@@ -87,6 +87,21 @@
 .notif-mini--ok:hover { color: #fff; background: #8b5cf6; }
 .notif-mini:disabled { opacity: .5; cursor: wait; }
 
+/* PB-21: detalle de cada alerta de inventario (producto, lote, fecha y cantidad) */
+.notif-detalle { list-style: none; margin: 4px 0 2px 14px; padding: 0 0 0 10px; border-left: 1px dashed var(--border); }
+.notif-detalle--peligro { border-left-color: rgba(248, 113, 113, .45); }
+.notif-detalle--aviso { border-left-color: rgba(251, 191, 36, .45); }
+.notif-detalle--info { border-left-color: rgba(56, 189, 248, .45); }
+.notif-detalle__fila {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 5px 8px;
+  border-radius: 8px; color: var(--text); text-decoration: none; font-size: 12.5px;
+}
+.notif-detalle__fila:hover { background: var(--surface-hover); }
+.notif-detalle__fila b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notif-detalle__fila span { flex-shrink: 0; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.notif-detalle__mas { display: block; padding: 4px 8px; font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.notif-detalle__mas:hover { text-decoration: underline; }
+
 .notif-ver { display: block; margin: 8px 4px 4px; font-size: 13px; font-weight: 600; color: var(--accent); }
 
 @media (max-width: 768px) {

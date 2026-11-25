@@ -61,6 +61,20 @@
           </div>
           <span class="notif-item__flecha" aria-hidden="true">›</span>
         </a>
+        {# PB-21: detalle de la alerta; cada producto abre el inventario filtrado #}
+        <ul class="notif-detalle notif-detalle--{{ a.nivel }}">
+          {% for d in a.productos %}{% with p=d.producto %}
+          <li>
+            <a href="{{ d.url }}" class="notif-detalle__fila">
+              <b>{{ p.nombre }}</b>
+              <span>
+                {% if a.por_fecha %}{% if p.numero_lote %}Lote {{ p.numero_lote }}{% else %}Sin lote{% endif %} · {% if a.clave == 'vencidos' %}venció{% else %}vence{% endif %} {{ p.fecha_vencimiento|date:"d/m/Y" }} · {% endif %}{% if p.stock_actual %}{{ p.stock_actual }} unidad{{ p.stock_actual|pluralize:"es" }}{% else %}sin unidades{% endif %}
+              </span>
+            </a>
+          </li>
+          {% endwith %}{% endfor %}
+          {% if a.faltan %}<li><a href="{{ a.url }}" class="notif-detalle__mas">y {{ a.faltan }} más en el inventario →</a></li>{% endif %}
+        </ul>
       </li>
       {% endfor %}
     </ul>

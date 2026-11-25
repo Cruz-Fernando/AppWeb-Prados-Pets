@@ -177,9 +177,10 @@
     <!-- ADMINISTRACIÓN group -->
     <div class="sidebar__group-label">Administración</div>
 
-    <!-- Facturación: ganancias por groomer (administrador, auxiliar y el propio groomer) -->
+    <!-- Facturación (PB-19): el administrador y el auxiliar entran a Facturas (con Caja y
+         Ganancias en pestañas); el groomer, a sus ganancias. -->
     {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,auxiliar,groomer' %}
-    <a href="{% url 'facturacion:panel' %}"
+    <a href="{% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower in 'administrador,auxiliar' %}{% url 'facturacion:facturas' %}{% else %}{% url 'facturacion:panel' %}{% endif %}"
        class="sidebar__item {% if request.resolver_match.app_name == 'facturacion' %}sidebar__item--active{% endif %}"
        id="nav-facturacion">
       <span class="sidebar__icon">

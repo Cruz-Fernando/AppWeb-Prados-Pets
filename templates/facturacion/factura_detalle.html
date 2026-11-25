@@ -1,0 +1,303 @@
+{% extends 'inventario/_layout.html' %}
+{% load static %}
+{% block titulo %}Factura {{ factura.numero_display }}{% endblock %}
+{% block migas %}
+  <a href="{% url 'facturacion:facturas' %}">Facturas</a>
+  <span class="app-topbar__sep">›</span>
+  <span class="app-topbar__current">{{ factura.numero_display }} · {{ factura.dueno.nombre_completo }}</span>
+{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/facturacion.css' %}?v=2">
+
+<div class="fac-head">
+  <div>
+    <h1>
+      {% if factura.es_borrador %}Factura en borrador{% else %}Factura {{ factura.numero_display }}{% endif %}
+      {% if factura.estado == 'pagada' %}<span class="inv-tag">Pagada</span>
+      {% elif factura.estado == 'anulada' %}<span class="inv-tag inv-tag--bajo">Anulada</span>
+      {% else %}<span class="inv-tag inv-tag--aviso">Borrador</span>{% endif %}
+    </h1>
+    <p class="inv-sub">
+      <b>{{ factura.dueno.nombre_completo }}</b> · {{ factura.dueno.telefono }}
+      {% if factura.fecha %} · cobrada el {{ factura.fecha|date:"d/m/Y h:i A" }}{% if factura.usuario %} por {{ factura.usuario.nombre_completo|default:factura.usuario.username }}{% endif %}{% endif %}
+    </p>
+  </div>
+  {% if not factura.es_borrador %}
+  <a href="{% url 'facturacion:factura_pdf' factura.pk %}" class="inv-btn" target="_blank" rel="noopener">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Comprobante PDF
+  </a>
+  {% endif %}
+</div>
+
+{% if factura.estado == 'anulada' %}
+<div class="inv-aviso inv-aviso--peligro">
+  Anulada el {{ factura.anulada_en|date:"d/m/Y h:i A" }}{% if factura.anulada_por %} por {{ factura.anulada_por.nombre_completo|default:factura.anulada_por.username }}{% endif %}.
+  Motivo: <b>{{ factura.motivo_anulacion }}</b>. Los productos vendidos volvieron al inventario y el ingreso se reversó en caja.
+</div>
+{% endif %}
+
+<div class="fac-layout">
+  <div class="fac-layout__main">
+
+    <!-- Ítems -->
+    <section class="inv-tabla-wrap" id="items">
+      <div class="fac-detalle-head"><h2>Ítems de la factura</h2></div>
+      <table class="inv-tabla fac-tabla">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th class="inv-num">Cant.</th>
+            <th class="inv-num">Precio</th>
+            <th class="inv-num">Subtotal</th>
+            {% if factura.es_borrador %}<th class="inv-num"><span class="sr-only">Quitar</span></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in items %}
+          <tr>
+            <td><span class="fac-tipo fac-tipo--{{ i.tipo|lower }}">{{ i.get_tipo_display }}</span></td>
+            <td class="inv-prod"><b>{{ i.descripcion }}</b>{% if i.tipo == 'PRODUCTO' %}<small>{% if i.descuenta_stock %}Se descuenta del inventario al cobrar{% else %}Ya se descontó en la consulta{% endif %}</small>{% endif %}</td>
+            <td class="inv-num" data-label="Cant.">{{ i.cantidad }}</td>
+            <td class="inv-num" data-label="Precio">${{ i.precio_unitario|floatformat:"0g" }}</td>
+            <td class="inv-num" data-label="Subtotal"><b>${{ i.subtotal|floatformat:"0g" }}</b></td>
+            {% if factura.es_borrador %}
+            <td class="inv-num">
+              <form method="post" action="{% url 'facturacion:factura_quitar' factura.pk i.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inv-mini inv-mini--icono" aria-label="Quitar {{ i.descripcion }}" title="Quitar de la factura">✕</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="inv-vacio">Aún no hay ítems. Agrégalos desde las secciones de abajo.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    {% if factura.es_borrador %}
+    <!-- Consultas sin facturar -->
+    <section class="inv-tabla-wrap">
+      <div class="fac-detalle-head"><h2>Consultas sin facturar <small class="fac-contador">{{ pendientes.consultas|length }}</small></h2></div>
+      <table class="inv-tabla fac-tabla">
+        <tbody>
+          {% for c in pendientes.consultas %}
+          <tr>
+            <td class="fac-fecha">{{ c.fecha|date:"d/m/Y" }}<small>{{ c.hora_inicio|time:"h:i A" }}</small></td>
+            <td class="inv-prod"><b>{{ c.mascota.nombre }} · {{ c.get_tipo_servicio_display }}</b><small>{{ c.veterinario.nombre_completo|default:c.veterinario.username }} · {{ c.get_estado_display }}</small></td>
+            <td class="inv-num">
+              <form method="post" action="{% url 'facturacion:factura_agregar' factura.pk %}" class="fac-agregar">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="consulta">
+                <input type="hidden" name="cita" value="{{ c.pk }}">
+                <label class="sr-only" for="precio-cita-{{ c.pk }}">Precio de la consulta</label>
+                <input type="text" inputmode="numeric" id="precio-cita-{{ c.pk }}" name="precio" placeholder="Precio $" required class="fac-precio">
+                <button type="submit" class="inv-mini inv-mini--anadir">Agregar</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td class="inv-vacio">No hay consultas pendientes de facturar para este propietario.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Peluquerías sin facturar -->
+    <section class="inv-tabla-wrap">
+      <div class="fac-detalle-head"><h2>Peluquerías sin facturar <small class="fac-contador">{{ pendientes.peluquerias|length }}</small></h2></div>
+      <table class="inv-tabla fac-tabla">
+        <tbody>
+          {% for c in pendientes.peluquerias %}
+          <tr>
+            <td class="fac-fecha">{{ c.fecha_hora|date:"d/m/Y" }}<small>{{ c.fecha_hora|date:"h:i A" }}</small></td>
+            <td class="inv-prod"><b>{{ c.nombre_mascota }} · {{ c.get_servicio_display }}</b><small>{% if c.groomer %}{{ c.groomer.nombre_completo|default:c.groomer.username }} · {% endif %}{{ c.estado }}</small></td>
+            <td class="inv-num"><b>${{ c.precio|floatformat:"0g" }}</b></td>
+            <td class="inv-num">
+              <form method="post" action="{% url 'facturacion:factura_agregar' factura.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="peluqueria">
+                <input type="hidden" name="cita_peluqueria" value="{{ c.pk }}">
+                <button type="submit" class="inv-mini inv-mini--anadir">Agregar</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td class="inv-vacio">No hay peluquerías pendientes de facturar para este propietario.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Insumos de consultas -->
+    <section class="inv-tabla-wrap">
+      <div class="fac-detalle-head"><h2>Medicamentos e insumos usados en consultas <small class="fac-contador">{{ pendientes.insumos|length }}</small></h2></div>
+      <table class="inv-tabla fac-tabla">
+        <tbody>
+          {% for m in pendientes.insumos %}
+          <tr>
+            <td class="fac-fecha">{{ m.registro_clinico.fecha_atencion|date:"d/m/Y" }}<small>{{ m.registro_clinico.mascota.nombre }}</small></td>
+            <td class="inv-prod"><b>{{ m.cantidad }} × {{ m.producto.nombre }}</b><small>Ya se descontó del inventario en la consulta</small></td>
+            <td class="inv-num"><b>${{ m.monto_total|floatformat:"0g" }}</b></td>
+            <td class="inv-num">
+              <form method="post" action="{% url 'facturacion:factura_agregar' factura.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="insumo">
+                <input type="hidden" name="movimiento" value="{{ m.pk }}">
+                <button type="submit" class="inv-mini inv-mini--anadir">Agregar</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td class="inv-vacio">No hay insumos de consultas pendientes de cobrar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Productos y servicios del catálogo -->
+    <div class="fac-agregar-grid">
+      <form method="post" action="{% url 'facturacion:factura_agregar' factura.pk %}" class="inv-card">
+        {% csrf_token %}
+        <input type="hidden" name="tipo" value="producto">
+        <div class="inv-card__head"><h2>Vender un producto</h2></div>
+        <div class="inv-card__body">
+          <div class="inv-campo">
+            <label for="fac-producto">Producto</label>
+            <select id="fac-producto" name="producto" required>
+              <option value="">Selecciona un producto</option>
+              {% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} · ${{ p.precio_venta|floatformat:"0g" }} · {{ p.disponible }} disp.</option>{% endfor %}
+            </select>
+            <span class="inv-ayuda">Se descuenta del inventario al cobrar la factura.</span>
+          </div>
+          <div class="inv-campo">
+            <label for="fac-cantidad">Cantidad</label>
+            <input type="number" id="fac-cantidad" name="cantidad" value="1" min="1" max="999" required>
+          </div>
+        </div>
+        <div class="inv-card__pie"><button type="submit" class="inv-btn">Agregar producto</button></div>
+      </form>
+
+      <form method="post" action="{% url 'facturacion:factura_agregar' factura.pk %}" class="inv-card">
+        {% csrf_token %}
+        <input type="hidden" name="tipo" value="servicio">
+        <div class="inv-card__head"><h2>Servicio del catálogo</h2></div>
+        <div class="inv-card__body">
+          <div class="inv-campo">
+            <label for="fac-servicio">Servicio</label>
+            <select id="fac-servicio" name="servicio" required>
+              <option value="">Selecciona un servicio</option>
+              {% for s in servicios_catalogo %}<option value="{{ s.pk }}">{{ s.nombre }} · ${{ s.precio|floatformat:"0g" }}</option>{% endfor %}
+            </select>
+            <span class="inv-ayuda">Por ejemplo, una vacuna aplicada sin cita.</span>
+          </div>
+          <div class="inv-campo">
+            <label for="fac-servicio-precio">Precio <span class="inv-ayuda">(opcional, si cambia)</span></label>
+            <input type="text" inputmode="numeric" id="fac-servicio-precio" name="precio" placeholder="El del catálogo">
+          </div>
+        </div>
+        <div class="inv-card__pie"><button type="submit" class="inv-btn">Agregar servicio</button></div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Resumen y cobro -->
+  <aside class="fac-layout__side">
+    <div class="inv-card fac-resumen">
+      <div class="inv-card__head"><h2>{% if factura.es_borrador %}Cobrar{% else %}Resumen{% endif %}</h2></div>
+      {% if factura.es_borrador %}
+      <form method="post" action="{% url 'facturacion:factura_cobrar' factura.pk %}" id="form-cobrar">
+        {% csrf_token %}
+        <div class="inv-card__body">
+          <dl class="fac-totales">
+            <div><dt>Subtotal</dt><dd id="fac-subtotal" data-valor="{{ factura.subtotal|stringformat:'s' }}">${{ factura.subtotal|floatformat:"0g" }}</dd></div>
+          </dl>
+          <div class="inv-campo">
+            <label for="fac-descuento">Descuento <span class="inv-ayuda">(opcional)</span></label>
+            <input type="text" inputmode="numeric" id="fac-descuento" name="descuento" placeholder="$0">
+          </div>
+          <dl class="fac-totales fac-totales--total">
+            <div><dt>Total a pagar</dt><dd id="fac-total">${{ factura.total|floatformat:"0g" }}</dd></div>
+          </dl>
+          <div class="inv-campo">
+            <label for="fac-medio">Medio de pago</label>
+            <select id="fac-medio" name="medio_pago" required>
+              <option value="">Selecciona</option>
+              {% for clave, nombre in medios_pago %}<option value="{{ clave }}">{{ nombre }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="inv-card__pie">
+          <button type="submit" class="inv-btn inv-btn--primario fac-cobrar" {% if not items %}disabled{% endif %}>Cobrar factura</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="inv-card__body">
+        <dl class="fac-totales">
+          <div><dt>Subtotal</dt><dd>${{ factura.subtotal|floatformat:"0g" }}</dd></div>
+          {% if factura.descuento %}<div><dt>Descuento</dt><dd>−${{ factura.descuento|floatformat:"0g" }}</dd></div>{% endif %}
+        </dl>
+        <dl class="fac-totales fac-totales--total">
+          <div><dt>Total</dt><dd>${{ factura.total|floatformat:"0g" }}</dd></div>
+        </dl>
+        <dl class="fac-totales">
+          <div><dt>Medio de pago</dt><dd>{{ factura.get_medio_pago_display }}</dd></div>
+        </dl>
+        {% if movimientos_caja %}
+        <div class="fac-caja-mini">
+          <span class="inv-ayuda">En caja</span>
+          {% for m in movimientos_caja %}
+          <div class="fac-caja-mini__fila fac-caja-mini__fila--{{ m.tipo|lower }}">{{ m.get_tipo_display }} · {{ m.fecha|date:"d/m/Y" }}<b>{% if not m.es_ingreso %}−{% endif %}${{ m.monto|floatformat:"0g" }}</b></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if factura.es_borrador %}
+    <form method="post" action="{% url 'facturacion:factura_descartar' factura.pk %}" class="fac-descartar">
+      {% csrf_token %}
+      <button type="submit" class="fac-link fac-link--peligro" onclick="return confirm('¿Descartar este borrador? Sus ítems quedan libres para otra factura.')">Descartar borrador</button>
+    </form>
+    {% elif factura.estado == 'pagada' %}
+    <details class="inv-card fac-anular">
+      <summary>Anular factura</summary>
+      <form method="post" action="{% url 'facturacion:factura_anular' factura.pk %}" class="inv-card__body">
+        {% csrf_token %}
+        <p class="inv-ayuda">Los productos vendidos vuelven al inventario, el ingreso se reversa en caja y las citas quedan libres para facturarse otra vez. La factura no se borra.</p>
+        <div class="inv-campo">
+          <label for="fac-motivo">Motivo de la anulación</label>
+          <textarea id="fac-motivo" name="motivo_anulacion" rows="3" maxlength="255" required placeholder="Ej.: se cobró un servicio que no era de este propietario"></textarea>
+        </div>
+        <button type="submit" class="inv-btn inv-btn--peligro">Confirmar anulación</button>
+      </form>
+    </details>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if factura.es_borrador %}
+<script>
+/* El total se actualiza mientras se escribe el descuento (el servidor lo vuelve a calcular al cobrar) */
+(function () {
+  const sub = parseFloat(document.getElementById('fac-subtotal').dataset.valor) || 0;
+  const desc = document.getElementById('fac-descuento');
+  const total = document.getElementById('fac-total');
+  const pesos = n => '$' + Math.round(n).toLocaleString('es-CO');
+  desc.addEventListener('input', function () {
+    const d = parseFloat((desc.value || '0').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    total.textContent = pesos(Math.max(sub - d, 0));
+    total.classList.toggle('fac-error', d > sub);
+  });
+}());
+</script>
+{% endif %}
+{% endblock %}

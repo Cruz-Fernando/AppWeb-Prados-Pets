@@ -8,7 +8,7 @@
   <div class="inv-kpis">
     <div class="inv-kpi"><span>Valor total del inventario</span><b>${{ total_valor_inventario|default:0|floatformat:"0g" }}</b></div>
     <a href="{% url 'inventario:lista' %}?estado=reabastecer" class="inv-kpi inv-kpi--alerta inv-kpi--enlace{% if estado == 'reabastecer' %} is-activo{% endif %}">
-      <span>Productos en stock mínimo o menos</span><b>{{ productos_bajo_stock }}</b><em>Ver cuáles →</em>
+      <span>Productos con menos de 5 unidades</span><b>{{ productos_bajo_stock }}</b><em>Ver cuáles →</em>
     </a>
     <a href="{% url 'inventario:lista' %}?estado=vencidos" class="inv-kpi inv-kpi--alerta inv-kpi--enlace{% if estado == 'vencidos' %} is-activo{% endif %}">
       <span>Productos vencidos con unidades</span><b>{{ productos_vencidos }}</b><em>Ver cuáles →</em>
@@ -22,7 +22,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <label for="buscar-producto" class="sr-only">Buscar producto</label>
       <input type="search" name="q" id="buscar-producto" value="{{ q }}" autocomplete="off"
-             placeholder="Buscar producto por nombre, código o código de barras…">
+             placeholder="Buscar producto por nombre, código, código de barras o lote…">
       {% if ver_retirados %}<input type="hidden" name="retirados" value="1">{% endif %}
       {% if estado %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}
       <span class="inv-buscar__estado" aria-hidden="true"></span>

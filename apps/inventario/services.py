@@ -136,21 +136,30 @@ MOTIVOS_SALIDA = [
 
 
 @transaction.atomic
-def registrar_entrada(producto_id, cantidad, *, usuario=None, costo=None, fecha_vencimiento=None, nota=''):
+def registrar_entrada(producto_id, cantidad, *, usuario=None, costo=None, fecha_vencimiento=None,
+                      numero_lote='', nota=''):
     """
     Añadir: suma unidades (compra o reposición).
-    Si se indica una fecha de vencimiento, pasa a ser la fecha del producto.
+    Si se indica una fecha de vencimiento, pasa a ser la fecha del producto, con
+    el lote indicado (o sin lote: el anterior ya no corresponde a esa fecha).
+    Si solo se indica el lote, se actualiza el lote.
     """
     cantidad = _cantidad_valida(cantidad)
+    numero_lote = (numero_lote or '').strip()
     producto = Producto.objects.select_for_update().get(pk=producto_id)
     if costo is not None:
         producto.precio_compra = costo
     if fecha_vencimiento:
         producto.fecha_vencimiento = fecha_vencimiento
+        producto.numero_lote = numero_lote or None
+    elif numero_lote:
+        producto.numero_lote = numero_lote
     producto.stock_actual += cantidad
     producto.save()
-    return _movimiento(producto, 'ENTRADA_COMPRA', cantidad, producto.precio_compra, usuario,
-                       nota or "Reabastecimiento de stock")
+    texto = nota or "Reabastecimiento de stock"
+    if numero_lote:
+        texto += f" · Lote {numero_lote}"
+    return _movimiento(producto, 'ENTRADA_COMPRA', cantidad, producto.precio_compra, usuario, texto)
 
 
 @transaction.atomic
@@ -192,18 +201,17 @@ def retirar_producto(producto_id, *, usuario=None, motivo='OTRO', nota=''):
 
 
 def avisos_stock_bajo(movimientos):
-    """Textos para avisar qué productos quedaron en o por debajo del stock mínimo."""
+    """Textos para avisar qué productos quedaron agotados, en stock crítico o bajo (PB-21)."""
+    from .alertas import aviso_tras_salida
+
     avisos, vistos = [], set()
     for mov in movimientos:
         if mov.producto_id in vistos:
             continue
         vistos.add(mov.producto_id)
-        producto = Producto.objects.get(pk=mov.producto_id)
-        if producto.necesita_reposicion:
-            avisos.append(
-                f"«{producto.nombre}» quedó con {producto.stock_actual} unidad"
-                f"{'es' if producto.stock_actual != 1 else ''} (mínimo {producto.stock_minimo}). Conviene reponerlo."
-            )
+        aviso = aviso_tras_salida(Producto.objects.get(pk=mov.producto_id))
+        if aviso:
+            avisos.append(aviso)
     return avisos
 
 

@@ -3,16 +3,13 @@ Centro de notificaciones (campana de la barra superior).
 
 Reúne en un solo lugar lo que el personal debe atender, según su rol:
   - Recordatorios de vacunación y baño por avisar (de hoy o atrasados).
-  - Alertas de inventario: agotados, en stock mínimo, vencidos y por vencer.
+  - Alertas de inventario (PB-21): vencidos, agotados, stock crítico (menos de
+    2), stock bajo (menos de 5) y por vencer, con lote, fecha y cantidad.
 
 La campana pide este contenido después de cargar la página (fetch), así que
 no retrasa ninguna pantalla.
 """
 
-from datetime import timedelta
-
-from django.db.models import Count, F, Q
-from django.urls import reverse
 from django.utils import timezone
 
 from .permissions import tiene_rol
@@ -22,46 +19,13 @@ ROLES_INVENTARIO = ("administrador", "veterinario", "auxiliar")
 
 # Cuántos recordatorios se muestran en la campana (el resto, en la pantalla).
 MAX_RECORDATORIOS = 5
-DIAS_POR_VENCER = 30
 
 
 def _alertas_inventario(hoy):
     # Import local: inventario importa de usuarios al arrancar.
-    from apps.inventario.models import Producto
+    from apps.inventario.alertas import alertas_inventario
 
-    activo = Q(activo=True)
-    con_unidades = Q(stock_actual__gt=0)
-    resumen = Producto.objects.aggregate(
-        agotados=Count("pk", filter=activo & Q(stock_actual=0)),
-        bajo=Count("pk", filter=activo & con_unidades & Q(stock_actual__lte=F("stock_minimo"))),
-        vencidos=Count("pk", filter=activo & con_unidades & Q(fecha_vencimiento__lt=hoy)),
-        por_vencer=Count("pk", filter=activo & con_unidades & Q(
-            fecha_vencimiento__gte=hoy,
-            fecha_vencimiento__lte=hoy + timedelta(days=DIAS_POR_VENCER),
-        )),
-    )
-    url = reverse("inventario:lista")
-    filas = [
-        ("vencidos", "peligro", "producto vencido con unidades", "productos vencidos con unidades",
-         "Quítalos con «Quitar» y el motivo «Vencimiento»."),
-        ("agotados", "peligro", "producto agotado", "productos agotados", "Sin unidades: repónlos con «Añadir»."),
-        ("bajo", "aviso", "producto en stock mínimo", "productos en stock mínimo", "Conviene reabastecer pronto."),
-        ("por_vencer", "info", f"producto vence en {DIAS_POR_VENCER} días", f"productos vencen en {DIAS_POR_VENCER} días",
-         "Úsalos primero."),
-    ]
-    alertas = []
-    for clave, nivel, singular, plural, ayuda in filas:
-        n = resumen[clave]
-        if n:
-            alertas.append({
-                "clave": clave,
-                "nivel": nivel,
-                "total": n,
-                "texto": f"{n} {singular if n == 1 else plural}",
-                "ayuda": ayuda,
-                "url": f"{url}?estado={clave}",
-            })
-    return alertas
+    return alertas_inventario(hoy)
 
 
 def obtener_notificaciones(usuario, hoy=None):
