@@ -20,15 +20,17 @@
   p { margin: 0; }
 
   .cab td { background-color: {{ marca.primario_oscuro }}; color: #ffffff; padding: 8pt 10pt; vertical-align: middle; }
-  .cab .logo { width: 52pt; }
+  .cab .logo { width: 56pt; padding-right: 0; }
   .cab .marca { font-size: 15pt; font-weight: bold; }
   .cab .sub { font-size: 8pt; color: #F3E3FA; }
   .cab .doc { text-align: right; width: 48%; }
   .cab .doc-tipo { font-size: 8pt; color: #F3E3FA; }
   .cab .doc-num { font-size: 12pt; font-weight: bold; }
 
+  /* keep-with-next: un título de sección nunca queda solo al final de la página.
+     En los h3 no: arrastraría tablas largas enteras a la página siguiente. */
   h2 { font-size: 11.5pt; color: {{ marca.primario_oscuro }}; margin: 14pt 0 5pt; padding-bottom: 2pt;
-       border-bottom: 1.5pt solid {{ marca.primario }}; }
+       border-bottom: 1.5pt solid {{ marca.primario }}; -pdf-keep-with-next: true; }
   h3 { font-size: 9pt; color: {{ marca.texto }}; margin: 8pt 0 3pt; }
   .gris { color: {{ marca.gris }}; }
   .nota { font-size: 7.6pt; color: {{ marca.gris }}; margin-top: 3pt; }
@@ -71,11 +73,11 @@
 </div>
 
 <table class="cab"><tr>
-  <td class="logo"><img src="{% static 'img/Logo_PradosPets.png' %}" style="width: 42pt; height: 42pt;"></td>
+  <td class="logo"><img src="{% static 'img/Logo_PradosPets.png' %}" width="44" height="44"></td>
   <td><div class="marca">{{ clinica.nombre }}</div><div class="sub">{{ clinica.eslogan }} · {{ clinica.ciudad }}</div></td>
   <td class="doc">
     <div class="doc-tipo">Reporte semanal{% if es_hoy %} (en curso){% endif %}</div>
-    <div class="doc-num">{{ semana.desde|date:"j \d\e F"|lower }} al {{ semana.hasta|date:"j \d\e F \d\e Y"|lower }}</div>
+    <div class="doc-num">{% if semana.desde.month == semana.hasta.month %}{{ semana.desde.day }}{% elif semana.desde.year == semana.hasta.year %}{{ semana.desde|date:"j \d\e F"|lower }}{% else %}{{ semana.desde|date:"j \d\e F \d\e Y"|lower }}{% endif %} al {{ semana.hasta|date:"j \d\e F \d\e Y"|lower }}</div>
   </td>
 </tr></table>
 
@@ -232,7 +234,7 @@
     {% endfor %}
   </tbody>
 </table>
-<p style="margin-top: 5pt;">
+<p style="margin-top: 5pt; -pdf-keep-with-next: true;">
   {% if pronostico_ingresos %}<b>Próxima semana:</b> unos {{ pronostico_ingresos.valor|pesos }} en ingresos (entre {{ pronostico_ingresos.bajo|pesos }} y {{ pronostico_ingresos.alto|pesos }}){% else %}Aún no hay suficientes semanas con cobros para pronosticar los ingresos{% endif %}{% if pronostico_atenciones %} y unas {{ pronostico_atenciones.valor|floatformat:0 }} atenciones (entre {{ pronostico_atenciones.bajo|floatformat:0 }} y {{ pronostico_atenciones.alto|floatformat:0 }}){% endif %}. Ya hay {{ semana.agenda_siguiente }} citas agendadas.
 </p>
 <p class="nota">Cómo se calcula: una recta de tendencia sobre las semanas con datos; el rango es cuánto se han alejado las semanas reales de esa recta.</p>
