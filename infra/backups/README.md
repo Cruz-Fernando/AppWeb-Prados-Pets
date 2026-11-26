@@ -257,6 +257,8 @@ Próxima tarea, después de las copias de la base:
   grant select on all sequences in schema public to copias_lectura;
   alter default privileges in schema public grant select on tables to copias_lectura;
   alter default privileges in schema public grant select on sequences to copias_lectura;
+  -- Las tablas tienen RLS activo (ver asegurar_bd): sin esto pg_dump falla.
+  alter role copias_lectura bypassrls;
   ```
 
   En la cadena del pooler el usuario queda `copias_lectura.<id-del-proyecto>`.

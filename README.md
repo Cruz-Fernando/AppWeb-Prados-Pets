@@ -249,6 +249,8 @@ El `Procfile` ejecuta en cada despliegue:
 migrate  →  collectstatic  →  gunicorn (2 workers, timeout 120 s)
 ```
 
+Al terminar `migrate` se activa RLS en todas las tablas de `public` y se quitan los permisos de los roles `anon` y `authenticated` de Supabase, así la API de datos de Supabase no puede leer ni escribir nada (`apps/usuarios/seguridad_bd.py`). Para correrlo a mano: `python manage.py asegurar_bd --simular` y después sin `--simular`.
+
 Variables de entorno en Railway (ver `.env.example`):
 
 | Variable | Descripción |
@@ -340,8 +342,8 @@ Variables de entorno en Railway (ver `.env.example`):
 
 | ID | Prioridad | Descripción | Afecta | Solución propuesta |
 |:--|:-:|:--|:--|:--|
-| BUG-03 | 🔴 Alta | `datos_respaldo_sqlite.json` sigue en el repositorio (está en `.gitignore`, pero ya estaba versionado). Contiene sesiones, hashes de contraseñas y datos de clientes. | Seguridad | `git rm --cached datos_respaldo_sqlite.json`, purgarlo del historial y cambiar las contraseñas de esos usuarios. |
-| DT-01 | 🟡 Media | No hay integración continua: el 29/10 llegaron marcas de conflicto a `main` y rompieron el despliegue. | Todo el equipo | GitHub Action que corra `check`, `makemigrations --check` y `test` en cada PR. |
+| BUG-03 | 🔴 Alta | `datos_respaldo_sqlite.json` (sesiones, hashes de contraseñas y datos de clientes) ya no está en el repositorio desde el 26/11, pero sigue en el historial de git. | Seguridad | Purgarlo del historial con `git filter-repo` y cambiar las contraseñas de esos usuarios. |
+| BUG-08 | 🔴 Alta | Los adjuntos clínicos se guardan en el disco del contenedor de Railway: se pierden en cada deploy y no se pueden abrir en producción (`static()` solo sirve archivos con `DEBUG=True`). | Historia clínica | En curso: Supabase Storage con bucket privado y una vista que revisa el rol. |
 | DT-02 | 🟡 Media | `CitaPeluqueria` repite `nombre_mascota` y `raza` como texto además de la FK a `Mascota`. | Peluquería, reportes | Mostrar siempre los datos de la FK y retirar los campos de texto con una migración de datos. |
 | DT-03 | 🟢 Baja | `requirements.txt` y `requirements/` no coinciden del todo. | Mantenimiento | Dejar `requirements/prod.txt` como fuente y que `requirements.txt` solo contenga `-r requirements/prod.txt`. |
 | DT-04 | 🟢 Baja | `Cita.hora_fin` sigue siendo `NOT NULL` en la base; funciona porque el modelo la completa al guardar. | Agenda | Mantener `completar_hora_fin()` o volver el campo `null=True` si se quiere distinguir "sin hora de fin". |
@@ -351,6 +353,8 @@ Variables de entorno en Railway (ver `.env.example`):
 
 | ID | Descripción | Corrección |
 |:--|:--|:--|
+| BUG-07 | La API de datos de Supabase le daba al rol `anon` lectura y escritura sobre las 37 tablas, sin RLS. | 26/11: RLS activado y permisos quitados (`asegurar_bd`, corre en cada `migrate`). Conviene además apagar la Data API en el panel de Supabase. |
+| DT-01 | No había integración continua: el 29/10 llegaron marcas de conflicto a `main`. | `.github/workflows/ci.yml` corre `check`, `makemigrations --check` y `test` con PostgreSQL 16 en cada push y pull request. |
 | BUG-01 | El control de permisos leía `request.user.rol` (no existe) y 17 vistas pedían el rol `recepcionista`. | Se lee `id_rol.nombre_rol` y `recepcionista` se traduce a `auxiliar` en `apps/usuarios/permissions.py`. |
 | BUG-02 | Migración pendiente en `Venta.usuario`. | Migraciones creadas y fusionadas; `makemigrations --check` limpio. |
 | BUG-04 | `hora_fin` obligatoria en la base pero opcional en el formulario. | `Cita.completar_hora_fin()` asigna 30 min por defecto al guardar. |
