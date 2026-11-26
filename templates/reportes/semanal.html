@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load static reportes_extras %}
+{% block title %}Reporte semanal · Prados Pets{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'css/reportes.css' %}?v=1.0">
+<script src="{% static 'js/reportes.js' %}?v=1.0" defer></script>
+{% endblock %}
+{% block body %}
+{% with s=semana caja=semana.caja %}
+<div class="app-shell">
+  {% include "usuarios/_sidebar.html" %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="app-topbar__breadcrumb">
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
+        <span class="app-topbar__sep">›</span>
+        <span class="app-topbar__current">Reportes</span>
+      </div>
+    </header>
+
+    <main class="app-content rep">
+      <!-- Encabezado: qué semana es y cuándo se generó -->
+      <header class="rep-cabeza">
+        <div>
+          <h1 class="rep-titulo">Reporte semanal</h1>
+          <p class="rep-rango">Del domingo {{ s.desde|date:"j \d\e F"|lower }} al sábado {{ s.hasta|date:"j \d\e F \d\e Y"|lower }}</p>
+        </div>
+        <div class="rep-controles">
+          <form method="get" class="rep-semana" id="rep-semana-form">
+            <label for="rep-semana">Semana</label>
+            <select id="rep-semana" name="semana">
+              {% for sab in semanas_disponibles %}
+              <option value="{{ sab|date:'Y-m-d' }}"{% if sab == sabado %} selected{% endif %}>Cerró el sábado {{ sab|date:"j \d\e F"|lower }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn--ghost btn--sm rep-semana__ver">Ver</button>
+          </form>
+          <a class="btn btn--primary" href="{% url 'reportes:semanal_pdf' %}?semana={{ sabado|date:'Y-m-d' }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar PDF
+          </a>
+        </div>
+      </header>
+
+      <p class="rep-estado">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        {% if es_hoy %}Este reporte se genera hoy, sábado: incluye lo registrado hasta ahora y se completa al cierre del día.{% else %}Generado el sábado {{ sabado|date:"j \d\e F"|lower }}.{% endif %}
+        {% if es_ultimo and not es_hoy %}El próximo se genera el sábado {{ proximo_reporte|date:"j \d\e F"|lower }}.{% endif %}
+      </p>
+
+      <nav class="rep-indice" aria-label="Secciones del reporte">
+        <a href="#analisis">Análisis</a>
+        <a href="#ingresos">Ingresos</a>
+        <a href="#agenda">Agenda</a>
+        <a href="#pronostico">Pronóstico</a>
+        <a href="#inventario">Inventario</a>
+        <a href="#clientes">Clientes</a>
+      </nav>
+
+      <!-- Cifras principales -->
+      <section class="rep-cifras" aria-label="Cifras principales de la semana">
+        <article class="cifra cifra--principal">
+          <h2 class="cifra__nombre">Ingresos cobrados</h2>
+          <p class="cifra__valor">{{ s.ingresos|pesos }}</p>
+          {% if variacion.ingresos is not None %}
+          <p class="cifra__cambio {% if variacion.ingresos > 0 %}cifra__cambio--sube{% elif variacion.ingresos < 0 %}cifra__cambio--baja{% endif %}">
+            <span aria-hidden="true">{% if variacion.ingresos > 0 %}▲{% elif variacion.ingresos < 0 %}▼{% else %}={% endif %}</span>
+            {{ variacion.ingresos|variacion }} frente a la semana anterior
+          </p>
+          {% else %}<p class="cifra__nota">Sin semana anterior para comparar</p>{% endif %}
+        </article>
+        <article class="cifra">
+          <h2 class="cifra__nombre">Balance de caja</h2>
+          <p class="cifra__valor{% if caja.balance < 0 %} cifra__valor--negativo{% endif %}">{{ caja.balance|pesos }}</p>
+          <p class="cifra__nota">{% if caja.balance < 0 %}La semana cerró en pérdida{% else %}Entró {{ caja.ingresos|pesos }} y salió {{ caja.salidas|pesos }}{% endif %}</p>
+        </article>
+        <article class="cifra">
+          <h2 class="cifra__nombre">Gastos</h2>
+          <p class="cifra__valor">{{ caja.gastos|pesos }}</p>
+          <p class="cifra__nota">{% if caja.gastos_detalle %}Lo mayor: {{ caja.gastos_detalle.0.nombre|lower }}{% else %}Sin gastos registrados{% endif %}</p>
+        </article>
+        <article class="cifra">
+          <h2 class="cifra__nombre">Atenciones</h2>
+          <p class="cifra__valor">{{ s.atenciones }}</p>
+          {% if variacion.atenciones is not None %}
+          <p class="cifra__cambio {% if variacion.atenciones > 0 %}cifra__cambio--sube{% elif variacion.atenciones < 0 %}cifra__cambio--baja{% endif %}">
+            <span aria-hidden="true">{% if variacion.atenciones > 0 %}▲{% elif variacion.atenciones < 0 %}▼{% else %}={% endif %}</span>
+            {{ variacion.atenciones|variacion }} frente a la anterior
+          </p>
+          {% else %}<p class="cifra__nota">{{ s.consultas }} consultas y {{ s.peluquerias }} de peluquería</p>{% endif %}
+        </article>
+        <article class="cifra">
+          <h2 class="cifra__nombre">Ticket promedio</h2>
+          <p class="cifra__valor">{{ s.ticket_promedio|pesos }}</p>
+          <p class="cifra__nota">En {{ s.facturas }} factura{{ s.facturas|pluralize }} cobrada{{ s.facturas|pluralize }}</p>
+        </article>
+        <article class="cifra">
+          <h2 class="cifra__nombre">Clientes nuevos</h2>
+          <p class="cifra__valor">{{ s.duenos_nuevos }}</p>
+          <p class="cifra__nota">{{ s.mascotas_nuevas }} mascota{{ s.mascotas_nuevas|pluralize }} nueva{{ s.mascotas_nuevas|pluralize }}</p>
+        </article>
+      </section>
+
+      <!-- Simulador de IA -->
+      <section class="rep-seccion analista" id="analisis" aria-labelledby="t-analisis">
+        <div class="analista__cabeza">
+          <span class="analista__icono" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></svg>
+          </span>
+          <div>
+            <h2 class="rep-h2" id="t-analisis">Análisis de la semana</h2>
+            <p class="analista__aviso">Simulador de IA: lo redacta el sistema con reglas a partir de las cifras de esta semana. No envía información fuera de la clínica.</p>
+          </div>
+        </div>
+        <p class="analista__resumen">{{ analisis.resumen|join:" " }}</p>
+
+        <h3 class="rep-h3">Recomendaciones</h3>
+        {% if analisis.recomendaciones %}
+        <ol class="recos">
+          {% for r in analisis.recomendaciones %}
+          <li class="reco reco--{{ r.tipo }}">
+            <span class="reco__tipo">
+              {% if r.tipo == "alerta" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              {% elif r.tipo == "mejora" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              {% elif r.tipo == "oportunidad" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+              {% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>{% endif %}
+              {{ r.etiqueta }}
+            </span>
+            <div class="reco__cuerpo">
+              <p class="reco__titulo">{{ r.titulo }}</p>
+              <p class="reco__texto">{{ r.texto }}</p>
+            </div>
+            <span class="reco__area">{{ r.area }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <p class="rep-vacio">Esta semana no hay nada que corregir.</p>
+        {% endif %}
+      </section>
+
+      <!-- Ingresos -->
+      <section class="rep-seccion" id="ingresos" aria-labelledby="t-ingresos">
+        <h2 class="rep-h2" id="t-ingresos">Ingresos</h2>
+        <div class="rep-rejilla">
+          <article class="tarjeta">
+            <h3 class="rep-h3">De dónde salieron los ingresos</h3>
+            {% if s.ingresos %}
+            <div class="segmentada" role="img" aria-label="{% for l in s.lineas %}{{ l.nombre }} {{ l.porcentaje }} %{% if not forloop.last %}, {% endif %}{% endfor %}">
+              {% for l in s.lineas %}{% if l.monto %}
+              <span class="segmentada__parte segmentada__parte--{{ l.css }}" style="flex-grow: {{ l.porcentaje|default:1 }}" data-tip="{{ l.nombre }}: {{ l.monto|pesos }} ({{ l.porcentaje }} %)" tabindex="0">{% if l.porcentaje >= 12 %}{{ l.porcentaje }} %{% endif %}</span>
+              {% endif %}{% endfor %}
+            </div>
+            <ul class="lineas">
+              {% for l in s.lineas %}
+              <li><span class="graf__muestra graf__muestra--{{ l.css }}" aria-hidden="true"></span><span class="lineas__nombre">{{ l.nombre }}</span><span class="lineas__monto">{{ l.monto|pesos }}</span><span class="lineas__pct">{{ l.porcentaje }} %</span></li>
+              {% endfor %}
+            </ul>
+            {% if s.descuentos %}<p class="rep-nota">Se hicieron {{ s.descuentos|pesos }} en descuentos; los montos de arriba son antes de descuento.</p>{% endif %}
+            {% else %}
+            <p class="rep-vacio">No se cobraron facturas esta semana.</p>
+            {% endif %}
+          </article>
+
+          <article class="tarjeta">
+            <h3 class="rep-h3">Ingresos por día</h3>
+            {% include "reportes/_columnas.html" with g=graficas.ingresos_dia titulo_valor="Ingresos" %}
+          </article>
+
+          <article class="tarjeta">
+            <h3 class="rep-h3">Lo que más dinero dejó</h3>
+            {% include "reportes/_ranking.html" with filas=s.mas_vendido dinero=True vacio="Sin ventas cobradas esta semana." %}
+          </article>
+
+          <article class="tarjeta">
+            <h3 class="rep-h3">Caja de la semana</h3>
+            <dl class="cuentas">
+              <div><dt>Entró a caja</dt><dd>{{ caja.ingresos|pesos }}</dd></div>
+              {% if caja.anulaciones %}<div><dt>Facturas anuladas</dt><dd>−{{ caja.anulaciones|pesos }}</dd></div>{% endif %}
+              {% for g in caja.gastos_detalle %}<div><dt>{{ g.nombre }}</dt><dd>−{{ g.monto|pesos }}</dd></div>{% endfor %}
+              {% if not caja.gastos_detalle %}<div><dt>Gastos</dt><dd>{{ 0|pesos }}</dd></div>{% endif %}
+              <div class="cuentas__total"><dt>Balance</dt><dd{% if caja.balance < 0 %} class="negativo"{% endif %}>{{ caja.balance|pesos }}</dd></div>
+            </dl>
+            <p class="rep-nota">Las comisiones de los groomers solo cuentan aquí si se registraron como gasto en Caja.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Agenda y atenciones -->
+      <section class="rep-seccion" id="agenda" aria-labelledby="t-agenda">
+        <h2 class="rep-h2" id="t-agenda">Agenda y atenciones</h2>
+        <div class="rep-rejilla">
+          <article class="tarjeta">
+            <h3 class="rep-h3">Atenciones por día</h3>
+            {% include "reportes/_apiladas.html" with g=graficas.atenciones_dia %}
+          </article>
+
+          <article class="tarjeta">
+            <h3 class="rep-h3">Horas con más citas</h3>
+            <p class="rep-sub">Citas agendadas y no canceladas, de consulta y de peluquería.{% if s.hora_pico_texto %} La hora más pedida fue a las {{ s.hora_pico_texto }}.{% endif %}</p>
+            <div class="calor" role="img" aria-label="Mapa de calor de citas por día y hora. Los datos están en la tabla de abajo.">
+              <span class="calor__esquina"></span>
+              {% for h in s.horas %}<span class="calor__hora">{{ h }}</span>{% endfor %}
+              {% for fila in s.mapa_calor %}
+                <span class="calor__dia">{{ fila.dia.corto }}</span>
+                {% for c in fila.celdas %}<span class="calor__celda calor__celda--{{ c.nivel }}"{% if c.citas %} data-tip="{{ fila.dia.corto }} {{ c.hora }}:00: {{ c.citas }} cita{{ c.citas|pluralize }}"{% endif %}></span>{% endfor %}
+              {% endfor %}
+            </div>
+            <div class="calor__escala" aria-hidden="true"><span>Menos</span>{% for n in "01234" %}<span class="calor__celda calor__celda--{{ n }}"></span>{% endfor %}<span>Más</span></div>
+            <details class="graf__tabla">
+              <summary>Ver datos en tabla</summary>
+              <div class="graf__tabla-scroll">
+              <table>
+                <thead><tr><th scope="col">Día</th>{% for h in s.horas %}<th scope="col" class="num">{{ h }}</th>{% endfor %}</tr></thead>
+                <tbody>{% for fila in s.mapa_calor %}<tr><th scope="row">{{ fila.dia.corto }}</th>{% for c in fila.celdas %}<td class="num">{{ c.citas }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+              </table>
+              </div>
+            </details>
+          </article>
+
+          <article class="tarjeta">
+            <h3 class="rep-h3">Servicios más pedidos</h3>
+            {% include "reportes/_ranking.html" with filas=s.servicios_pedidos unidad="citas" vacio="No hubo citas esta semana." %}
+          </article>
+
+          <article class="tarjeta">
+            <h3 class="rep-h3">Cómo se movió la agenda</h3>
+            <dl class="cuentas">
+              <div><dt>Citas agendadas en la semana</dt><dd>{{ s.programadas }}</dd></div>
+              <div><dt>Canceladas</dt><dd>{{ s.canceladas }}{% if s.programadas %} <span class="cuentas__pct">({{ s.tasa_cancelacion }} %)</span>{% endif %}</dd></div>
+              <div><dt>Pasadas sin cerrar</dt><dd>{{ s.por_cerrar }}</dd></div>
+              <div><dt>Ya agendadas para la semana siguiente</dt><dd>{{ s.agenda_siguiente }}</dd></div>
+            </dl>
+          </article>
+        </div>
+
+        <article class="tarjeta tarjeta--ancha">
+          <h3 class="rep-h3">Comisiones de peluquería</h3>
+          <p class="rep-sub">Servicios realizados en la semana. La comisión del groomer es el 40 % del precio.</p>
+          {% if s.groomers.filas %}
+          <div class="tabla-scroll">
+          <table class="tabla">
+            <thead><tr><th scope="col">Groomer</th><th scope="col" class="num">Servicios</th><th scope="col" class="num">Facturado</th><th scope="col" class="num">Comisión</th><th scope="col" class="num">Para la clínica</th><th scope="col" class="num">Sin cerrar</th></tr></thead>
+            <tbody>
+              {% for f in s.groomers.filas %}
+              <tr><td>{{ f.nombre }}</td><td class="num">{{ f.servicios }}</td><td class="num">{{ f.facturado|pesos }}</td><td class="num">{{ f.comision|pesos }}</td><td class="num">{{ f.clinica|pesos }}</td><td class="num">{{ f.por_cerrar }}</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot><tr><th scope="row">Total</th><td class="num">{{ s.groomers.servicios }}</td><td class="num">{{ s.groomers.facturado|pesos }}</td><td class="num">{{ s.groomers.comision|pesos }}</td><td class="num">{{ s.groomers.clinica|pesos }}</td><td class="num">{{ s.groomers.por_cerrar }}</td></tr></tfoot>
+          </table>
+          </div>
+          {% else %}
+          <p class="rep-vacio">No hubo servicios de peluquería esta semana.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- Tendencia y pronóstico -->
+      <section class="rep-seccion" id="pronostico" aria-labelledby="t-pronostico">
+        <h2 class="rep-h2" id="t-pronostico">Tendencia y pronóstico</h2>
+        <p class="rep-sub">Las últimas 8 semanas y lo que se espera para la siguiente si se mantiene la tendencia. La línea punteada lleva al pronóstico y la raya vertical marca su rango.</p>
+        <div class="rep-rejilla">
+          <article class="tarjeta">
+            <h3 class="rep-h3">Ingresos por semana</h3>
+            {% include "reportes/_linea.html" with g=graficas.tendencia_ingresos %}
+            {% if pronostico_ingresos %}
+            <p class="rep-nota">Próxima semana: unos <b>{{ pronostico_ingresos.valor|pesos }}</b>, entre {{ pronostico_ingresos.bajo|pesos }} y {{ pronostico_ingresos.alto|pesos }}. Tendencia {% if pronostico_ingresos.tendencia == "sube" %}al alza{% elif pronostico_ingresos.tendencia == "baja" %}a la baja{% else %}estable{% endif %}.</p>
+            {% else %}
+            <p class="rep-nota">Hacen falta al menos 3 semanas con cobros para pronosticar.</p>
+            {% endif %}
+          </article>
+          <article class="tarjeta">
+            <h3 class="rep-h3">Atenciones por semana</h3>
+            {% include "reportes/_linea.html" with g=graficas.tendencia_atenciones %}
+            {% if pronostico_atenciones %}
+            <p class="rep-nota">Próxima semana: unas <b>{{ pronostico_atenciones.valor|floatformat:0 }}</b> atenciones, entre {{ pronostico_atenciones.bajo|floatformat:0 }} y {{ pronostico_atenciones.alto|floatformat:0 }}. Ya hay {{ s.agenda_siguiente }} citas agendadas.</p>
+            {% else %}
+            <p class="rep-nota">Hacen falta al menos 3 semanas con atenciones para pronosticar.</p>
+            {% endif %}
+          </article>
+        </div>
+        <p class="rep-nota rep-nota--metodo">Cómo se calcula: una recta de tendencia sobre las semanas con datos. El rango es cuánto se han alejado las semanas reales de esa recta; si la clínica cambia de ritmo (vacaciones, campañas), el pronóstico tarda unas semanas en ajustarse.</p>
+      </section>
+
+      <!-- Inventario -->
+      <section class="rep-seccion" id="inventario" aria-labelledby="t-inventario">
+        <h2 class="rep-h2" id="t-inventario">Inventario</h2>
+        <div class="rep-rejilla">
+          <article class="tarjeta">
+            <h3 class="rep-h3">Productos que más salieron</h3>
+            <p class="rep-sub">Unidades vendidas o usadas en consultas y peluquería durante la semana.</p>
+            {% include "reportes/_ranking.html" with filas=s.rotacion unidad="u." vacio="No salieron productos esta semana." %}
+            {% if s.merma %}<p class="rep-nota">Se perdieron {{ s.merma|pesos }} en mermas o vencimientos.</p>{% endif %}
+          </article>
+          <article class="tarjeta">
+            <h3 class="rep-h3">Para revisar hoy</h3>
+            <p class="rep-sub">Estado actual del inventario, no el de esa semana.</p>
+            {% if not s.stock_bajo and not s.por_vencer and not s.vencidos %}
+            <p class="rep-vacio">Todo en orden: sin stock bajo ni vencimientos cercanos.</p>
+            {% endif %}
+            {% if s.stock_bajo %}
+            <h4 class="rep-h4">Stock bajo</h4>
+            <ul class="lista-inv">{% for p in s.stock_bajo %}<li><span>{{ p.nombre }}</span><span class="lista-inv__dato{% if p.stock_actual == 0 %} lista-inv__dato--malo{% endif %}">{% if p.stock_actual == 0 %}Agotado{% else %}{{ p.stock_actual }} de mín. {{ p.stock_minimo }}{% endif %}</span></li>{% endfor %}</ul>
+            {% endif %}
+            {% if s.vencidos %}
+            <h4 class="rep-h4">Vencidos con unidades</h4>
+            <ul class="lista-inv">{% for p in s.vencidos %}<li><span>{{ p.nombre }}</span><span class="lista-inv__dato lista-inv__dato--malo">Venció el {{ p.fecha_vencimiento|date:"d/m/Y" }}</span></li>{% endfor %}</ul>
+            {% endif %}
+            {% if s.por_vencer %}
+            <h4 class="rep-h4">Vencen en los próximos 30 días</h4>
+            <ul class="lista-inv">{% for p in s.por_vencer %}<li><span>{{ p.nombre }}</span><span class="lista-inv__dato">{{ p.fecha_vencimiento|date:"d/m/Y" }}</span></li>{% endfor %}</ul>
+            {% endif %}
+          </article>
+        </div>
+      </section>
+
+      <!-- Clientes -->
+      <section class="rep-seccion" id="clientes" aria-labelledby="t-clientes">
+        <h2 class="rep-h2" id="t-clientes">Clientes y clínica</h2>
+        <div class="rep-mini">
+          <div><p class="rep-mini__valor">{{ s.clientes_atendidos }}</p><p class="rep-mini__nombre">Clientes atendidos</p></div>
+          <div><p class="rep-mini__valor">{{ s.clientes_recurrentes }}</p><p class="rep-mini__nombre">Volvieron (ya eran clientes)</p></div>
+          <div><p class="rep-mini__valor">{{ s.duenos_nuevos }}</p><p class="rep-mini__nombre">Dueños registrados</p></div>
+          <div><p class="rep-mini__valor">{{ s.mascotas_nuevas }}</p><p class="rep-mini__nombre">Mascotas registradas</p></div>
+          <div><p class="rep-mini__valor">{{ s.recordatorios_avisados }}</p><p class="rep-mini__nombre">Recordatorios avisados</p></div>
+          <div><p class="rep-mini__valor">{{ s.hosp_ingresos }}</p><p class="rep-mini__nombre">Ingresos a hospitalización ({{ s.hosp_altas }} alta{{ s.hosp_altas|pluralize }})</p></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="graf-tip" id="graf-tip" role="status" hidden></div>
+{% endwith %}
+{% endblock %}
