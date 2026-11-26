@@ -1,0 +1,134 @@
+# Copia de seguridad semanal de la base de producción de Prados Pets.
+#
+# Este archivo NO corre en el repositorio de la app. Va en
+# .github/workflows/copia-semanal.yml del repositorio PRIVADO
+# Cruz-Fernando/Prados-pets-backups, con respaldar.sh en la raíz.
+# Pasos completos en infra/backups/README.md del repositorio de la app.
+#
+# Cada copia queda como un release (etiqueta backup-AAAA-MM-DD), no como
+# commit, para que el historial de git no crezca. Se conservan las últimas 12.
+name: Copia de seguridad semanal
+
+on:
+  schedule:
+    # Viernes 10:00 p. m. en Colombia (UTC−5, sin horario de verano)
+    # = sábado 03:00 UTC. GitHub puede demorar unos minutos el inicio.
+    - cron: '0 3 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # crear y borrar releases con GITHUB_TOKEN
+
+concurrency:
+  group: copia-de-seguridad
+  cancel-in-progress: false
+
+jobs:
+  copia:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      GH_TOKEN: ${{ github.token }}
+      CONSERVAR: 12           # cuántas copias se guardan (≈ 3 meses)
+      TAMANO_MINIMO_KB: 100   # mínimo del dump sin cifrar; ajústalo tras la primera copia (ver README)
+      MINIMO_DUENOS: 1
+      VERIFICAR_URL: postgresql://postgres:verificacion@127.0.0.1:5499/verificacion
+
+    steps:
+      - name: Descargar respaldar.sh
+        uses: actions/checkout@v5
+
+      - name: Comprobar los secretos
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL (ver README)."; exit 1
+          fi
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Falta el secreto BACKUP_PASSPHRASE (ver README)."; exit 1
+          fi
+          # La conexión directa (db.<proyecto>.supabase.co) es solo IPv6 y los
+          # runners de GitHub no tienen IPv6: hay que usar el Session pooler.
+          case "$SUPABASE_DB_URL" in
+            *@db.*.supabase.co*)
+              echo "::error::SUPABASE_DB_URL es la conexión directa (solo IPv6). Usa la del Session pooler: Supabase → Connect → Session pooler (…pooler.supabase.com:5432)."
+              exit 1 ;;
+          esac
+
+      - name: Instalar el cliente de PostgreSQL de la misma versión que Supabase
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          fi
+          if ! num="$(psql "$SUPABASE_DB_URL" -XAtqc 'show server_version_num')"; then
+            echo "::error::No se pudo conectar a Supabase. Revisa SUPABASE_DB_URL y que el proyecto no esté pausado."
+            exit 1
+          fi
+          mayor=$((num / 10000))
+          echo "Supabase usa PostgreSQL $mayor."
+          if ! apt-cache show "postgresql-client-$mayor" >/dev/null 2>&1; then
+            # Repositorio oficial de PostgreSQL (apt.postgresql.org).
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -qq
+          fi
+          sudo apt-get install -y -qq "postgresql-client-$mayor"
+          echo "/usr/lib/postgresql/$mayor/bin" >> "$GITHUB_PATH"
+          echo "PG_MAYOR=$mayor" >> "$GITHUB_ENV"
+
+      - name: Levantar un PostgreSQL vacío para la restauración de prueba
+        run: |
+          docker run -d --name verificacion \
+            -e POSTGRES_PASSWORD=verificacion -e POSTGRES_DB=verificacion \
+            -p 127.0.0.1:5499:5432 "postgres:$PG_MAYOR" >/dev/null
+          for _ in $(seq 1 60); do
+            if psql "$VERIFICAR_URL" -XAtqc 'select 1' >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo "::error::El PostgreSQL de prueba no arrancó."
+          docker logs verificacion
+          exit 1
+
+      - name: Hacer, verificar y cifrar la copia
+        id: copia
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: SALIDA="$RUNNER_TEMP/salida" bash respaldar.sh
+
+      - name: Publicar el release
+        env:
+          FECHA: ${{ steps.copia.outputs.fecha }}
+        run: |
+          salida="$RUNNER_TEMP/salida"
+          etiqueta="backup-$FECHA"
+          # Si ya hay una copia de ese día (ejecución a mano), se le agrega la hora.
+          if gh release view "$etiqueta" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            etiqueta="$etiqueta-$(TZ=America/Bogota date +%H%M)"
+          fi
+          gh release create "$etiqueta" --repo "$GITHUB_REPOSITORY" \
+            --title "Copia del $FECHA" --notes-file "$salida/notas.md" \
+            "$salida"/*.dump.gpg "$salida"/*.dump.gpg.sha256
+          echo "Publicada la copia $etiqueta."
+
+      # Solo corre si la copia nueva se publicó bien: nunca se borra una vieja
+      # sin tener antes una nueva.
+      - name: Borrar las copias viejas
+        run: |
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName,createdAt \
+            --jq "[.[] | select(.tagName | startswith(\"backup-\"))] | sort_by(.createdAt) | reverse | .[${CONSERVAR}:] | .[].tagName" \
+          | while read -r etiqueta; do
+              echo "Borrando $etiqueta (release y etiqueta)."
+              gh release delete "$etiqueta" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+            done
+
+      - name: Limpiar
+        if: always()
+        run: |
+          docker rm -f verificacion >/dev/null 2>&1 || true
+          rm -rf "$RUNNER_TEMP/salida"
