@@ -277,6 +277,10 @@ citas, 10 facturas, 40 productos):
   `migrate --check` sin problemas, un usuario restaurado inicia sesión y la
   lista de dueños carga.
 - `actionlint` y `shellcheck` sin avisos.
+- Con la primera copia real (`backup-2026-11-26`, 161 KB): el workflow quedó en
+  verde; `restaurar.sh ultima` la descargó, comprobó el SHA-256, la descifró y
+  la restauró en un PostgreSQL 18 local. `check`, `migrate --check` y las
+  páginas principales respondieron bien. Después se borró la base restaurada.
 
 ## Costos y límites
 
