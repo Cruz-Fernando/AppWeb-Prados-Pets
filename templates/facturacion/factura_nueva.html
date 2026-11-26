@@ -40,7 +40,7 @@
       <tbody>
         {% for d in duenos %}
         <tr>
-          <td class="inv-prod"><b>{{ d.nombre_completo }}</b><small>{{ d.telefono }} · {{ d.n_mascotas }} mascota{{ d.n_mascotas|pluralize }}</small></td>
+          <td class="inv-prod"><b>{{ d.nombre_completo }} {% include "directorio/_insignia_nivel.html" with nivel=d.nivel_recurrencia %}</b><small>{{ d.telefono }} · {{ d.n_mascotas }} mascota{{ d.n_mascotas|pluralize }}</small></td>
           <td class="inv-num">
             <form method="post">
               {% csrf_token %}

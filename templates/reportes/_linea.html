@@ -14,7 +14,7 @@
     {% endif %}
     {% if g.camino %}<path class="graf__linea" d="{{ g.camino }}"></path>{% endif %}
     {% for p in g.puntos %}
-      <g class="graf__marca" tabindex="0" data-tip="Semana que cerró el {{ p.etiqueta }}: {{ p.valor }}" aria-label="Semana que cerró el {{ p.etiqueta }}: {{ p.valor }}">
+      <g class="graf__marca" tabindex="0" data-tip="{{ g.texto_punto }} {{ p.etiqueta }}: {{ p.valor }}" aria-label="{{ g.texto_punto }} {{ p.etiqueta }}: {{ p.valor }}">
         <rect class="graf__hit" x="{{ p.hit_x }}" y="{{ g.hit_y }}" width="28" height="{{ g.hit_alto }}"></rect>
         <circle class="graf__punto" cx="{{ p.x }}" cy="{{ p.y }}" r="4"></circle>
         <text class="graf__x" x="{{ p.x }}" y="{{ g.y_etiqueta }}" text-anchor="middle">{{ p.etiqueta }}</text>
@@ -22,7 +22,7 @@
     {% endfor %}
     {% if g.ultimo %}<text class="graf__valor" x="{{ g.ultimo.x }}" y="{{ g.ultimo.y }}" dy="-12" text-anchor="middle">{{ g.ultimo.valor }}</text>{% endif %}
     {% if g.futuro %}
-      <g class="graf__marca" tabindex="0" data-tip="Pronóstico para la semana que cierra el {{ g.futuro.etiqueta }}: {{ g.futuro.valor }} (rango {{ g.futuro.rango }})" aria-label="Pronóstico: {{ g.futuro.valor }}, rango {{ g.futuro.rango }}">
+      <g class="graf__marca" tabindex="0" data-tip="{{ g.texto_futuro }} {{ g.futuro.etiqueta }}: {{ g.futuro.valor }} (rango {{ g.futuro.rango }})" aria-label="Pronóstico: {{ g.futuro.valor }}, rango {{ g.futuro.rango }}">
         <rect class="graf__hit" x="{{ g.futuro.hit_x }}" y="{{ g.hit_y }}" width="28" height="{{ g.hit_alto }}"></rect>
         <circle class="graf__punto graf__punto--futuro" cx="{{ g.futuro.x }}" cy="{{ g.futuro.y }}" r="5"></circle>
         <text class="graf__valor graf__valor--futuro" x="{{ g.futuro.x }}" dx="10" y="{{ g.futuro.y }}" dy="4" text-anchor="start">{{ g.futuro.valor }}</text>
@@ -34,7 +34,7 @@
 <details class="graf__tabla">
   <summary>Ver datos en tabla</summary>
   <table>
-    <thead><tr><th scope="col">Semana que cerró el</th><th scope="col" class="num">Valor</th></tr></thead>
+    <thead><tr><th scope="col">{{ g.texto_punto }}</th><th scope="col" class="num">Valor</th></tr></thead>
     <tbody>
       {% for p in g.puntos %}<tr><td>{{ p.etiqueta }}</td><td class="num">{{ p.valor }}</td></tr>{% endfor %}
       {% if g.futuro %}<tr><td>{{ g.futuro.etiqueta }} (pronóstico)</td><td class="num">{{ g.futuro.valor }} <span class="graf__tabla-nota">rango {{ g.futuro.rango }}</span></td></tr>{% endif %}

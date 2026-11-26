@@ -1,5 +1,5 @@
 /**
- * Reporte semanal: cambiar de semana al elegirla y tooltip de las gráficas.
+ * Reportes (día, semana y mes): tooltip de las gráficas.
  *
  * Cada marca de una gráfica lleva su texto en data-tip. El tooltip solo
  * repite lo que ya está en la gráfica o en su tabla de datos (nunca es la
@@ -7,14 +7,8 @@
  */
 (function () {
   document.addEventListener('DOMContentLoaded', function () {
-    var form = document.getElementById('rep-semana-form');
-    if (form) {
-      var boton = form.querySelector('.rep-semana__ver');
-      if (boton) boton.style.display = 'none';
-      form.querySelector('select').addEventListener('change', function () {
-        if (form.requestSubmit) form.requestSubmit(); else form.submit();
-      });
-    }
+    // PB-20: la fecha se envía con el botón «Ver». No se envía sola al cambiar:
+    // al escribir el año, el navegador ya da por válida «0002-11-26» y recargaría.
 
     var tip = document.getElementById('graf-tip');
     if (!tip) return;

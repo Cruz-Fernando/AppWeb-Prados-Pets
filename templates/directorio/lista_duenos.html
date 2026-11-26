@@ -20,12 +20,25 @@
 
     <main class="app-content app-content--wide">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="color: var(--text); font-family: var(--font-marca); font-weight: 600; margin: 0;">Listado General de Dueños (Total: {{ duenos|length }})</h2>
+        <h2 style="color: var(--text); font-family: var(--font-marca); font-weight: 600; margin: 0;">Listado General de Dueños (Total: {% if nivel_activo %}{{ duenos|length }} de {{ total_duenos }}{% else %}{{ duenos|length }}{% endif %})</h2>
         <div style="display: flex; gap: 10px;">
           <a href="{% url 'exportar_duenos_excel' %}" style="padding: 8px 16px; background: var(--verde-wa); border-radius: 10px; color: #fff; text-decoration: none; font-weight: 700;">📥 Exportar a Excel</a>
           <a href="{% url 'buscar_directorio' %}" style="padding: 7px 15px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 700;">Volver al buscador</a>
         </div>
       </div>
+
+      {# PB-18: leyenda de colores; cada nivel filtra la lista #}
+      <nav class="nivel-leyenda" aria-label="Filtrar por nivel de recurrencia">
+        <span class="nivel-leyenda__titulo">Nivel de cliente:</span>
+        <a href="{% url 'lista_duenos' %}" class="nivel-leyenda__op"{% if not nivel_activo %} aria-current="true"{% endif %}>Todos <span class="nivel-leyenda__n">{{ total_duenos }}</span></a>
+        {% for item in leyenda %}
+        <a href="?nivel={{ item.nivel.clave }}" class="nivel-leyenda__op"{% if nivel_activo == item.nivel %} aria-current="true"{% endif %} title="{{ item.nivel.descripcion }}">
+          {% include "directorio/_insignia_nivel.html" with nivel=item.nivel %}
+          <span class="nivel-leyenda__rango">{{ item.nivel.rango }}</span>
+          <span class="nivel-leyenda__n">{{ item.total }}</span>
+        </a>
+        {% endfor %}
+      </nav>
 
       <div style="background: var(--surface, var(--surface)); border-radius: 12px; overflow: hidden; border: 1px solid var(--velo-2);">
         <table style="width: 100%; border-collapse: collapse; color: var(--c-texto-frio); text-align: left;">
@@ -45,11 +58,7 @@
                 <td style="padding: 12px 16px; font-weight: 600;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     {{ d.nombre_completo }}
-                    {% if d.numero_visitas >= 8 %}
-                      <span style="padding: 2px 8px; background: #FDE68A; color: #713F12; font-size: 0.75rem; border-radius: 12px; font-weight: bold;">🌟 VIP</span>
-                    {% elif d.numero_visitas >= 4 %}
-                      <span style="padding: 2px 8px; background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); font-size: 0.75rem; border-radius: 12px; font-weight: bold;">⭐ Frecuente</span>
-                    {% endif %}
+                    {% include "directorio/_insignia_nivel.html" with nivel=d.nivel_recurrencia %}
                   </div>
                 </td>
                 <td style="padding: 12px 16px;">{{ d.telefono }}</td>
@@ -60,7 +69,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" style="padding: 20px; text-align: center; color: var(--c-gris-frio);">No hay propietarios registrados.</td>
+                <td colspan="5" style="padding: 20px; text-align: center; color: var(--c-gris-frio);">{% if nivel_activo %}No hay propietarios en el nivel {{ nivel_activo.etiqueta }}.{% else %}No hay propietarios registrados.{% endif %}</td>
               </tr>
             {% endfor %}
           </tbody>

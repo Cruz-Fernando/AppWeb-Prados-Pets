@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static reportes_extras %}
-{% block title %}Reporte semanal · Prados Pets{% endblock %}
+{% block title %}{{ periodo.textos.titulo }} · Prados Pets{% endblock %}
 {% block head_extra %}
-<link rel="stylesheet" href="{% static 'css/reportes.css' %}?v=1.0">
-<script src="{% static 'js/reportes.js' %}?v=1.0" defer></script>
+<link rel="stylesheet" href="{% static 'css/reportes.css' %}?v=2.0">
+<script src="{% static 'js/reportes.js' %}?v=2.0" defer></script>
 {% endblock %}
 {% block body %}
-{% with s=semana caja=semana.caja %}
+{% with s=cifras caja=cifras.caja t=periodo.textos %}
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
 
@@ -23,37 +23,69 @@
     </header>
 
     <main class="app-content rep">
-      <!-- Encabezado: qué semana es y cuándo se generó -->
+      <!-- Encabezado: qué periodo es y cuándo se generó -->
       <header class="rep-cabeza">
         <div>
-          <h1 class="rep-titulo">Reporte semanal</h1>
-          <p class="rep-rango">Del domingo {{ s.desde|date:"j \d\e F"|lower }} al sábado {{ s.hasta|date:"j \d\e F \d\e Y"|lower }}</p>
+          <h1 class="rep-titulo">{{ t.titulo }}{% if en_curso and periodo.tipo != "semana" %} <span class="rep-parcial">Parcial</span>{% endif %}</h1>
+          <p class="rep-rango">
+            {% if periodo.tipo == "semana" %}Del domingo {{ s.desde|date:"j \d\e F"|lower }} al sábado {{ s.hasta|date:"j \d\e F \d\e Y"|lower }}
+            {% elif periodo.tipo == "dia" %}{{ periodo.etiqueta|capfirst }} de {{ s.desde|date:"Y" }}
+            {% else %}Del 1 al {{ s.hasta|date:"j \d\e F \d\e Y"|lower }}{% endif %}
+          </p>
         </div>
         <div class="rep-controles">
-          <form method="get" class="rep-semana" id="rep-semana-form">
-            <label for="rep-semana">Semana</label>
-            <select id="rep-semana" name="semana">
-              {% for sab in semanas_disponibles %}
-              <option value="{{ sab|date:'Y-m-d' }}"{% if sab == sabado %} selected{% endif %}>Cerró el sábado {{ sab|date:"j \d\e F"|lower }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="btn btn--ghost btn--sm rep-semana__ver">Ver</button>
-          </form>
-          <a class="btn btn--primary" href="{% url 'reportes:semanal_pdf' %}?semana={{ sabado|date:'Y-m-d' }}">
+          <a class="btn btn--primary" href="{% url 'reportes:semanal_pdf' %}?periodo={{ periodo.tipo }}&amp;fecha={{ periodo.desde|date:'Y-m-d' }}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Descargar PDF
           </a>
         </div>
       </header>
 
+      <!-- Elegir periodo: pestañas, anterior / siguiente y fecha -->
+      <div class="rep-periodo">
+        <nav class="rep-pestanas" aria-label="Tipo de reporte">
+          {% for p in pestanas %}
+          <a class="rep-pestanas__op" href="?periodo={{ p.tipo }}&amp;fecha={{ referencia|date:'Y-m-d' }}"{% if p.activa %} aria-current="page"{% endif %}>{{ p.nombre }}</a>
+          {% endfor %}
+        </nav>
+        <div class="rep-nav">
+          <a class="rep-nav__flecha" href="?periodo={{ periodo.tipo }}&amp;fecha={{ anterior.desde|date:'Y-m-d' }}" aria-label="{{ t.anterior|capfirst }}: {{ anterior.etiqueta }}" title="{{ t.anterior|capfirst }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </a>
+          <span class="rep-nav__actual">{{ periodo.etiqueta|capfirst }}</span>
+          {% if siguiente %}
+          <a class="rep-nav__flecha" href="?periodo={{ periodo.tipo }}&amp;fecha={{ siguiente.desde|date:'Y-m-d' }}" aria-label="{{ t.proximo|capfirst }}: {{ siguiente.etiqueta }}" title="{{ t.proximo|capfirst }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+          {% else %}
+          <span class="rep-nav__flecha rep-nav__flecha--off" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+          {% endif %}
+        </div>
+        <form method="get" class="rep-semana" id="rep-fecha-form">
+          <input type="hidden" name="periodo" value="{{ periodo.tipo }}">
+          <label for="rep-fecha">Ir a la fecha</label>
+          <input type="date" id="rep-fecha" name="fecha" value="{{ referencia|date:'Y-m-d' }}" max="{{ hoy|date:'Y-m-d' }}">
+          <button type="submit" class="btn btn--ghost btn--sm rep-semana__ver">Ver</button>
+        </form>
+      </div>
+
       <p class="rep-estado">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        {% if es_hoy %}Este reporte se genera hoy, sábado: incluye lo registrado hasta ahora y se completa al cierre del día.{% else %}Generado el sábado {{ sabado|date:"j \d\e F"|lower }}.{% endif %}
-        {% if es_ultimo and not es_hoy %}El próximo se genera el sábado {{ proximo_reporte|date:"j \d\e F"|lower }}.{% endif %}
+        {% if periodo.tipo == "semana" %}
+          {% if es_hoy %}Este reporte se genera hoy, sábado: incluye lo registrado hasta ahora y se completa al cierre del día.{% else %}Generado el sábado {{ sabado|date:"j \d\e F"|lower }}.{% endif %}
+          {% if es_ultimo and not es_hoy %}El próximo se genera el sábado {{ proximo_reporte|date:"j \d\e F"|lower }}.{% endif %}
+        {% elif en_curso %}
+          Reporte parcial: incluye lo registrado hasta las {{ generado|date:"g:i a" }}; {{ t.el }} todavía no termina.
+        {% else %}
+          {{ t.el|capfirst }} ya cerró: las cifras están completas.
+        {% endif %}
       </p>
 
       <nav class="rep-indice" aria-label="Secciones del reporte">
         <a href="#analisis">Análisis</a>
+        {% if periodo.tipo == "mes" %}<a href="#semanas">Semana a semana</a>{% endif %}
         <a href="#ingresos">Ingresos</a>
         <a href="#agenda">Agenda</a>
         <a href="#pronostico">Pronóstico</a>
@@ -62,21 +94,21 @@
       </nav>
 
       <!-- Cifras principales -->
-      <section class="rep-cifras" aria-label="Cifras principales de la semana">
+      <section class="rep-cifras" aria-label="Cifras principales {{ t.del }}">
         <article class="cifra cifra--principal">
           <h2 class="cifra__nombre">Ingresos cobrados</h2>
           <p class="cifra__valor">{{ s.ingresos|pesos }}</p>
           {% if variacion.ingresos is not None %}
           <p class="cifra__cambio {% if variacion.ingresos > 0 %}cifra__cambio--sube{% elif variacion.ingresos < 0 %}cifra__cambio--baja{% endif %}">
             <span aria-hidden="true">{% if variacion.ingresos > 0 %}▲{% elif variacion.ingresos < 0 %}▼{% else %}={% endif %}</span>
-            {{ variacion.ingresos|variacion }} frente a la semana anterior
+            {{ variacion.ingresos|variacion }} {{ t.frente }}
           </p>
-          {% else %}<p class="cifra__nota">Sin semana anterior para comparar</p>{% endif %}
+          {% else %}<p class="cifra__nota">Sin {{ t.nombre }} anterior para comparar</p>{% endif %}
         </article>
         <article class="cifra">
           <h2 class="cifra__nombre">Balance de caja</h2>
           <p class="cifra__valor{% if caja.balance < 0 %} cifra__valor--negativo{% endif %}">{{ caja.balance|pesos }}</p>
-          <p class="cifra__nota">{% if caja.balance < 0 %}La semana cerró en pérdida{% else %}Entró {{ caja.ingresos|pesos }} y salió {{ caja.salidas|pesos }}{% endif %}</p>
+          <p class="cifra__nota">{% if caja.balance < 0 %}{{ t.el|capfirst }} cerró en pérdida{% else %}Entró {{ caja.ingresos|pesos }} y salió {{ caja.salidas|pesos }}{% endif %}</p>
         </article>
         <article class="cifra">
           <h2 class="cifra__nombre">Gastos</h2>
@@ -89,7 +121,7 @@
           {% if variacion.atenciones is not None %}
           <p class="cifra__cambio {% if variacion.atenciones > 0 %}cifra__cambio--sube{% elif variacion.atenciones < 0 %}cifra__cambio--baja{% endif %}">
             <span aria-hidden="true">{% if variacion.atenciones > 0 %}▲{% elif variacion.atenciones < 0 %}▼{% else %}={% endif %}</span>
-            {{ variacion.atenciones|variacion }} frente a la anterior
+            {{ variacion.atenciones|variacion }} {{ t.frente }}
           </p>
           {% else %}<p class="cifra__nota">{{ s.consultas }} consultas y {{ s.peluquerias }} de peluquería</p>{% endif %}
         </article>
@@ -112,8 +144,8 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></svg>
           </span>
           <div>
-            <h2 class="rep-h2" id="t-analisis">Análisis de la semana</h2>
-            <p class="analista__aviso">Simulador de IA: lo redacta el sistema con reglas a partir de las cifras de esta semana. No envía información fuera de la clínica.</p>
+            <h2 class="rep-h2" id="t-analisis">Análisis {{ t.del }}</h2>
+            <p class="analista__aviso">Simulador de IA: lo redacta el sistema con reglas a partir de las cifras {{ t.del }}. No envía información fuera de la clínica.</p>
           </div>
         </div>
         <p class="analista__resumen">{{ analisis.resumen|join:" " }}</p>
@@ -139,9 +171,14 @@
           {% endfor %}
         </ol>
         {% else %}
-        <p class="rep-vacio">Esta semana no hay nada que corregir.</p>
+        <p class="rep-vacio">{{ t.este|capfirst }} no hay nada que corregir.</p>
         {% endif %}
       </section>
+
+      {% if periodo.tipo == "mes" %}
+      <!-- Mes: resumen y comisiones de cada semana -->
+      {% include "reportes/_semanas_del_mes.html" %}
+      {% endif %}
 
       <!-- Ingresos -->
       <section class="rep-seccion" id="ingresos" aria-labelledby="t-ingresos">
@@ -162,22 +199,23 @@
             </ul>
             {% if s.descuentos %}<p class="rep-nota">Se hicieron {{ s.descuentos|pesos }} en descuentos; los montos de arriba son antes de descuento.</p>{% endif %}
             {% else %}
-            <p class="rep-vacio">No se cobraron facturas esta semana.</p>
+            <p class="rep-vacio">No se cobraron facturas {{ t.este }}.</p>
             {% endif %}
           </article>
 
           <article class="tarjeta">
-            <h3 class="rep-h3">Ingresos por día</h3>
-            {% include "reportes/_columnas.html" with g=graficas.ingresos_dia titulo_valor="Ingresos" %}
+            <h3 class="rep-h3">Ingresos {{ t.por_tramo }}</h3>
+            {% include "reportes/_columnas.html" with g=graficas.ingresos_dia titulo_valor="Ingresos" titulo_tramo=t.tramo|capfirst %}
+            {% if periodo.tipo == "dia" %}<p class="rep-nota">Lo cobrado antes de las 7 a. m. se suma a esa hora y lo de después de las 7 p. m., a las 7 p. m.</p>{% endif %}
           </article>
 
           <article class="tarjeta">
             <h3 class="rep-h3">Lo que más dinero dejó</h3>
-            {% include "reportes/_ranking.html" with filas=s.mas_vendido dinero=True vacio="Sin ventas cobradas esta semana." %}
+            {% include "reportes/_ranking.html" with filas=s.mas_vendido dinero=True vacio="Sin ventas cobradas "|add:t.este|add:"." %}
           </article>
 
           <article class="tarjeta">
-            <h3 class="rep-h3">Caja de la semana</h3>
+            <h3 class="rep-h3">Caja {{ t.del }}</h3>
             <dl class="cuentas">
               <div><dt>Entró a caja</dt><dd>{{ caja.ingresos|pesos }}</dd></div>
               {% if caja.anulaciones %}<div><dt>Facturas anuladas</dt><dd>−{{ caja.anulaciones|pesos }}</dd></div>{% endif %}
@@ -195,13 +233,14 @@
         <h2 class="rep-h2" id="t-agenda">Agenda y atenciones</h2>
         <div class="rep-rejilla">
           <article class="tarjeta">
-            <h3 class="rep-h3">Atenciones por día</h3>
-            {% include "reportes/_apiladas.html" with g=graficas.atenciones_dia %}
+            <h3 class="rep-h3">Atenciones {{ t.por_tramo }}</h3>
+            {% include "reportes/_apiladas.html" with g=graficas.atenciones_dia titulo_tramo=t.tramo|capfirst %}
           </article>
 
+          {% if s.mapa_calor %}
           <article class="tarjeta">
             <h3 class="rep-h3">Horas con más citas</h3>
-            <p class="rep-sub">Citas agendadas y no canceladas, de consulta y de peluquería.{% if s.hora_pico_texto %} La hora más pedida fue a las {{ s.hora_pico_texto }}.{% endif %}</p>
+            <p class="rep-sub">Citas agendadas y no canceladas, de consulta y de peluquería{% if periodo.tipo == "mes" %}, sumadas por día de la semana{% endif %}.{% if s.hora_pico_texto %} La hora más pedida fue a las {{ s.hora_pico_texto }}.{% endif %}</p>
             <div class="calor" role="img" aria-label="Mapa de calor de citas por día y hora. Los datos están en la tabla de abajo.">
               <span class="calor__esquina"></span>
               {% for h in s.horas %}<span class="calor__hora">{{ h }}</span>{% endfor %}
@@ -221,26 +260,27 @@
               </div>
             </details>
           </article>
+          {% endif %}
 
           <article class="tarjeta">
             <h3 class="rep-h3">Servicios más pedidos</h3>
-            {% include "reportes/_ranking.html" with filas=s.servicios_pedidos unidad="citas" vacio="No hubo citas esta semana." %}
+            {% include "reportes/_ranking.html" with filas=s.servicios_pedidos unidad="citas" vacio="No hubo citas "|add:t.este|add:"." %}
           </article>
 
           <article class="tarjeta">
             <h3 class="rep-h3">Cómo se movió la agenda</h3>
             <dl class="cuentas">
-              <div><dt>Citas agendadas en la semana</dt><dd>{{ s.programadas }}</dd></div>
+              <div><dt>Citas agendadas en {{ t.el }}</dt><dd>{{ s.programadas }}</dd></div>
               <div><dt>Canceladas</dt><dd>{{ s.canceladas }}{% if s.programadas %} <span class="cuentas__pct">({{ s.tasa_cancelacion }} %)</span>{% endif %}</dd></div>
               <div><dt>Pasadas sin cerrar</dt><dd>{{ s.por_cerrar }}</dd></div>
-              <div><dt>Ya agendadas para la semana siguiente</dt><dd>{{ s.agenda_siguiente }}</dd></div>
+              <div><dt>Ya agendadas para {{ t.proximo }}</dt><dd>{{ s.agenda_siguiente }}</dd></div>
             </dl>
           </article>
         </div>
 
         <article class="tarjeta tarjeta--ancha">
           <h3 class="rep-h3">Comisiones de peluquería</h3>
-          <p class="rep-sub">Servicios realizados en la semana. La comisión del groomer es el 40 % del precio.</p>
+          <p class="rep-sub">Servicios realizados en {{ t.el }}. La comisión del groomer es el 40 % del precio.{% if periodo.tipo == "mes" %} El detalle por semana está en «Semana a semana».{% endif %}</p>
           {% if s.groomers.filas %}
           <div class="tabla-scroll">
           <table class="tabla">
@@ -254,7 +294,7 @@
           </table>
           </div>
           {% else %}
-          <p class="rep-vacio">No hubo servicios de peluquería esta semana.</p>
+          <p class="rep-vacio">No hubo servicios de peluquería {{ t.este }}.</p>
           {% endif %}
         </article>
       </section>
@@ -262,28 +302,28 @@
       <!-- Tendencia y pronóstico -->
       <section class="rep-seccion" id="pronostico" aria-labelledby="t-pronostico">
         <h2 class="rep-h2" id="t-pronostico">Tendencia y pronóstico</h2>
-        <p class="rep-sub">Las últimas 8 semanas y lo que se espera para la siguiente si se mantiene la tendencia. La línea punteada lleva al pronóstico y la raya vertical marca su rango.</p>
+        <p class="rep-sub">{{ t.ultimos|capfirst }} {{ serie|length }} {{ t.plural }} y lo que se espera para {{ t.siguiente }} si se mantiene la tendencia. La línea punteada lleva al pronóstico y la raya vertical marca su rango.</p>
         <div class="rep-rejilla">
           <article class="tarjeta">
-            <h3 class="rep-h3">Ingresos por semana</h3>
+            <h3 class="rep-h3">Ingresos por {{ t.nombre }}</h3>
             {% include "reportes/_linea.html" with g=graficas.tendencia_ingresos %}
             {% if pronostico_ingresos %}
-            <p class="rep-nota">Próxima semana: unos <b>{{ pronostico_ingresos.valor|pesos }}</b>, entre {{ pronostico_ingresos.bajo|pesos }} y {{ pronostico_ingresos.alto|pesos }}. Tendencia {% if pronostico_ingresos.tendencia == "sube" %}al alza{% elif pronostico_ingresos.tendencia == "baja" %}a la baja{% else %}estable{% endif %}.</p>
+            <p class="rep-nota">{{ t.proximo|capfirst }}: unos <b>{{ pronostico_ingresos.valor|pesos }}</b>, entre {{ pronostico_ingresos.bajo|pesos }} y {{ pronostico_ingresos.alto|pesos }}. Tendencia {% if pronostico_ingresos.tendencia == "sube" %}al alza{% elif pronostico_ingresos.tendencia == "baja" %}a la baja{% else %}estable{% endif %}.</p>
             {% else %}
-            <p class="rep-nota">Hacen falta al menos 3 semanas con cobros para pronosticar.</p>
+            <p class="rep-nota">Hacen falta al menos 3 {{ t.plural }} con cobros para pronosticar.</p>
             {% endif %}
           </article>
           <article class="tarjeta">
-            <h3 class="rep-h3">Atenciones por semana</h3>
+            <h3 class="rep-h3">Atenciones por {{ t.nombre }}</h3>
             {% include "reportes/_linea.html" with g=graficas.tendencia_atenciones %}
             {% if pronostico_atenciones %}
-            <p class="rep-nota">Próxima semana: unas <b>{{ pronostico_atenciones.valor|floatformat:0 }}</b> atenciones, entre {{ pronostico_atenciones.bajo|floatformat:0 }} y {{ pronostico_atenciones.alto|floatformat:0 }}. Ya hay {{ s.agenda_siguiente }} citas agendadas.</p>
+            <p class="rep-nota">{{ t.proximo|capfirst }}: unas <b>{{ pronostico_atenciones.valor|floatformat:0 }}</b> atenciones, entre {{ pronostico_atenciones.bajo|floatformat:0 }} y {{ pronostico_atenciones.alto|floatformat:0 }}. Ya hay {{ s.agenda_siguiente }} citas agendadas.</p>
             {% else %}
-            <p class="rep-nota">Hacen falta al menos 3 semanas con atenciones para pronosticar.</p>
+            <p class="rep-nota">Hacen falta al menos 3 {{ t.plural }} con atenciones para pronosticar.</p>
             {% endif %}
           </article>
         </div>
-        <p class="rep-nota rep-nota--metodo">Cómo se calcula: una recta de tendencia sobre las semanas con datos. El rango es cuánto se han alejado las semanas reales de esa recta; si la clínica cambia de ritmo (vacaciones, campañas), el pronóstico tarda unas semanas en ajustarse.</p>
+        <p class="rep-nota rep-nota--metodo">Cómo se calcula: una recta de tendencia sobre {{ t.ultimos }} {{ t.plural }} con datos. El rango es cuánto se han alejado los valores reales de esa recta; si la clínica cambia de ritmo (vacaciones, campañas), el pronóstico tarda en ajustarse.</p>
       </section>
 
       <!-- Inventario -->
@@ -292,13 +332,13 @@
         <div class="rep-rejilla">
           <article class="tarjeta">
             <h3 class="rep-h3">Productos que más salieron</h3>
-            <p class="rep-sub">Unidades vendidas o usadas en consultas y peluquería durante la semana.</p>
-            {% include "reportes/_ranking.html" with filas=s.rotacion unidad="u." vacio="No salieron productos esta semana." %}
+            <p class="rep-sub">Unidades vendidas o usadas en consultas y peluquería durante {{ t.el }}.</p>
+            {% include "reportes/_ranking.html" with filas=s.rotacion unidad="u." vacio="No salieron productos "|add:t.este|add:"." %}
             {% if s.merma %}<p class="rep-nota">Se perdieron {{ s.merma|pesos }} en mermas o vencimientos.</p>{% endif %}
           </article>
           <article class="tarjeta">
             <h3 class="rep-h3">Para revisar hoy</h3>
-            <p class="rep-sub">Estado actual del inventario, no el de esa semana.</p>
+            <p class="rep-sub">Estado actual del inventario, no el de {{ t.ese }}.</p>
             {% if not s.stock_bajo and not s.por_vencer and not s.vencidos %}
             <p class="rep-vacio">Todo en orden: sin stock bajo ni vencimientos cercanos.</p>
             {% endif %}

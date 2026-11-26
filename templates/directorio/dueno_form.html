@@ -31,6 +31,14 @@
           </div>
         </div>
 
+        {% if es_edicion and dueno %}
+        {# PB-18: nivel de recurrencia del cliente #}
+        <p class="pp-nivel-ficha">
+          {% include "directorio/_insignia_nivel.html" with nivel=dueno.nivel_recurrencia %}
+          <span>{{ dueno.resumen_visitas }}</span>
+        </p>
+        {% endif %}
+
         {% if messages %}
         <ul class="pp-alert-list">
           {% for message in messages %}

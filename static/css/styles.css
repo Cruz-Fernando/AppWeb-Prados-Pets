@@ -1512,6 +1512,134 @@ img { display: block; }
 }
 
 /* ============================================================
+   PB-18: nivel de recurrencia del cliente
+   Niveles y umbrales en apps/directorio/recurrencia.py; la clase
+   .pp-nivel--<clave> usa la clave de cada nivel.
+   ============================================================ */
+
+:root {
+  --nivel-dorado:        #6B4A00;
+  --nivel-dorado-bg:     #FCEBB6;
+  --nivel-dorado-borde:  #E2BD4F;
+}
+
+:root[data-tema="noche"] {
+  --nivel-dorado:        #FCD34D;
+  --nivel-dorado-bg:     rgba(250, 204, 21, 0.14);
+  --nivel-dorado-borde:  rgba(250, 204, 21, 0.42);
+}
+
+.pp-nivel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+}
+
+/* Punto de color: el nivel se distingue también sin leer la etiqueta */
+.pp-nivel::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+/* Nuevo: gris y discreto, sin destacar */
+.pp-nivel--nuevo {
+  font-weight: 600;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.pp-nivel--ocasional {
+  color: var(--c-azul);
+  background: color-mix(in srgb, var(--c-azul) 10%, transparent);
+  border-color: color-mix(in srgb, var(--c-azul) 30%, transparent);
+}
+
+.pp-nivel--frecuente {
+  color: var(--success);
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+.pp-nivel--vip {
+  color: var(--nivel-dorado);
+  background: var(--nivel-dorado-bg);
+  border-color: var(--nivel-dorado-borde);
+}
+
+/* Leyenda de colores de la lista de dueños (cada opción filtra) */
+.nivel-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nivel-leyenda__titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.nivel-leyenda__op {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.nivel-leyenda__op:hover { background: var(--surface-hover); }
+
+.nivel-leyenda__op[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.nivel-leyenda__rango { color: var(--text-muted); font-weight: 500; }
+
+.nivel-leyenda__n {
+  min-width: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--velo-2);
+  border-radius: var(--radius-pill);
+}
+
+/* Ficha del dueño: nivel y número de visitas */
+.pp-nivel-ficha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: -0.6rem 0 1.4rem;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ============================================================
    Link button (texto como link)
    ============================================================ */
 

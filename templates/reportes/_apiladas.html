@@ -15,7 +15,7 @@
         <rect class="graf__hit" x="{{ c.hit_x }}" y="{{ g.hit_y }}" width="{{ c.hit_ancho }}" height="{{ g.hit_alto }}"></rect>
         {% for s in c.segmentos %}{% if s.d %}<path class="graf__seg graf__seg--{{ s.css }}" d="{{ s.d }}"></path>{% endif %}{% endfor %}
         {% if c.destacada %}<text class="graf__valor" x="{{ c.x_centro }}" y="{{ c.y_total }}" text-anchor="middle">{{ c.total }}</text>{% endif %}
-        <text class="graf__x" x="{{ c.x_centro }}" y="{{ g.y_etiqueta }}" text-anchor="middle">{{ c.etiqueta }}</text>
+        <text class="graf__x" x="{{ c.x_centro }}" y="{{ g.y_etiqueta }}" text-anchor="middle">{{ c.eje }}</text>
       </g>
     {% endfor %}
   </svg>
@@ -23,7 +23,7 @@
 <details class="graf__tabla">
   <summary>Ver datos en tabla</summary>
   <table>
-    <thead><tr><th scope="col">Día</th>{% for l in g.leyenda %}<th scope="col" class="num">{{ l.nombre }}</th>{% endfor %}<th scope="col" class="num">Total</th></tr></thead>
+    <thead><tr><th scope="col">{{ titulo_tramo|default:"Día" }}</th>{% for l in g.leyenda %}<th scope="col" class="num">{{ l.nombre }}</th>{% endfor %}<th scope="col" class="num">Total</th></tr></thead>
     <tbody>
       {% for c in g.grupos %}
       <tr><td>{{ c.etiqueta }}</td>{% for v in c.por_serie %}<td class="num">{{ v }}</td>{% endfor %}<td class="num">{{ c.total }}</td></tr>
