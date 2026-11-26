@@ -3,7 +3,8 @@ PB-18 / RF15: clasificación por colores de los clientes recurrentes.
 
 Una visita es una consulta atendida (agendamiento.Cita) o una peluquería
 realizada (peluqueria.CitaPeluqueria) de cualquier mascota del dueño, dentro
-de los últimos VENTANA_MESES meses. Cada cita cuenta como una visita, aunque
+de los últimos VENTANA_MESES meses y hasta hoy (lo cobrado por adelantado no
+cuenta antes de su fecha). Cada cita cuenta como una visita, aunque
 el mismo día haya consulta y peluquería.
 
 Dueno guarda el resultado en numero_visitas y es_recurrente:
@@ -19,7 +20,7 @@ Para cambiar los criterios del patrocinador basta con tocar las constantes.
 import calendar
 import unicodedata
 from collections import Counter, defaultdict
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import NamedTuple
 
 from django.db.models import Count
@@ -133,12 +134,16 @@ def contar_visitas(dueno_ids=None, hoy=None):
     from apps.agendamiento.models import Cita
     from apps.peluqueria.models import CitaPeluqueria
 
+    hoy = hoy or timezone.localdate()
     desde = inicio_ventana(hoy)
-    consultas = Cita.objects.filter(estado=CONSULTA_ATENDIDA, fecha__gte=desde)
+    # Hasta hoy: una consulta cobrada por adelantado queda «atendida» antes de
+    # ocurrir y no debe contar como visita hasta que llegue su fecha.
+    consultas = Cita.objects.filter(estado=CONSULTA_ATENDIDA, fecha__range=(desde, hoy))
     peluquerias = CitaPeluqueria.objects.filter(
         estado=PELUQUERIA_REALIZADA,
         mascota__isnull=False,
         fecha_hora__gte=timezone.make_aware(datetime.combine(desde, time.min)),
+        fecha_hora__lt=timezone.make_aware(datetime.combine(hoy + timedelta(days=1), time.min)),
     )
     if dueno_ids is not None:
         dueno_ids = list(dueno_ids)
@@ -156,7 +161,7 @@ def contar_visitas(dueno_ids=None, hoy=None):
     return dict(visitas)
 
 
-def _aplicar(duenos, visitas, guardar=True):
+def _aplicar(duenos, visitas):
     """Pone los valores calculados en los dueños y guarda solo los que cambiaron."""
     cambiados = []
     for dueno in duenos:
@@ -166,7 +171,7 @@ def _aplicar(duenos, visitas, guardar=True):
             dueno.numero_visitas = n
             dueno.es_recurrente = recurrente
             cambiados.append(dueno)
-    if guardar and cambiados:
+    if cambiados:
         Dueno.objects.bulk_update(cambiados, ['numero_visitas', 'es_recurrente'], batch_size=500)
     return cambiados
 
@@ -185,7 +190,7 @@ def refrescar_duenos(duenos, todos=False, hoy=None):
     return duenos
 
 
-def actualizar_visitas(duenos=None, guardar=True, hoy=None):
+def actualizar_visitas(duenos=None, hoy=None):
     """
     Recalcula numero_visitas y es_recurrente. duenos: queryset de Dueno
     (None = todos). Devuelve la lista de dueños que cambiaron.
@@ -196,12 +201,20 @@ def actualizar_visitas(duenos=None, guardar=True, hoy=None):
     if not lista:
         return []
     visitas = contar_visitas(None if todos else [d.pk for d in lista], hoy=hoy)
-    return _aplicar(lista, visitas, guardar=guardar)
+    return _aplicar(lista, visitas)
 
 
 # ---------------------------------------------------------------------------
 # Peluquerías antiguas sin mascota vinculada
 # ---------------------------------------------------------------------------
+
+# Desde este día las citas de peluquería se guardan vinculadas a la mascota
+# (migración peluqueria 0004_cita_mascota_y_precio, del 28/10/2026). Una cita
+# sin mascota creada ANTES es antigua: solo guardaba el nombre como texto.
+# Una creada DESPUÉS quedó sin mascota porque se borró la mascota (SET_NULL):
+# esa no se vincula a nadie, sería darle la visita a otro dueño.
+VINCULO_MASCOTA_DESDE = date(2026, 10, 29)
+
 
 def _normalizar(texto):
     """«  Pepín » → «pepin»: sin tildes, sin mayúsculas y sin espacios de más."""
@@ -210,24 +223,31 @@ def _normalizar(texto):
     return ' '.join(texto.casefold().split())
 
 
-def vincular_peluquerias_sin_mascota(citas=None, guardar=True):
-    """
-    Las peluquerías antiguas solo guardaban el nombre de la mascota como texto
-    y por eso no se podían contar para ningún dueño. Aquí se vinculan a la
-    mascota del directorio cuando el nombre (y la raza, si el nombre se repite)
-    corresponde a UNA sola mascota. Las que no se pueden resolver se dejan igual.
+def _raza_compatible(cita, mascota):
+    """Misma raza, o una de las dos sin raza (entonces no hay con qué comparar)."""
+    raza_cita, raza_mascota = _normalizar(cita.raza), _normalizar(mascota.raza)
+    return not raza_cita or not raza_mascota or raza_cita == raza_mascota
 
-    citas: lista de CitaPeluqueria a revisar (None = todas las que no tienen mascota).
-    Devuelve (vinculadas, sin_resolver): listas de (cita, mascota o None).
+
+def vincular_peluquerias_sin_mascota():
+    """
+    Vincula las peluquerías ANTIGUAS sin mascota (creadas antes de
+    VINCULO_MASCOTA_DESDE) con la mascota del directorio que tenga el mismo
+    nombre y una raza compatible, siempre que sea UNA sola. Las demás se dejan
+    igual. Solo la usa el comando recalcular_visitas, que se corre a propósito.
+
+    Devuelve (vinculadas, sin_resolver, huerfanas):
+      vinculadas: [(cita, mascota)]; sin_resolver: [cita];
+      huerfanas: citas sin mascota posteriores (se borró su mascota), que no se tocan.
     """
     from apps.peluqueria.models import CitaPeluqueria
 
-    if citas is None:
-        citas = list(CitaPeluqueria.objects.filter(mascota__isnull=True)
-                     .only('pk', 'nombre_mascota', 'raza', 'mascota', 'estado', 'fecha_hora'))
-    citas = [c for c in citas if c.mascota_id is None]
+    corte = timezone.make_aware(datetime.combine(VINCULO_MASCOTA_DESDE, time.min))
+    sin_mascota = CitaPeluqueria.objects.filter(mascota__isnull=True)
+    huerfanas = list(sin_mascota.filter(creado_en__gte=corte).only('pk', 'nombre_mascota', 'raza', 'creado_en'))
+    citas = list(sin_mascota.filter(creado_en__lt=corte).only('pk', 'nombre_mascota', 'raza', 'mascota'))
     if not citas:
-        return [], []
+        return [], [], huerfanas
 
     por_nombre = defaultdict(list)
     for mascota in Mascota.objects.only('pk', 'nombre', 'raza', 'id_dueno'):
@@ -235,17 +255,15 @@ def vincular_peluquerias_sin_mascota(citas=None, guardar=True):
 
     vinculadas, sin_resolver = [], []
     for cita in citas:
-        candidatas = por_nombre.get(_normalizar(cita.nombre_mascota), [])
-        if len(candidatas) > 1:
-            raza = _normalizar(cita.raza)
-            candidatas = [m for m in candidatas if _normalizar(m.raza) == raza]
+        candidatas = [m for m in por_nombre.get(_normalizar(cita.nombre_mascota), [])
+                      if _raza_compatible(cita, m)]
         if len(candidatas) == 1:
             cita.mascota = candidatas[0]
             vinculadas.append((cita, candidatas[0]))
         else:
-            sin_resolver.append((cita, None))
+            sin_resolver.append(cita)
 
-    if guardar and vinculadas:
+    if vinculadas:
         # bulk_update no dispara señales: el recálculo lo hace quien llama.
         CitaPeluqueria.objects.bulk_update([c for c, _ in vinculadas], ['mascota'], batch_size=500)
-    return vinculadas, sin_resolver
+    return vinculadas, sin_resolver, huerfanas
