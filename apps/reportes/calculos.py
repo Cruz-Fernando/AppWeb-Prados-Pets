@@ -1,15 +1,19 @@
 """
-Cifras del reporte semanal (PB-20 / RF14).
+Cifras del reporte (PB-20 / RF14) para un periodo: día, semana o mes.
 
 Todo sale de lo que ya registra el sistema:
-  - Ingresos: facturas cobradas en la semana (estado «pagada», por fecha de cobro).
-  - Caja: movimientos de la semana. Separa los gastos reales de las anulaciones
+  - Ingresos: facturas cobradas en el periodo (estado «pagada», por fecha de cobro).
+  - Caja: movimientos del periodo. Separa los gastos reales de las anulaciones
     de facturas, que la caja registra como egreso de la categoría FACTURA.
   - Atenciones: consultas «atendida» y peluquerías «Realizada».
-  - Inventario: salidas de la semana (rotación) y el estado actual del stock.
+  - Inventario: salidas del periodo (rotación) y el estado actual del stock.
+
+El desglose cambia con el periodo: el día se parte por hora (7 a. m. a 7 p. m.),
+la semana y el mes por día; el mes trae además un resumen por semana y las
+comisiones de cada semana por groomer.
 
 Cada bloque hace pocas consultas agrupadas: la base está en Supabase y cada
-ida y vuelta cuesta ~150 ms.
+ida y vuelta cuesta ~150 ms. Un periodo más largo NO hace más consultas.
 """
 
 from collections import Counter, defaultdict
@@ -27,10 +31,15 @@ from apps.facturacion.models import Factura, ItemFactura, MovimientoCaja
 from apps.inventario.models import MovimientoInventario, Producto
 from apps.peluqueria.models import CitaPeluqueria
 
-from . import semanas
+from . import periodos, semanas
+from .periodos import DIA, MES, SEMANA, Periodo, como_periodo
 
 CERO = Decimal("0")
-HORAS = list(range(7, 20))  # franja del mapa de calor: 7 a. m. a 7 p. m.
+HORAS = list(range(7, 20))  # franja del mapa de calor y del reporte diario: 7 a. m. a 7 p. m.
+
+# Orden de las filas del mapa de calor del mes (date.weekday(): lunes 0 … domingo 6)
+DOMINGO_A_SABADO = [6, 0, 1, 2, 3, 4, 5]
+DIAS_PLURAL = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"]
 
 LINEAS = [
     (ItemFactura.CONSULTA, "Consultas y servicios clínicos", "consulta"),
@@ -49,7 +58,7 @@ def _porcentaje(parte, total):
 
 
 def _variacion(actual, anterior):
-    """Cambio porcentual frente a la semana anterior; None si no hay base para comparar."""
+    """Cambio porcentual frente al periodo anterior; None si no hay base para comparar."""
     if not anterior:
         return None
     return round((float(actual) - float(anterior)) * 100 / float(anterior))
@@ -74,22 +83,111 @@ def _ranking(contador, limite):
     return [{"nombre": n, "valor": v, "ancho": _porcentaje(v, tope)} for n, v in filas]
 
 
+def hora_corta(h):
+    """Eje de las gráficas por hora: 7 → «7a», 12 → «12m», 15 → «3p»."""
+    if h == 12:
+        return "12m"
+    return f"{h - 12}p" if h > 12 else f"{h}a"
+
+
 # ---------------------------------------------------------------------------
-# Semana
+# Desglose del periodo
 # ---------------------------------------------------------------------------
 
-def calcular(sabado, ahora=None):
-    """Todas las cifras de la semana que termina en `sabado` (domingo a sábado)."""
+def _tramos(periodo):
+    """
+    Partes en que se desglosa el periodo, en orden: {clave: tramo}.
+    Día → una por hora de HORAS (la clave es la hora); semana y mes → una
+    por día (la clave es la fecha).
+    """
+    vacio = {"ingresos": CERO, "consultas": 0, "peluquerias": 0}
+    if periodo.tipo == DIA:
+        return {h: {"clave": h, "fecha": periodo.desde, "hora": h, "corto": hora_corta(h),
+                    "nombre": semanas.hora_texto(h), "rotulo": semanas.hora_texto(h), **vacio} for h in HORAS}
+    tramos = {}
+    for f in periodo.dias:
+        if periodo.tipo == SEMANA:
+            corto, nombre = semanas.DIAS_CORTOS[f.weekday()], semanas.DIAS[f.weekday()]
+        else:
+            corto, nombre = str(f.day), f"{semanas.DIAS[f.weekday()]} {f.day}"
+        tramos[f] = {"clave": f, "fecha": f, "hora": None, "corto": corto, "nombre": nombre,
+                     "rotulo": f"{semanas.DIAS_CORTOS[f.weekday()]} {f.day}", **vacio}
+    return tramos
+
+
+def _clave_tramo(periodo, fecha, hora):
+    """Tramo al que va un movimiento. En el día, lo de antes de las 7 a. m. o después de
+    las 7 p. m. se suma a la primera o a la última hora, para que el desglose cuadre con el total."""
+    if periodo.tipo == DIA:
+        return min(max(hora if hora is not None else HORAS[0], HORAS[0]), HORAS[-1])
+    return fecha
+
+
+def _fila_calor(periodo, fecha):
+    """Fila del mapa de calor: la fecha (semana) o el día de la semana (mes: «los lunes»)."""
+    return fecha.weekday() if periodo.tipo == MES else fecha
+
+
+def _indice_semanas(lista_semanas):
+    """{fecha: posición de su semana} para repartir movimientos del mes por semana."""
+    indice = {}
+    for i, s in enumerate(lista_semanas):
+        dia = s["desde"]
+        while dia <= s["hasta"]:
+            indice[dia] = i
+            dia += timedelta(days=1)
+    return indice
+
+
+def _comisiones_semanales(resumen, lista_semanas):
+    """
+    Comisiones de cada groomer en cada semana del mes (el acta pide «comisiones
+    semanales»). Sale de las mismas citas de ganancias.resumen(): no consulta la base.
+    Solo cuentan los servicios ganados (realizados), igual que en el resumen.
+    """
+    indice = _indice_semanas(lista_semanas)
+    nombres = {(f.groomer.pk if f.groomer else 0): f.nombre for f in resumen.filas}
+    filas = {}
+    for cita in resumen.citas:
+        if cita.estado_cobro != "ganado":
+            continue
+        i = indice.get(timezone.localdate(cita.fecha_hora))
+        if i is None:
+            continue
+        clave = cita.groomer_id or 0
+        fila = filas.setdefault(clave, {
+            "nombre": nombres.get(clave, "Sin groomer asignado"),
+            "sin_groomer": clave == 0,
+            "celdas": [{"comision": CERO, "servicios": 0} for _ in lista_semanas],
+            "comision": CERO,
+            "servicios": 0,
+        })
+        fila["celdas"][i]["comision"] += cita.comision_calculada
+        fila["celdas"][i]["servicios"] += 1
+        fila["comision"] += cita.comision_calculada
+        fila["servicios"] += 1
+    ordenadas = sorted(filas.values(), key=lambda f: (f["sin_groomer"], -f["comision"], f["nombre"].lower()))
+    totales = [sum((f["celdas"][i]["comision"] for f in ordenadas), CERO) for i in range(len(lista_semanas))]
+    return {"semanas": lista_semanas, "filas": ordenadas, "totales": totales, "total": sum(totales, CERO)}
+
+
+# ---------------------------------------------------------------------------
+# Periodo
+# ---------------------------------------------------------------------------
+
+def calcular(periodo, ahora=None):
+    """
+    Todas las cifras del periodo. `periodo` es un periodos.Periodo; si llega
+    una fecha, es el sábado de una semana (como antes de PB-20).
+    """
+    periodo = como_periodo(periodo)
     ahora = ahora or timezone.now()
     hoy = timezone.localdate(ahora)
-    desde, hasta = semanas.domingo_de(sabado), sabado
+    desde, hasta = periodo.desde, periodo.hasta
     inicio, fin = semanas.limites(desde, hasta)
-    fechas = semanas.dias_de(sabado)
-    dias = {
-        f: {"fecha": f, "corto": semanas.DIAS_CORTOS[f.weekday()], "nombre": semanas.DIAS[f.weekday()],
-            "ingresos": CERO, "consultas": 0, "peluquerias": 0}
-        for f in fechas
-    }
+    tramos = _tramos(periodo)
+    lista_semanas = periodo.semanas() if periodo.tipo == MES else []
+    indice_semana = _indice_semanas(lista_semanas)
 
     # --- Facturas cobradas -------------------------------------------------
     facturas = list(Factura.objects.filter(estado=Factura.PAGADA, fecha__gte=inicio, fecha__lt=fin)
@@ -97,7 +195,8 @@ def calcular(sabado, ahora=None):
     ingresos = sum((f["total"] for f in facturas), CERO)
     descuentos = sum((f["descuento"] for f in facturas), CERO)
     for f in facturas:
-        dias[timezone.localdate(f["fecha"])]["ingresos"] += f["total"]
+        local = timezone.localtime(f["fecha"])
+        tramos[_clave_tramo(periodo, local.date(), local.hour)]["ingresos"] += f["total"]
 
     items = list(ItemFactura.objects.filter(factura_id__in=[f["pk"] for f in facturas], vigente=True)
                  .values("tipo", "subtotal", "descripcion", "cita__tipo_servicio",
@@ -113,7 +212,8 @@ def calcular(sabado, ahora=None):
 
     # --- Caja --------------------------------------------------------------
     caja = {"ingresos": CERO, "anulaciones": CERO, "gastos": CERO, "por_categoria": defaultdict(lambda: CERO)}
-    for m in MovimientoCaja.objects.filter(fecha__range=(desde, hasta)).values("tipo", "categoria", "monto"):
+    caja_semana = [{"ingresos": CERO, "salidas": CERO} for _ in lista_semanas]
+    for m in MovimientoCaja.objects.filter(fecha__range=(desde, hasta)).values("tipo", "categoria", "monto", "fecha"):
         if m["tipo"] == MovimientoCaja.INGRESO:
             caja["ingresos"] += m["monto"]
         elif m["categoria"] == "FACTURA":
@@ -121,6 +221,9 @@ def calcular(sabado, ahora=None):
         else:
             caja["gastos"] += m["monto"]
             caja["por_categoria"][m["categoria"]] += m["monto"]
+        if lista_semanas:
+            lado = "ingresos" if m["tipo"] == MovimientoCaja.INGRESO else "salidas"
+            caja_semana[indice_semana[m["fecha"]]][lado] += m["monto"]
     caja["salidas"] = caja["anulaciones"] + caja["gastos"]
     caja["balance"] = caja["ingresos"] - caja["salidas"]
     caja["gastos_detalle"] = sorted(
@@ -140,11 +243,12 @@ def calcular(sabado, ahora=None):
         if c["estado"] == "cancelada":
             canceladas += 1
             continue
+        hora = c["hora_inicio"].hour if c["hora_inicio"] else None
         pedidos[TIPOS_CITA.get(c["tipo_servicio"], "Otro")] += 1
-        if c["hora_inicio"]:
-            calor[(c["fecha"], c["hora_inicio"].hour)] += 1
+        if hora is not None:
+            calor[(_fila_calor(periodo, c["fecha"]), hora)] += 1
         if c["estado"] == "atendida":
-            dias[c["fecha"]]["consultas"] += 1
+            tramos[_clave_tramo(periodo, c["fecha"], hora)]["consultas"] += 1
             atendidos.add(c["mascota__id_dueno_id"])
         elif c["fecha"] < hoy:
             por_cerrar += 1
@@ -157,29 +261,37 @@ def calcular(sabado, ahora=None):
             continue
         local = timezone.localtime(p["fecha_hora"])
         pedidos[f"Peluquería: {SERVICIOS_PELUQUERIA.get(p['servicio'], 'Otro')}"] += 1
-        calor[(local.date(), local.hour)] += 1
+        calor[(_fila_calor(periodo, local.date()), local.hour)] += 1
         if p["estado"] == "Realizada":
-            dias[local.date()]["peluquerias"] += 1
+            tramos[_clave_tramo(periodo, local.date(), local.hour)]["peluquerias"] += 1
             if p["mascota__id_dueno_id"]:
                 atendidos.add(p["mascota__id_dueno_id"])
         elif p["fecha_hora"] < ahora:
             por_cerrar += 1
 
-    for d in dias.values():
-        d["atenciones"] = d["consultas"] + d["peluquerias"]
-    lista_dias = [dias[f] for f in fechas]
-    consultas = sum(d["consultas"] for d in lista_dias)
-    peluquerias = sum(d["peluquerias"] for d in lista_dias)
+    desglose = list(tramos.values())
+    for t in desglose:
+        t["atenciones"] = t["consultas"] + t["peluquerias"]
+    consultas = sum(t["consultas"] for t in desglose)
+    peluquerias = sum(t["peluquerias"] for t in desglose)
 
+    # Mapa de calor: semana → un renglón por día; mes → uno por día de la
+    # semana («los lunes»); día → no hace falta, el desglose ya es por hora.
+    if periodo.tipo == SEMANA:
+        filas_calor = [(f, tramos[f]) for f in periodo.dias]
+    elif periodo.tipo == MES:
+        filas_calor = [(d, {"corto": semanas.DIAS_CORTOS[d], "nombre": DIAS_PLURAL[d]}) for d in DOMINGO_A_SABADO]
+    else:
+        filas_calor = []
     tope_calor = max(calor.values(), default=0)
     mapa = []
-    for f in fechas:
+    for clave, dia in filas_calor:
         fila = []
         for h in HORAS:
-            n = calor.get((f, h), 0)
+            n = calor.get((clave, h), 0)
             nivel = 0 if not n else min(4, 1 + (n - 1) * 4 // max(tope_calor, 1))
             fila.append({"hora": h, "citas": n, "nivel": nivel})
-        mapa.append({"dia": dias[f], "celdas": fila})
+        mapa.append({"dia": dia, "celdas": fila})
     por_hora = Counter()
     for (_, h), n in calor.items():
         por_hora[h] += n
@@ -212,26 +324,33 @@ def calcular(sabado, ahora=None):
     hosp_ingresos = Hospitalizacion.objects.filter(fecha_ingreso__gte=inicio, fecha_ingreso__lt=fin).count()
     hosp_altas = Hospitalizacion.objects.filter(fecha_alta__gte=inicio, fecha_alta__lt=fin).count()
 
-    sig_desde, sig_hasta = hasta + timedelta(days=1), hasta + timedelta(days=7)
-    sig_inicio, sig_fin = semanas.limites(sig_desde, sig_hasta)
+    # Lo que ya está agendado para el periodo siguiente (mañana, la próxima semana o el próximo mes)
+    siguiente = periodo.siguiente()
+    sig_inicio, sig_fin = semanas.limites(siguiente.desde, siguiente.hasta)
     agenda_siguiente = (
-        Cita.objects.filter(fecha__range=(sig_desde, sig_hasta)).exclude(estado="cancelada").count()
+        Cita.objects.filter(fecha__range=(siguiente.desde, siguiente.hasta)).exclude(estado="cancelada").count()
         + CitaPeluqueria.objects.filter(fecha_hora__gte=sig_inicio, fecha_hora__lt=sig_fin)
         .exclude(estado="Cancelada").count()
     )
 
-    tope_ingreso_dia = max((d["ingresos"] for d in lista_dias), default=CERO)
-    tope_atencion_dia = max((d["atenciones"] for d in lista_dias), default=0)
-    for d in lista_dias:   # anchos relativos para las barras del PDF
-        d["ancho_ingresos"] = _porcentaje(d["ingresos"], tope_ingreso_dia)
-        d["ancho_atenciones"] = _porcentaje(d["atenciones"], tope_atencion_dia)
-    return {
-        "sabado": sabado,
+    tope_ingreso = max((t["ingresos"] for t in desglose), default=CERO)
+    tope_atencion = max((t["atenciones"] for t in desglose), default=0)
+    for t in desglose:   # anchos relativos para las barras del PDF
+        t["ancho_ingresos"] = _porcentaje(t["ingresos"], tope_ingreso)
+        t["ancho_atenciones"] = _porcentaje(t["atenciones"], tope_atencion)
+
+    # En el día el desglose es por hora: «el día con más…» no aplica.
+    por_dias = periodo.tipo != DIA
+    cifras = {
+        "periodo": periodo,
+        "tipo": periodo.tipo,
+        "sabado": periodo.sabado,
         "desde": desde,
         "hasta": hasta,
-        "dias": lista_dias,
-        "dia_mas_ingresos": max(lista_dias, key=lambda d: d["ingresos"]) if tope_ingreso_dia else None,
-        "dia_mas_atenciones": max(lista_dias, key=lambda d: d["atenciones"]) if tope_atencion_dia else None,
+        "desglose": desglose,
+        "dias": desglose if por_dias else [],
+        "dia_mas_ingresos": max(desglose, key=lambda t: t["ingresos"]) if por_dias and tope_ingreso else None,
+        "dia_mas_atenciones": max(desglose, key=lambda t: t["atenciones"]) if por_dias and tope_atencion else None,
         "ingresos": ingresos,
         "facturas": len(facturas),
         "ticket_promedio": (ingresos / len(facturas)).quantize(Decimal("1")) if facturas else CERO,
@@ -266,33 +385,79 @@ def calcular(sabado, ahora=None):
         "hosp_ingresos": hosp_ingresos,
         "hosp_altas": hosp_altas,
         "agenda_siguiente": agenda_siguiente,
+        # Solo en el mes:
+        "semanas_del_mes": [],
+        "comisiones_semanales": None,
+        "por_dia_semana": [],
     }
+    if periodo.tipo == MES:
+        cifras.update(_extras_del_mes(desglose, lista_semanas, caja_semana, resumen_groomers))
+    return cifras
+
+
+def _extras_del_mes(desglose, lista_semanas, caja_semana, resumen_groomers):
+    """Resumen por semana, comisiones semanales y atenciones por día de la semana."""
+    comisiones = _comisiones_semanales(resumen_groomers, lista_semanas)
+    resumen = []
+    for i, s in enumerate(lista_semanas):
+        dias = [t for t in desglose if s["desde"] <= t["fecha"] <= s["hasta"]]
+        resumen.append({
+            **s,
+            "ingresos": sum((t["ingresos"] for t in dias), CERO),
+            "consultas": sum(t["consultas"] for t in dias),
+            "peluquerias": sum(t["peluquerias"] for t in dias),
+            "atenciones": sum(t["atenciones"] for t in dias),
+            "caja_ingresos": caja_semana[i]["ingresos"],
+            "caja_salidas": caja_semana[i]["salidas"],
+            "balance": caja_semana[i]["ingresos"] - caja_semana[i]["salidas"],
+            "comision": comisiones["totales"][i],
+        })
+
+    por_dia_semana = []
+    for d in DOMINGO_A_SABADO:
+        dias = [t for t in desglose if t["fecha"].weekday() == d]
+        por_dia_semana.append({"orden": d, "corto": semanas.DIAS_CORTOS[d], "nombre": DIAS_PLURAL[d],
+                               "atenciones": sum(t["atenciones"] for t in dias)})
+    return {"semanas_del_mes": resumen, "comisiones_semanales": comisiones, "por_dia_semana": por_dia_semana}
 
 
 # ---------------------------------------------------------------------------
-# Serie de las últimas semanas (tendencia y pronóstico)
+# Serie de los últimos periodos (tendencia y pronóstico)
 # ---------------------------------------------------------------------------
 
-def serie(sabado, cantidad=8):
-    """Ingresos y atenciones de las `cantidad` semanas que terminan en `sabado` (de la más antigua a la última)."""
-    sabados = [sabado - timedelta(weeks=i) for i in reversed(range(cantidad))]
-    filas = {s: {"sabado": s, "ingresos": CERO, "atenciones": 0} for s in sabados}
-    desde = semanas.domingo_de(sabados[0])
-    inicio, fin = semanas.limites(desde, sabado)
+def serie(periodo, cantidad=None):
+    """
+    Ingresos y atenciones de los últimos `cantidad` periodos del mismo tipo que
+    terminan en `periodo` (del más antiguo al último): 14 días, 8 semanas o 6
+    meses si no se indica. Tres consultas en total, sin importar cuántos sean.
+    Si llega una fecha, es el sábado de una semana (como antes de PB-20).
+    """
+    periodo = como_periodo(periodo)
+    cantidad = cantidad or periodos.TENDENCIA[periodo.tipo]
+    lista = [periodo]
+    while len(lista) < cantidad:
+        lista.insert(0, lista[0].anterior())
+    filas = {p.desde: {"periodo": p, "desde": p.desde, "hasta": p.hasta, "sabado": p.sabado, "corto": p.corto,
+                       "ingresos": CERO, "atenciones": 0} for p in lista}
+    desde, hasta = lista[0].desde, periodo.hasta
+    inicio, fin = semanas.limites(desde, hasta)
+
+    def fila(fecha):
+        return filas[Periodo.de(periodo.tipo, fecha).desde]
 
     for f in Factura.objects.filter(estado=Factura.PAGADA, fecha__gte=inicio, fecha__lt=fin).values("fecha", "total"):
-        filas[semanas.sabado_de(timezone.localdate(f["fecha"]))]["ingresos"] += f["total"]
-    for fecha in Cita.objects.filter(estado="atendida", fecha__range=(desde, sabado)).values_list("fecha", flat=True):
-        filas[semanas.sabado_de(fecha)]["atenciones"] += 1
+        fila(timezone.localdate(f["fecha"]))["ingresos"] += f["total"]
+    for fecha in Cita.objects.filter(estado="atendida", fecha__range=(desde, hasta)).values_list("fecha", flat=True):
+        fila(fecha)["atenciones"] += 1
     for momento in (CitaPeluqueria.objects.filter(estado="Realizada", fecha_hora__gte=inicio, fecha_hora__lt=fin)
                     .values_list("fecha_hora", flat=True)):
-        filas[semanas.sabado_de(timezone.localdate(momento))]["atenciones"] += 1
-    return [filas[s] for s in sabados]
+        fila(timezone.localdate(momento))["atenciones"] += 1
+    return [filas[p.desde] for p in lista]
 
 
-def variaciones(semana, anterior):
-    """Cambios frente a la semana anterior para las tarjetas de resumen."""
+def variaciones(actual, anterior):
+    """Cambios frente al periodo anterior para las tarjetas de resumen."""
     return {
-        "ingresos": _variacion(semana["ingresos"], anterior["ingresos"]),
-        "atenciones": _variacion(semana["atenciones"], anterior["atenciones"]),
+        "ingresos": _variacion(actual["ingresos"], anterior["ingresos"]),
+        "atenciones": _variacion(actual["atenciones"], anterior["atenciones"]),
     }

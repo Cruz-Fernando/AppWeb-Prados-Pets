@@ -20,6 +20,19 @@ class Dueno(models.Model):
     def __str__(self):
         return self.nombre_completo
 
+    # PB-18: nivel de recurrencia (colores y umbrales en recurrencia.py)
+    @property
+    def nivel_recurrencia(self):
+        from .recurrencia import nivel_de
+        return nivel_de(self.numero_visitas)
+
+    @property
+    def resumen_visitas(self):
+        """Ej.: «5 visitas en los últimos 12 meses»."""
+        from .recurrencia import VENTANA_MESES
+        n = self.numero_visitas
+        return f'{n} visita{"" if n == 1 else "s"} en los últimos {VENTANA_MESES} meses'
+
 
 class Mascota(models.Model):
     ESPECIE_CHOICES = [

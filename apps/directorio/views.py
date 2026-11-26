@@ -17,6 +17,7 @@ from django.urls import reverse
 from apps.directorio.forms import MascotaForm, VacunacionForm
 from apps.usuarios.permissions import rol_requerido
 from .models import Dueno, Mascota
+from .recurrencia import NIVEL_POR_CLAVE, TODOS_LOS_NIVELES, refrescar_duenos
 
 
 def _validar_dueno(nombre, telefono, direccion, correo):
@@ -152,6 +153,7 @@ def editar_dueno(request, dueno_id):
                 'es_edicion': True,
             })
 
+    refrescar_duenos([dueno])   # PB-18: nivel y visitas al día
     return render(request, 'directorio/dueno_form.html', {
         'dueno': dueno,
         'nombre': dueno.nombre_completo,
@@ -165,9 +167,30 @@ def editar_dueno(request, dueno_id):
 @login_required
 @rol_requerido('administrador', 'veterinario', 'recepcionista')
 def lista_duenos(request):
-    """Listado completo y numerado de dueños registrados."""
-    duenos = Dueno.objects.all().order_by('id_dueno')
-    return render(request, 'directorio/lista_duenos.html', {'duenos': duenos})
+    """
+    Listado completo y numerado de dueños registrados.
+    PB-18: cada dueño lleva la insignia de su nivel de recurrencia; la leyenda
+    de colores sirve también de filtro (?nivel=vip, ?nivel=frecuente, ...).
+    """
+    # Las visitas se cuentan en vivo (1 consulta para todos): la ventana de
+    # meses avanza sola y lo guardado puede haber quedado atrasado.
+    duenos = refrescar_duenos(Dueno.objects.all().order_by('id_dueno'), todos=True)
+
+    por_nivel = {n.clave: 0 for n in TODOS_LOS_NIVELES}
+    for d in duenos:
+        por_nivel[d.nivel_recurrencia.clave] += 1
+    leyenda = [{'nivel': n, 'total': por_nivel[n.clave]} for n in TODOS_LOS_NIVELES]
+
+    nivel = NIVEL_POR_CLAVE.get(request.GET.get('nivel', ''))
+    if nivel:
+        duenos = [d for d in duenos if d.nivel_recurrencia == nivel]
+
+    return render(request, 'directorio/lista_duenos.html', {
+        'duenos': duenos,
+        'leyenda': leyenda,
+        'nivel_activo': nivel,
+        'total_duenos': sum(por_nivel.values()),
+    })
 
 
 @login_required
@@ -248,6 +271,7 @@ def buscar_directorio(request):
         duenos = Dueno.objects.filter(
             Q(nombre_completo__icontains=q) | Q(telefono__icontains=q)
         ).order_by('nombre_completo')[:20]
+        duenos = refrescar_duenos(duenos)   # PB-18: nivel al día (1 consulta)
 
         mascotas = Mascota.objects.select_related('id_dueno').filter(
             Q(nombre__icontains=q)
@@ -266,6 +290,7 @@ def buscar_directorio(request):
                     'direccion': d.direccion,
                     'url_edicion': reverse('editar_dueno', args=[d.id_dueno]),
                     'numero_visitas': d.numero_visitas,
+                    'nivel': d.nivel_recurrencia.como_dict(),
                 }
                 for d in duenos
             ],

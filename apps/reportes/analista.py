@@ -1,9 +1,13 @@
 """
-Simulador de IA del reporte semanal.
+Simulador de IA del reporte (día, semana o mes).
 
-Lee las cifras de la semana y escribe, como lo haría un asistente:
-  - un resumen en palabras de cómo fue la semana, y
+Lee las cifras del periodo y escribe, como lo haría un asistente:
+  - un resumen en palabras de cómo le fue a la clínica, y
   - recomendaciones ordenadas por urgencia.
+
+Las reglas son las mismas para los tres periodos; solo cambian las palabras
+(«frente al mes anterior», «la agenda del día siguiente»…), que salen de
+periodos.TEXTOS.
 
 No es un modelo de lenguaje: son reglas con umbrales fijos (abajo), así que
 siempre da la misma respuesta para los mismos datos y no envía información
@@ -12,16 +16,17 @@ de la clínica a ningún servicio externo.
 
 from decimal import Decimal
 
+from .periodos import DIA, MES, SEMANA, Periodo
 from .semanas import hora_texto
 
 # Umbrales de las reglas
-CAIDA_FUERTE = -15          # % de caída de ingresos frente a la semana anterior
+CAIDA_FUERTE = -15          # % de caída de ingresos frente al periodo anterior
 SUBIDA_FUERTE = 15          # % de subida para felicitar
 CANCELACION_ALTA = 15       # % de citas canceladas
 MINIMO_CITAS_CANCELACION = 5
 CONCENTRACION = 70          # % de los ingresos en una sola línea
 PRODUCTOS_BAJOS = 10        # % de productos dentro de lo facturado
-AGENDA_FLOJA = 0.5          # agenda siguiente por debajo de la mitad del promedio semanal
+AGENDA_FLOJA = 0.5          # agenda siguiente por debajo de la mitad del promedio del periodo
 
 TIPOS = {
     "alerta": {"orden": 0, "etiqueta": "Atender ya"},
@@ -70,13 +75,15 @@ def _reco(tipo, area, titulo, texto):
 # ---------------------------------------------------------------------------
 
 def analizar(semana, serie, variacion, pronostico_ingresos=None, pronostico_atenciones=None,
-             recordatorios_pendientes=None):
+             recordatorios_pendientes=None, periodo=None):
     """
-    semana: cifras de calculos.calcular()
-    serie: últimas semanas de calculos.serie() (la última es esta semana)
+    semana: cifras de calculos.calcular() (del día, la semana o el mes)
+    serie: últimos periodos de calculos.serie() (el último es este)
     variacion: calculos.variaciones()
     recordatorios_pendientes: cantidad por avisar hoy (solo para el reporte más reciente)
+    periodo: periodos.Periodo; si no llega, es la semana de semana["hasta"]
     """
+    periodo = periodo or Periodo.de(SEMANA, semana["hasta"])
     anterior = serie[-2] if len(serie) >= 2 else None
     previas = [s["atenciones"] for s in serie[:-1] if s["atenciones"]]
     promedio_atenciones = sum(previas) / len(previas) if previas else 0
@@ -85,14 +92,21 @@ def analizar(semana, serie, variacion, pronostico_ingresos=None, pronostico_aten
     sin_movimiento = not semana["ingresos"] and not semana["atenciones"] and not semana["programadas"]
 
     return {
-        "resumen": _resumen(semana, anterior, variacion, principal, pronostico_ingresos, sin_movimiento),
+        "resumen": _resumen(semana, anterior, variacion, principal, pronostico_ingresos, sin_movimiento, periodo),
         "recomendaciones": _recomendaciones(semana, variacion, principal, promedio_atenciones,
-                                            pronostico_ingresos, recordatorios_pendientes, sin_movimiento),
+                                            pronostico_ingresos, recordatorios_pendientes, sin_movimiento,
+                                            periodo),
     }
 
 
-def _resumen(semana, anterior, variacion, principal, pronostico, sin_movimiento):
-    rango = f"Entre el {rango_semana(semana['desde'], semana['hasta'])}"
+def _resumen(semana, anterior, variacion, principal, pronostico, sin_movimiento, periodo):
+    t = periodo.textos
+    if periodo.tipo == SEMANA:
+        rango = f"Entre el {rango_semana(semana['desde'], semana['hasta'])}"
+    elif periodo.tipo == DIA:
+        rango = f"El {periodo.etiqueta}"
+    else:
+        rango = f"En {periodo.etiqueta}"
     if sin_movimiento:
         return [f"{rango} no se registraron cobros, citas ni servicios en el sistema."]
 
@@ -104,11 +118,11 @@ def _resumen(semana, anterior, variacion, principal, pronostico, sin_movimiento)
         cambio = variacion["ingresos"]
         if cambio is not None and anterior:
             if cambio > 0:
-                frase += f" Es un {cambio} % más que la semana anterior ({pesos(anterior['ingresos'])})."
+                frase += f" Es un {cambio} % más que {t['anterior']} ({pesos(anterior['ingresos'])})."
             elif cambio < 0:
-                frase += f" Es un {abs(cambio)} % menos que la semana anterior ({pesos(anterior['ingresos'])})."
+                frase += f" Es un {abs(cambio)} % menos que {t['anterior']} ({pesos(anterior['ingresos'])})."
             else:
-                frase += " Igual que la semana anterior."
+                frase += f" Igual que {t['anterior']}."
         frases.append(frase)
     else:
         frases.append(f"{rango} no se cobró ninguna factura.")
@@ -134,38 +148,40 @@ def _resumen(semana, anterior, variacion, principal, pronostico, sin_movimiento)
                           f"superaron lo que entró.")
 
     if pronostico:
-        frases.append(f"Si se mantiene la tendencia de las últimas {pronostico.semanas_usadas} semanas, la próxima "
-                      f"semana se cobrarían unos {pesos(pronostico.valor)} (entre {pesos(pronostico.bajo)} y "
+        frases.append(f"Si se mantiene la tendencia de {t['ultimos']} {pronostico.semanas_usadas} {t['plural']}, "
+                      f"{t['proximo']} se cobrarían unos {pesos(pronostico.valor)} (entre {pesos(pronostico.bajo)} y "
                       f"{pesos(pronostico.alto)}).")
     else:
-        frases.append("Todavía no hay suficientes semanas con cobros para pronosticar la siguiente.")
+        frases.append(f"Todavía no hay suficientes {t['plural']} con cobros para pronosticar {t['siguiente']}.")
     return frases
 
 
-def _recomendaciones(semana, variacion, principal, promedio_atenciones, pronostico, pendientes, sin_movimiento):
+def _recomendaciones(semana, variacion, principal, promedio_atenciones, pronostico, pendientes, sin_movimiento,
+                     periodo):
+    t = periodo.textos
     recos = []
     caja = semana["caja"]
 
     if sin_movimiento:
         return [_reco("alerta", "Uso del sistema", "Revisa que se esté registrando la actividad",
-                      "Si la clínica atendió esta semana, falta cerrar las citas como atendidas y cobrar las "
+                      f"Si la clínica atendió {t['este']}, falta cerrar las citas como atendidas y cobrar las "
                       "facturas en el sistema: sin eso el reporte no puede medir nada.")]
 
     # --- Dinero -------------------------------------------------------------
     if caja["balance"] < 0:
-        recos.append(_reco("alerta", "Caja", "La semana cerró en pérdida",
+        recos.append(_reco("alerta", "Caja", f"{t['el'].capitalize()} cerró en pérdida",
                            f"Salieron {pesos(caja['gastos'] + caja['anulaciones'])} entre gastos y anulaciones y "
                            f"entraron {pesos(caja['ingresos'])}. Revisa en Caja si algún gasto grande, como el "
-                           f"arriendo, cayó esta semana o si hubo anulaciones que se puedan evitar."))
+                           f"arriendo, cayó {t['este']} o si hubo anulaciones que se puedan evitar."))
 
     cambio = variacion["ingresos"]
     if cambio is not None and cambio <= CAIDA_FUERTE:
         recos.append(_reco("alerta", "Ventas", f"Los ingresos bajaron un {abs(cambio)} %",
-                           "Llama o escribe a los clientes con recordatorios pendientes y ofrece cupos en los días "
-                           "flojos de la próxima semana. Revisa también si quedaron facturas en borrador sin cobrar."))
+                           f"Llama o escribe a los clientes con recordatorios pendientes y {t['cupos']}. "
+                           "Revisa también si quedaron facturas en borrador sin cobrar."))
     elif cambio is not None and cambio >= SUBIDA_FUERTE:
         recos.append(_reco("logro", "Ventas", f"Los ingresos subieron un {cambio} %",
-                           "Anota qué fue distinto esta semana (promociones, campañas, días con más personal) "
+                           f"Anota qué fue distinto {t['este']} (promociones, campañas, días con más personal) "
                            "para repetirlo."))
 
     # --- Agenda -------------------------------------------------------------
@@ -179,7 +195,18 @@ def _recomendaciones(semana, variacion, principal, promedio_atenciones, pronosti
                            "Márcalas como atendidas, realizadas o canceladas. Mientras sigan abiertas no cuentan en "
                            "los ingresos ni en las comisiones de los groomers."))
 
-    dias = [d for d in semana["dias"] if d["corto"] != "Dom"]
+    # Día más tranquilo: en la semana, por fecha; en el mes, por día de la semana
+    # («los martes»); en el reporte diario no aplica (el desglose es por hora).
+    por_dia_semana = [d for d in semana.get("por_dia_semana") or [] if d["corto"] != "Dom"]
+    dias = [d for d in semana["dias"] if d["corto"] != "Dom"] if periodo.tipo == SEMANA else []
+    if periodo.tipo == MES and por_dia_semana:
+        flojo = min(por_dia_semana, key=lambda d: (d["atenciones"], d["orden"]))
+        fuerte = max(por_dia_semana, key=lambda d: (d["atenciones"], -d["orden"]))
+        if fuerte["atenciones"] >= 4 and fuerte["atenciones"] >= 2 * max(flojo["atenciones"], 1):
+            recos.append(_reco("oportunidad", "Agenda", f"Los {flojo['nombre']} fueron los días más tranquilos",
+                               f"Sumaron {flojo['atenciones']} atenciones en el mes frente a {fuerte['atenciones']} "
+                               f"de los {fuerte['nombre']}. Ofrece baños o vacunación con descuento esos días para "
+                               f"repartir mejor el trabajo."))
     if dias:
         flojo = min(dias, key=lambda d: (d["atenciones"], d["fecha"]))
         fuerte = max(dias, key=lambda d: (d["atenciones"], -d["fecha"].toordinal()))
@@ -194,8 +221,8 @@ def _recomendaciones(semana, variacion, principal, promedio_atenciones, pronosti
                            "Procura que a esa hora haya alguien libre en recepción para recibir mascotas y cobrar."))
 
     if promedio_atenciones and semana["agenda_siguiente"] < AGENDA_FLOJA * promedio_atenciones:
-        recos.append(_reco("mejora", "Agenda", "La agenda de la próxima semana está floja",
-                           f"Hay {_n(semana['agenda_siguiente'], 'cita agendada', 'citas agendadas')} y una semana normal tiene unas "
+        recos.append(_reco("mejora", "Agenda", f"La agenda {t['de_proximo']} está floja",
+                           f"Hay {_n(semana['agenda_siguiente'], 'cita agendada', 'citas agendadas')} y {t['un_normal']} tiene unas "
                            f"{round(promedio_atenciones)} atenciones. Escribe a los clientes con vacunas o baños por "
                            f"vencer para llenar los cupos."))
 
@@ -207,7 +234,7 @@ def _recomendaciones(semana, variacion, principal, promedio_atenciones, pronosti
 
     if semana["duenos_nuevos"] == 0 and semana["atenciones"]:
         recos.append(_reco("mejora", "Clientes", "No llegaron clientes nuevos",
-                           "Pide a los clientes de esta semana que recomienden la clínica o publica en redes los "
+                           f"Pide a los clientes de {t['este']} que recomienden la clínica o publica en redes los "
                            "servicios de peluquería con fotos de antes y después."))
     elif semana["duenos_nuevos"] >= 3:
         recos.append(_reco("logro", "Clientes", f"Llegaron {semana['duenos_nuevos']} clientes nuevos",
@@ -248,12 +275,12 @@ def _recomendaciones(semana, variacion, principal, promedio_atenciones, pronosti
     # --- Pronóstico -----------------------------------------------------------
     if pronostico and pronostico.tendencia == "baja" and semana["ingresos"]:
         recos.append(_reco("mejora", "Ventas", "La tendencia de ingresos va a la baja",
-                           f"Las últimas {pronostico.semanas_usadas} semanas vienen bajando unos "
-                           f"{pesos(abs(pronostico.pendiente))} por semana. Planea una campaña antes de que se note "
+                           f"{t['ultimos'].capitalize()} {pronostico.semanas_usadas} {t['plural']} vienen bajando unos "
+                           f"{pesos(abs(pronostico.pendiente))} por {t['nombre']}. Planea una campaña antes de que se note "
                            f"más."))
     elif pronostico and pronostico.tendencia == "sube" and semana["ingresos"]:
         recos.append(_reco("logro", "Ventas", "La tendencia de ingresos va al alza",
-                           f"Las últimas {pronostico.semanas_usadas} semanas suben unos "
-                           f"{pesos(pronostico.pendiente)} por semana."))
+                           f"{t['ultimos'].capitalize()} {pronostico.semanas_usadas} {t['plural']} suben unos "
+                           f"{pesos(pronostico.pendiente)} por {t['nombre']}."))
 
     return sorted(recos, key=lambda r: TIPOS[r["tipo"]]["orden"])

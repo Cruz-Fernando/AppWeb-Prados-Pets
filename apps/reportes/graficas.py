@@ -80,8 +80,9 @@ def _marco(maximo, formato, entero=False):
     return y_de, base, ticks
 
 
-def columnas(etiquetas, valores, formato_valor, formato_eje, descripcion, entero=False):
-    """Columnas de una sola serie (p. ej. ingresos por día)."""
+def columnas(etiquetas, valores, formato_valor, formato_eje, descripcion, entero=False, etiquetas_eje=None):
+    """Columnas de una sola serie (p. ej. ingresos por día). `etiquetas_eje`: textos cortos bajo
+    cada barra si las etiquetas completas no caben (p. ej. «7a» para «7 a. m.»)."""
     maximo = max((float(v) for v in valores), default=0)
     y_de, base, ticks = _marco(maximo, formato_eje, entero)
     ancho_util = ANCHO - MARGEN["izq"] - MARGEN["der"]
@@ -96,6 +97,7 @@ def columnas(etiquetas, valores, formato_valor, formato_eje, descripcion, entero
             "x_centro": round(x + ancho / 2, 1),
             "y_valor": round(y - 6, 1),
             "etiqueta": etiqueta,
+            "eje": etiquetas_eje[i] if etiquetas_eje else etiqueta,
             "valor": formato_valor(valor),
             "vacio": not float(valor),
             "hit_x": round(MARGEN["izq"] + hueco * i, 1),
@@ -109,7 +111,7 @@ def columnas(etiquetas, valores, formato_valor, formato_eje, descripcion, entero
             "hit_y": MARGEN["arriba"], "y_etiqueta": base + 20}
 
 
-def columnas_apiladas(etiquetas, series, descripcion):
+def columnas_apiladas(etiquetas, series, descripcion, etiquetas_eje=None):
     """Columnas apiladas de conteos. `series`: [(nombre, css, [valores])], de abajo hacia arriba."""
     totales = [sum(s[2][i] for s in series) for i in range(len(etiquetas))]
     maximo = max(totales, default=0)
@@ -146,6 +148,7 @@ def columnas_apiladas(etiquetas, series, descripcion):
             "y_total": round(y_de(totales[i]) - 6, 1),
             "total": totales[i],
             "etiqueta": etiqueta,
+            "eje": etiquetas_eje[i] if etiquetas_eje else etiqueta,
             "detalle": ", ".join(f"{s['nombre']}: {s['valor']}" for s in segmentos) or "sin atenciones",
             "por_serie": [s[2][i] for s in series],
             "hit_x": round(MARGEN["izq"] + hueco * i, 1),
@@ -160,8 +163,10 @@ def columnas_apiladas(etiquetas, series, descripcion):
 
 
 def linea_con_pronostico(etiquetas, valores, pronostico, formato_valor, formato_eje, descripcion,
-                         etiqueta_pronostico, entero=False):
-    """Línea de las últimas semanas y, si hay, el punto pronosticado con su rango."""
+                         etiqueta_pronostico, entero=False, texto_punto="Semana que cerró el",
+                         texto_futuro="Pronóstico para la semana que cierra el"):
+    """Línea de los últimos periodos y, si hay, el punto pronosticado con su rango.
+    texto_punto / texto_futuro: cómo se nombra cada punto en el tooltip y en la tabla."""
     tope_datos = max((float(v) for v in valores), default=0)
     maximo = max(tope_datos, pronostico.alto if pronostico else 0)
     y_de, base, ticks = _marco(maximo, formato_eje, entero)
@@ -196,4 +201,5 @@ def linea_con_pronostico(etiquetas, valores, pronostico, formato_valor, formato_
     return {"ancho": ANCHO, "alto": ALTO, "base": base, "izq": MARGEN["izq"], "der": ANCHO - MARGEN["der"],
             "ticks": ticks, "puntos": puntos, "camino": camino, "area": area, "futuro": futuro,
             "ultimo": puntos[-1] if puntos else None, "descripcion": descripcion, "y_etiqueta": base + 20,
-            "hueco": round(hueco, 1), "hit_y": MARGEN["arriba"], "hit_alto": base - MARGEN["arriba"]}
+            "hueco": round(hueco, 1), "hit_y": MARGEN["arriba"], "hit_alto": base - MARGEN["arriba"],
+            "texto_punto": texto_punto, "texto_futuro": texto_futuro}

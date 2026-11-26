@@ -231,7 +231,7 @@
       data.duenos.forEach(function (d) {
         html += '<tr>'
           + '<td data-label="Nombre"><span class="bq-name"><span class="bq-avatar">' + inicial(d.nombre_completo) + '</span>' + resaltar(d.nombre_completo, q) 
-          + (d.numero_visitas >= 8 ? '<span style="margin-left: 6px; padding: 2px 6px; background: #eab308; color: #fff; font-size: 0.7rem; border-radius: 12px; font-weight: bold;">VIP</span>' : (d.numero_visitas >= 4 ? '<span style="margin-left: 6px; padding: 2px 6px; background: #10b981; color: #fff; font-size: 0.7rem; border-radius: 12px; font-weight: bold;">Frecuente</span>' : ''))
+          + insigniaNivel(d.nivel)
           + '</span></td>'
           + '<td data-label="Teléfono">' + (d.telefono ? resaltar(d.telefono, q) : '<span class="bq-sub">—</span>') + '</td>'
           + '<td data-label="Dirección" class="bq-sub">' + (escapeHtml(d.direccion) || '—') + '</td>'
@@ -263,6 +263,13 @@
     }
 
     resultados.innerHTML = html;
+  }
+
+  /* PB-18: misma insignia que templates/directorio/_insignia_nivel.html */
+  function insigniaNivel(nivel) {
+    if (!nivel) return '';
+    return '<span class="pp-nivel pp-nivel--' + escapeHtml(nivel.clave) + '" title="' + escapeHtml(nivel.descripcion) + '">'
+      + escapeHtml(nivel.etiqueta) + '</span>';
   }
 
   function estadoInicial() {

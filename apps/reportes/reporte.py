@@ -1,50 +1,60 @@
 """
-Arma el reporte semanal completo: cifras, tendencia, pronóstico, análisis y gráficas.
+Arma el reporte completo de un periodo (día, semana o mes): cifras,
+tendencia, pronóstico, análisis y gráficas.
 
-Se guarda en caché unos minutos para que abrir el PDF justo después de ver
-la pantalla no repita las ~25 consultas a la base. El reporte del sábado en
-curso se refresca más seguido porque ese día todavía entran datos.
+Se guarda en caché para que abrir el PDF justo después de ver la pantalla no
+repita las ~25 consultas a la base. Un periodo en curso (hoy, el mes actual o
+la semana el sábado en que se publica) se refresca seguido porque todavía
+entran datos; uno que ya cerró dura más.
 """
-
-from datetime import timedelta
 
 from django.core.cache import cache
 from django.utils import timezone
 
 from apps.clinico.recordatorios import calcular_recordatorios
 
-from . import analista, calculos, graficas, semanas
+from . import analista, calculos, graficas, periodos
+from .periodos import DIA, MES, SEMANA, como_periodo
 from .pronostico import pronosticar
 
-SEMANAS_TENDENCIA = 8
-CACHE_SABADO_ACTUAL = 120        # segundos
-CACHE_SEMANA_CERRADA = 30 * 60
+CACHE_EN_CURSO = 120          # segundos
+CACHE_CERRADO = 30 * 60
+
+# Cómo se nombran los puntos de la gráfica de tendencia en el tooltip y la tabla.
+PUNTOS_TENDENCIA = {
+    DIA: ("Día", "Pronóstico para el"),
+    SEMANA: ("Semana que cerró el", "Pronóstico para la semana que cierra el"),
+    MES: ("Mes de", "Pronóstico para"),
+}
 
 
-def _clave(sabado):
-    return f"reportes:semanal:v1:{sabado.isoformat()}"
+def _clave(periodo):
+    return f"reportes:v2:{periodo.clave}"
 
 
-def generar(sabado, ahora=None, usar_cache=True):
+def generar(periodo, ahora=None, usar_cache=True):
+    """`periodo`: periodos.Periodo, o el sábado de una semana (como antes de PB-20)."""
+    periodo = como_periodo(periodo)
     ahora = ahora or timezone.now()
     hoy = timezone.localdate(ahora)
     if usar_cache:
-        guardado = cache.get(_clave(sabado))
+        guardado = cache.get(_clave(periodo))
         if guardado is not None:
             return guardado
 
-    semana = calculos.calcular(sabado, ahora=ahora)
-    serie = calculos.serie(sabado, SEMANAS_TENDENCIA)
-    variacion = calculos.variaciones(semana, serie[-2]) if len(serie) >= 2 else {"ingresos": None, "atenciones": None}
+    t = periodo.textos
+    cifras = calculos.calcular(periodo, ahora=ahora)
+    serie = calculos.serie(periodo)
+    variacion = calculos.variaciones(cifras, serie[-2]) if len(serie) >= 2 else {"ingresos": None, "atenciones": None}
     p_ingresos = pronosticar([s["ingresos"] for s in serie])
     p_atenciones = pronosticar([s["atenciones"] for s in serie])
 
     # Los recordatorios pendientes son de hoy: solo tienen sentido en el reporte más reciente.
     pendientes = None
-    if sabado == semanas.ultimo_publicado(hoy):
+    if periodo == periodos.ultimo_valido(periodo.tipo, hoy):
         pendientes = len(calcular_recordatorios()["pendientes"])
 
-    analisis = analista.analizar(semana, serie, variacion, p_ingresos, p_atenciones, pendientes)
+    analisis = analista.analizar(cifras, serie, variacion, p_ingresos, p_atenciones, pendientes, periodo=periodo)
 
     tope_i = max((x["ingresos"] for x in serie), default=0)
     tope_a = max((x["atenciones"] for x in serie), default=0)
@@ -52,12 +62,22 @@ def generar(sabado, ahora=None, usar_cache=True):
         x["ancho_ingresos"] = calculos._porcentaje(x["ingresos"], tope_i)
         x["ancho_atenciones"] = calculos._porcentaje(x["atenciones"], tope_a)
 
-    etiquetas_semana = [f"{s['sabado'].day}/{s['sabado'].month}" for s in serie]
-    proximo = sabado + timedelta(days=7)
-    etiqueta_futuro = f"{proximo.day}/{proximo.month}"
+    desglose = cifras["desglose"]
+    # Las horas no caben completas bajo las barras: «7a», «3p» en el eje, «7 a. m.» en el tooltip.
+    # En el mes, 30 números seguidos se pegan: el eje muestra el 1 y cada 5 días.
+    etiquetas = [d["corto"] if periodo.tipo == SEMANA else d["nombre"] for d in desglose]
+    if periodo.tipo == DIA:
+        eje = [d["corto"] for d in desglose]
+    elif periodo.tipo == MES:
+        eje = [d["corto"] if d["fecha"].day == 1 or d["fecha"].day % 5 == 0 else "" for d in desglose]
+    else:
+        eje = None
+    etiquetas_tendencia = [s["corto"] for s in serie]
+    texto_punto, texto_futuro = PUNTOS_TENDENCIA[periodo.tipo]
 
     reporte = {
-        "semana": semana,
+        "cifras": cifras,
+        "periodo": periodo,
         "serie": serie,
         "variacion": variacion,
         "pronostico_ingresos": p_ingresos,
@@ -66,22 +86,23 @@ def generar(sabado, ahora=None, usar_cache=True):
         "analisis": analisis,
         "graficas": {
             "ingresos_dia": graficas.columnas(
-                [d["corto"] for d in semana["dias"]], [d["ingresos"] for d in semana["dias"]],
-                graficas.pesos, graficas.compacto_pesos, "Ingresos cobrados por día"),
+                etiquetas, [d["ingresos"] for d in desglose],
+                graficas.pesos, graficas.compacto_pesos, f"Ingresos cobrados {t['por_tramo']}", etiquetas_eje=eje),
             "atenciones_dia": graficas.columnas_apiladas(
-                [d["corto"] for d in semana["dias"]],
-                [("Consultas", "consulta", [d["consultas"] for d in semana["dias"]]),
-                 ("Peluquería", "peluqueria", [d["peluquerias"] for d in semana["dias"]])],
-                "Consultas atendidas y servicios de peluquería realizados por día"),
+                etiquetas,
+                [("Consultas", "consulta", [d["consultas"] for d in desglose]),
+                 ("Peluquería", "peluqueria", [d["peluquerias"] for d in desglose])],
+                f"Consultas atendidas y servicios de peluquería realizados {t['por_tramo']}", etiquetas_eje=eje),
             "tendencia_ingresos": graficas.linea_con_pronostico(
-                etiquetas_semana, [s["ingresos"] for s in serie], p_ingresos,
-                graficas.pesos, graficas.compacto_pesos, "Ingresos cobrados por semana", etiqueta_futuro),
+                etiquetas_tendencia, [s["ingresos"] for s in serie], p_ingresos,
+                graficas.pesos, graficas.compacto_pesos, f"Ingresos cobrados por {t['nombre']}",
+                periodo.siguiente().corto, texto_punto=texto_punto, texto_futuro=texto_futuro),
             "tendencia_atenciones": graficas.linea_con_pronostico(
-                etiquetas_semana, [s["atenciones"] for s in serie], p_atenciones,
-                lambda v: f"{round(float(v))}", lambda v: f"{int(v)}", "Atenciones por semana",
-                etiqueta_futuro, entero=True),
+                etiquetas_tendencia, [s["atenciones"] for s in serie], p_atenciones,
+                lambda v: f"{round(float(v))}", lambda v: f"{int(v)}", f"Atenciones por {t['nombre']}",
+                periodo.siguiente().corto, entero=True, texto_punto=texto_punto, texto_futuro=texto_futuro),
         },
         "generado": ahora,
     }
-    cache.set(_clave(sabado), reporte, CACHE_SABADO_ACTUAL if sabado == hoy else CACHE_SEMANA_CERRADA)
+    cache.set(_clave(periodo), reporte, CACHE_EN_CURSO if periodo.en_curso(hoy) else CACHE_CERRADO)
     return reporte

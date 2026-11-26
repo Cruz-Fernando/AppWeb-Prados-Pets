@@ -1,0 +1,56 @@
+{% load reportes_extras %}
+{% comment %}
+  PB-20: reporte mensual, semana por semana (domingo a sábado). Las semanas de
+  los bordes se recortan al mes («parcial»), así la suma es el mes completo.
+  Recibe s (calculos.calcular de un mes).
+{% endcomment %}
+<section class="rep-seccion" id="semanas" aria-labelledby="t-semanas">
+  <h2 class="rep-h2" id="t-semanas">Semana a semana</h2>
+  <p class="rep-sub">Semanas de domingo a sábado. Las que empiezan o terminan en otro mes solo cuentan los días de este mes.</p>
+
+  <article class="tarjeta tarjeta--ancha">
+    <h3 class="rep-h3">Resumen por semana</h3>
+    <div class="tabla-scroll">
+    <table class="tabla">
+      <thead><tr><th scope="col">Semana</th><th scope="col" class="num">Ingresos cobrados</th><th scope="col" class="num">Atenciones</th><th scope="col" class="num">Balance de caja</th><th scope="col" class="num">Comisiones</th></tr></thead>
+      <tbody>
+        {% for w in s.semanas_del_mes %}
+        <tr>
+          <td>{{ w.etiqueta }}{% if w.parcial %} <span class="rep-etiqueta">parcial</span>{% endif %}</td>
+          <td class="num">{{ w.ingresos|pesos }}</td>
+          <td class="num">{{ w.atenciones }}</td>
+          <td class="num{% if w.balance < 0 %} negativo{% endif %}">{{ w.balance|pesos }}</td>
+          <td class="num">{{ w.comision|pesos }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row">Mes</th><td class="num">{{ s.ingresos|pesos }}</td><td class="num">{{ s.atenciones }}</td><td class="num{% if s.caja.balance < 0 %} negativo{% endif %}">{{ s.caja.balance|pesos }}</td><td class="num">{{ s.comisiones_semanales.total|pesos }}</td></tr></tfoot>
+    </table>
+    </div>
+  </article>
+
+  <article class="tarjeta tarjeta--ancha">
+    <h3 class="rep-h3">Comisiones semanales por groomer</h3>
+    <p class="rep-sub">Comisión de los servicios de peluquería realizados cada semana (40 % del precio).</p>
+    {% if s.comisiones_semanales.filas %}
+    <div class="tabla-scroll">
+    <table class="tabla">
+      <thead><tr><th scope="col">Groomer</th>{% for w in s.comisiones_semanales.semanas %}<th scope="col" class="num">{{ w.etiqueta }}{% if w.parcial %}*{% endif %}</th>{% endfor %}<th scope="col" class="num">Total</th></tr></thead>
+      <tbody>
+        {% for f in s.comisiones_semanales.filas %}
+        <tr>
+          <td>{{ f.nombre }}</td>
+          {% for c in f.celdas %}<td class="num">{% if c.servicios %}{{ c.comision|pesos }}<small class="tabla__sub">{{ c.servicios }} serv.</small>{% else %}—{% endif %}</td>{% endfor %}
+          <td class="num"><b>{{ f.comision|pesos }}</b></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row">Total</th>{% for total in s.comisiones_semanales.totales %}<td class="num">{{ total|pesos }}</td>{% endfor %}<td class="num">{{ s.comisiones_semanales.total|pesos }}</td></tr></tfoot>
+    </table>
+    </div>
+    <p class="rep-nota">* Semana parcial: solo los días de este mes.</p>
+    {% else %}
+    <p class="rep-vacio">No hubo servicios de peluquería realizados {{ periodo.textos.este }}.</p>
+    {% endif %}
+  </article>
+</section>
