@@ -21,10 +21,10 @@
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
   transition: border-color .15s, background .15s;
 }
-.rec-cifra:hover { border-color: rgba(167, 139, 250, .4); background: var(--surface-hover); }
-.rec-cifra b { font-size: 1.5rem; font-weight: 700; color: #38bdf8; font-variant-numeric: tabular-nums; }
+.rec-cifra:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: var(--surface-hover); }
+.rec-cifra b { font-size: 1.5rem; font-weight: 700; color: var(--c-celeste); font-variant-numeric: tabular-nums; }
 .rec-cifra span { font-size: 12.5px; color: var(--text-muted); }
-.rec-cifra--alerta b { color: #FBBF24; }
+.rec-cifra--alerta b { color: var(--c-ambar); }
 
 /* ---------- Por avisar ---------- */
 .rec-bloque { display: flex; flex-direction: column; }
@@ -35,8 +35,8 @@
 }
 .rec-aviso--atrasado { background: rgba(248, 113, 113, .06); border-color: rgba(248, 113, 113, .35); }
 .rec-aviso__cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
-.rec-aviso__cuando { font-size: 12px; font-weight: 600; color: #FBBF24; }
-.rec-aviso--atrasado .rec-aviso__cuando { color: #F87171; }
+.rec-aviso__cuando { font-size: 12px; font-weight: 600; color: var(--c-ambar); }
+.rec-aviso--atrasado .rec-aviso__cuando { color: var(--c-rojo); }
 .rec-aviso__mascota { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); }
 .rec-aviso__dueno { margin: 0; font-size: 13px; color: var(--text-muted); }
 .rec-aviso__acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -60,17 +60,17 @@
   background: var(--surface-alt); border: 1px solid var(--border); border-radius: 9px;
   transition: background .15s, border-color .15s;
 }
-.rec-btn:hover { background: var(--surface-hover); border-color: rgba(167, 139, 250, .35); }
+.rec-btn:hover { background: var(--surface-hover); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .rec-btn--wa { color: #fff; background: #16a34a; border-color: #16a34a; }
 .rec-btn--wa:hover { background: #15803d; border-color: #15803d; }
-.rec-btn--ok { color: #fff; background: #8b5cf6; border-color: #8b5cf6; }
-.rec-btn--ok:hover { background: #7c3aed; border-color: #7c3aed; }
+.rec-btn--ok { color: #fff; background: var(--accent-gradient); border-color: var(--accent-gradient); }
+.rec-btn--ok:hover { background: var(--accent-gradient); border-color: var(--accent-gradient); }
 
 .rec-tipo {
   display: inline-flex; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap;
 }
-.rec-tipo--vacunacion { color: #7dd3fc; background: rgba(56, 189, 248, .14); }
-.rec-tipo--bano { color: #c4b5fd; background: rgba(167, 139, 250, .16); }
+.rec-tipo--vacunacion { color: var(--c-celeste-2); background: rgba(56, 189, 248, .14); }
+.rec-tipo--bano { color: var(--c-lavanda); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .rec-servicio { display: block; margin-top: 3px; font-size: 11.5px; color: var(--text-dim); }
 
 /* ---------- Barra de filtros ---------- */
@@ -81,7 +81,7 @@
   background: transparent; border: 1px solid var(--border); border-radius: 999px;
 }
 .rec-filtro:hover { color: var(--text); }
-.rec-filtro.is-activo { color: #fff; background: var(--accent-soft); border-color: var(--accent); }
+.rec-filtro.is-activo { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent); }
 .rec-filtro small { margin-left: 3px; font-size: 11.5px; opacity: .8; }
 
 .rec-buscar { position: relative; flex: 1 1 260px; max-width: 380px; }
@@ -90,7 +90,7 @@
   width: 100%; padding: 10px 12px 10px 38px; font: inherit; font-size: 14px; color: var(--text);
   background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px;
 }
-.rec-buscar input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(167, 139, 250, .18); }
+.rec-buscar input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 
 /* ---------- Tabla ---------- */
 .rec-tabla-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
@@ -108,19 +108,19 @@
 .rec-col-tel a { color: var(--accent-light); }
 .rec-wa-mini {
   display: inline-block; margin-left: 6px; padding: 1px 6px; font-size: 10.5px; font-weight: 700;
-  color: #4ade80 !important; border: 1px solid rgba(74, 222, 128, .4); border-radius: 6px; text-decoration: none;
+  color: var(--c-verde-3) !important; border: 1px solid rgba(74, 222, 128, .4); border-radius: 6px; text-decoration: none;
 }
 .rec-col-fecha, .rec-col-siguiente { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .rec-cuando { display: block; margin-top: 2px; font-size: 12px; color: var(--text-dim); }
-.rec-cuando--hoy { color: #FBBF24; font-weight: 600; }
-.rec-cuando--atrasado { color: #F87171; font-weight: 600; }
-.rec-cuando--semana { color: #7dd3fc; }
+.rec-cuando--hoy { color: var(--c-ambar); font-weight: 600; }
+.rec-cuando--atrasado { color: var(--c-rojo); font-weight: 600; }
+.rec-cuando--semana { color: var(--c-celeste-2); }
 .rec-col-siguiente { color: var(--text-muted); }
 
 /* Editor del lapso */
 .rec-intervalo summary {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; list-style: none; cursor: pointer; white-space: nowrap;
-  font-weight: 600; color: var(--accent-light); border: 1px dashed rgba(167, 139, 250, .45); border-radius: 8px;
+  font-weight: 600; color: var(--accent-light); border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 8px;
 }
 .rec-intervalo summary::-webkit-details-marker { display: none; }
 .rec-intervalo summary:hover { background: var(--accent-soft); }
@@ -135,7 +135,7 @@
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
 }
 .rec-atajo:hover { border-color: var(--accent); }
-.rec-atajo.is-actual { color: #fff; background: #8b5cf6; border-color: #8b5cf6; }
+.rec-atajo.is-actual { color: #fff; background: var(--accent-gradient); border-color: var(--accent-gradient); }
 .rec-otro { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted); }
 .rec-otro input {
   width: 80px; padding: 6px 8px; font: inherit; font-size: 13px; color: var(--text);

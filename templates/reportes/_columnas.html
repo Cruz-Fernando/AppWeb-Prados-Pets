@@ -1,0 +1,26 @@
+{% comment %}Columnas de una serie. Recibe g (apps/reportes/graficas.columnas).{% endcomment %}
+{% load l10n %}{# Coordenadas SVG: siempre con punto decimal, nunca con la coma de es-co #}
+{% localize off %}<div class="graf">
+  <svg class="graf__svg" viewBox="0 0 {{ g.ancho }} {{ g.alto }}" role="img" aria-label="{{ g.descripcion }}">
+    {% for t in g.ticks %}
+      <line class="graf__grid" x1="{{ g.izq }}" x2="{{ g.der }}" y1="{{ t.y }}" y2="{{ t.y }}"></line>
+      <text class="graf__eje" x="{{ g.izq }}" dx="-8" y="{{ t.y }}" dy="4" text-anchor="end">{{ t.texto }}</text>
+    {% endfor %}
+    <line class="graf__base" x1="{{ g.izq }}" x2="{{ g.der }}" y1="{{ g.base }}" y2="{{ g.base }}"></line>
+    {% for b in g.barras %}
+      <g class="graf__marca" tabindex="0" data-tip="{{ b.etiqueta }}: {{ b.valor }}" aria-label="{{ b.etiqueta }}: {{ b.valor }}">
+        <rect class="graf__hit" x="{{ b.hit_x }}" y="{{ g.hit_y }}" width="{{ b.hit_ancho }}" height="{{ g.hit_alto }}"></rect>
+        {% if b.d %}<path class="graf__barra" d="{{ b.d }}"></path>{% endif %}
+        {% if b.destacada %}<text class="graf__valor" x="{{ b.x_centro }}" y="{{ b.y_valor }}" text-anchor="middle">{{ b.valor }}</text>{% endif %}
+        <text class="graf__x" x="{{ b.x_centro }}" y="{{ g.y_etiqueta }}" text-anchor="middle">{{ b.eje }}</text>
+      </g>
+    {% endfor %}
+  </svg>
+</div>{% endlocalize %}
+<details class="graf__tabla">
+  <summary>Ver datos en tabla</summary>
+  <table>
+    <thead><tr><th scope="col">{{ titulo_tramo|default:"Día" }}</th><th scope="col" class="num">{{ titulo_valor|default:"Valor" }}</th></tr></thead>
+    <tbody>{% for b in g.barras %}<tr><td>{{ b.etiqueta }}</td><td class="num">{{ b.valor }}</td></tr>{% endfor %}</tbody>
+  </table>
+</details>

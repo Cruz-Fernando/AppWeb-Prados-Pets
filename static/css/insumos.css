@@ -6,10 +6,10 @@
 
 /* Mensajes que faltaban en styles.css (solo había error y éxito) */
 .app-messages__item--info {
-  color: #BAE6FD; background: rgba(56, 189, 248, .10); border: 1px solid rgba(56, 189, 248, .30);
+  color: var(--c-celeste-2); background: rgba(56, 189, 248, .10); border: 1px solid rgba(56, 189, 248, .30);
 }
 .app-messages__item--warning {
-  color: #FDE68A; background: rgba(245, 158, 11, .10); border: 1px solid rgba(245, 158, 11, .32);
+  color: var(--c-ambar-3); background: rgba(245, 158, 11, .10); border: 1px solid rgba(245, 158, 11, .32);
 }
 
 .sr-only {
@@ -46,10 +46,10 @@
 .ins-tag {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px;
   font-size: 11.5px; font-weight: 600; white-space: nowrap;
-  color: #6EE7B7; background: rgba(52, 211, 153, .13);
+  color: var(--c-verde-2); background: rgba(52, 211, 153, .13);
 }
-.ins-tag--bajo { color: #FCD34D; background: rgba(245, 158, 11, .14); }
-.ins-tag--agotado { color: #FCA5A5; background: rgba(239, 68, 68, .14); }
+.ins-tag--bajo { color: var(--c-ambar-2); background: rgba(245, 158, 11, .14); }
+.ins-tag--agotado { color: var(--c-rojo-2); background: rgba(239, 68, 68, .14); }
 .ins-tag--med { color: var(--accent-light); background: var(--accent-soft); }
 
 .ins-tabla { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 13.5px; }
@@ -67,12 +67,12 @@
   color: var(--text-muted); background: transparent; border: 1px solid var(--border);
   border-radius: 8px; cursor: pointer;
 }
-.ins-quitar:hover { color: #FCA5A5; border-color: rgba(239, 68, 68, .4); }
+.ins-quitar:hover { color: var(--c-rojo-2); border-color: rgba(239, 68, 68, .4); }
 .ins-vacio {
   margin-top: 12px; padding: 14px; font-size: 13px; color: var(--text-muted); text-align: center;
   border: 1px dashed var(--border); border-radius: 10px;
 }
-.ins-error-fila { display: block; margin-top: 4px; font-size: 12px; color: #F87171; }
+.ins-error-fila { display: block; margin-top: 4px; font-size: 12px; color: var(--c-rojo); }
 
 /* ---------- Detalle del registro / lista de solo lectura ---------- */
 .ins-lista { list-style: none; margin: 0; padding: 0; }
@@ -130,9 +130,9 @@
 .cfg-campo select:focus, .cfg-campo input:focus { outline: none; border-color: var(--accent); }
 .cfg-btn {
   padding: 10px 18px; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer;
-  background: #8b5cf6; border: 0; border-radius: 8px;
+  background: var(--accent-gradient); border: 0; border-radius: 8px;
 }
-.cfg-btn:hover { background: #7c3aed; }
+.cfg-btn:hover { background: var(--accent-gradient); }
 .cfg-ayuda { margin: 0; padding: 4px 20px 16px; font-size: 12px; color: var(--text-dim); }
 .cfg-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; align-items: start; }
 .cfg-acciones { display: flex; align-items: center; gap: 8px; }
@@ -150,7 +150,7 @@
 
 /* ---------- PB-15 / RF07 · Récipe médico ---------- */
 .rec-lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
-.rec-item { border: 1px solid var(--border, rgba(255,255,255,.12)); border-radius: 10px; padding: 12px 14px; }
+.rec-item { border: 1px solid var(--border, var(--velo-3)); border-radius: 10px; padding: 12px 14px; }
 .rec-item__cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .rec-item__nombre { font-weight: 600; display: block; }
 .rec-item__nombre small { display: block; font-weight: 400; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -160,6 +160,6 @@
 @media (max-width: 720px) { .rec-item__campos { grid-template-columns: 1fr; } }
 
 .rec-detalle { list-style: none; margin: 0; padding: 0; }
-.rec-detalle li { display: grid; gap: 2px; padding: 12px 18px; border-top: 1px solid var(--border, rgba(255,255,255,.08)); }
+.rec-detalle li { display: grid; gap: 2px; padding: 12px 18px; border-top: 1px solid var(--border, var(--velo-2)); }
 .rec-detalle li:first-child { border-top: 0; }
 .rec-detalle small, .rec-detalle__ind { font-size: 12.5px; color: var(--text-muted); }

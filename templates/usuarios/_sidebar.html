@@ -1,13 +1,13 @@
 {% load static %}
 <aside class="sidebar" id="sidebar">
-  <!-- Brand -->
+  <!-- Marca -->
   <div class="sidebar__brand">
-    <div class="sidebar__brand-logo" style="width: 36px; height: 36px; min-width: 36px; min-height: 36px;">
-      <img src="{% static 'img/Logo_PradosPets.webp' %}" alt="Prados Pets" style="width: 100%; height: 100%; object-fit: cover;">
+    <div class="sidebar__brand-logo">
+      <img src="{% static 'img/Logo_PradosPets.webp' %}" alt="" width="52" height="52">
     </div>
     <div class="sidebar__brand-text">
       <span class="sidebar__brand-name">Prados Pets</span>
-      <span class="sidebar__brand-tagline">Sistema Veterinario</span>
+      <span class="sidebar__brand-tagline">Clínica veterinaria</span>
     </div>
     <button type="button" class="sidebar__close-btn" id="sidebar-close-btn" aria-label="Cerrar menú">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -20,7 +20,7 @@
   <!-- Navigation -->
   <nav class="sidebar__nav">
 
-    <!-- Dashboard (Todos los usuarios autenticados) -->
+    <!-- Panel (todos los usuarios autenticados) -->
     <a href="{% url 'usuarios:dashboard' %}"
        class="sidebar__item {% if request.resolver_match.url_name == 'dashboard' %}sidebar__item--active{% endif %}"
        id="nav-dashboard">
@@ -30,7 +30,7 @@
           <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
         </svg>
       </span>
-      <span class="sidebar__label">Dashboard</span>
+      <span class="sidebar__label">Panel</span>
     </a>
 
     <!-- DIRECTORIO group (Administrador, Veterinario, Recepcionista) -->
@@ -46,7 +46,7 @@
           <circle cx="12" cy="7" r="4"/>
         </svg>
       </span>
-      <span class="sidebar__label">Registrar Dueño</span>
+      <span class="sidebar__label">Registrar dueño</span>
     </a>
 
     <a href="/directorio/mascotas/registrar/"
@@ -61,7 +61,7 @@
           <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/>
         </svg>
       </span>
-      <span class="sidebar__label">Registrar Mascota</span>
+      <span class="sidebar__label">Registrar mascota</span>
     </a>
 
     <a href="/directorio/buscar/"
@@ -103,10 +103,12 @@
        id="nav-citas">
       <span class="sidebar__icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>
         </svg>
       </span>
-      <span class="sidebar__label">Agendar Cita</span>
+      <span class="sidebar__label">Agendar cita</span>
     </a>
     {% endif %}
 
@@ -121,7 +123,7 @@
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
       </span>
-      <span class="sidebar__label">Historia Clínica</span>
+      <span class="sidebar__label">Historia clínica</span>
     </a>
     {% endif %}
 
@@ -210,7 +212,11 @@
 
     {% endif %}
 
-    <div class="sidebar__item sidebar__item--soon" title="Próximamente">
+    <!-- Reportes semanales (PB-20): solo el administrador -->
+    {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower == 'administrador' %}
+    <a href="{% url 'reportes:semanal' %}"
+       class="sidebar__item {% if request.resolver_match.app_name == 'reportes' %}sidebar__item--active{% endif %}"
+       id="nav-reportes">
       <span class="sidebar__icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"/>
@@ -219,8 +225,8 @@
         </svg>
       </span>
       <span class="sidebar__label">Reportes</span>
-      <span class="sidebar__badge-soon">Pronto</span>
-    </div>
+    </a>
+    {% endif %}
 
     <!-- SISTEMA group (solo Administrador) -->
     {% if user.is_superuser or user.es_administrador or user.id_rol|stringformat:'s'|lower == 'administrador' %}
@@ -236,7 +242,7 @@
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       </span>
-      <span class="sidebar__label">Usuarios y Roles</span>
+      <span class="sidebar__label">Usuarios y roles</span>
     </a>
     {% endif %}
   </nav>
@@ -249,12 +255,12 @@
     <div class="sidebar__user-info">
       <span class="sidebar__user-name">{{ user.nombre_completo|default:user.username }}</span>
       {% if user.id_rol %}
-      <span class="sidebar__user-role">{{ user.id_rol }}</span>
+      <span class="sidebar__user-role">{{ user.id_rol|stringformat:"s"|capfirst }}</span>
       {% endif %}
     </div>
     <form method="post" action="{% url 'usuarios:logout' %}" class="sidebar__logout-form">
       {% csrf_token %}
-      <button type="submit" class="sidebar__logout-btn" title="Cerrar sesión">
+      <button type="submit" class="sidebar__logout-btn" title="Cerrar sesión" aria-label="Cerrar sesión">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
           <polyline points="16 17 21 12 16 7"/>

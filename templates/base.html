@@ -4,20 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Prados Pets{% endblock %}</title>
+  {% comment %}
+    Modo día / noche: se decide ANTES de pintar para que no parpadee.
+    Primero lo que eligió la persona con el interruptor; si nunca eligió,
+    lo que tenga configurado su sistema. Ver static/js/tema.js.
+  {% endcomment %}
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('pp-tema'); } catch (e) {}
+      if (t !== 'dia' && t !== 'noche') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'noche' : 'dia';
+      }
+      document.documentElement.setAttribute('data-tema', t);
+    })();
+  </script>
   {# La pantalla de carga solo se activa si hay JavaScript (sin JS nunca bloquea la página). #}
   <script>document.documentElement.classList.add('pp-cargando');</script>
-  <link rel="stylesheet" href="{% static 'css/pp-loader.css' %}?v=1.0">
+  <link rel="stylesheet" href="{% static 'css/pp-loader.css' %}?v=1.1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {% comment %}
+    Fredoka: títulos y marca (redondeada como el letrero del logo).
+    Atkinson Hyperlegible Next: textos y datos, pensada para leerse bien todo el día.
+    Plus Jakarta Sans se queda mientras haya pantallas sin migrar al tema nuevo.
+  {% endcomment %}
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400..800&family=Fredoka:wdth,wght@75..125,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/Logo_PradosPets.png' %}">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3.0">
-  <link rel="stylesheet" href="{% static 'css/pp-forms.css' %}?v=1.0">
-  <link rel="stylesheet" href="{% static 'css/notificaciones.css' %}?v=1.1">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=5.1">
+  <link rel="stylesheet" href="{% static 'css/pp-forms.css' %}?v=2.0">
+  <link rel="stylesheet" href="{% static 'css/notificaciones.css' %}?v=2.0">
+  {# Capa del diseño nuevo sobre los componentes compartidos (botones, barra superior, interruptor de modo). #}
+  <link rel="stylesheet" href="{% static 'css/tema.css' %}?v=2.0">
+  {% block head_extra %}{% endblock %}
+  <script src="{% static 'js/tema.js' %}?v=1.0" defer></script>
   <script src="{% static 'js/pp-loader.js' %}?v=1.0" defer></script>
   <script src="{% static 'js/notificaciones.js' %}?v=1.0" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <div class="pp-loader" role="status" aria-live="polite">
     <div class="pp-loader__marco">
       <span class="pp-loader__anillo" aria-hidden="true"></span>

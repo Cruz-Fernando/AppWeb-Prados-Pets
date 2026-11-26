@@ -19,6 +19,7 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from apps.directorio.models import Dueno
+from apps.directorio.recurrencia import refrescar_duenos
 from apps.inventario.models import Producto, Servicio
 from apps.inventario.services import disponibilidad
 from apps.usuarios.permissions import rol_requerido
@@ -111,6 +112,7 @@ def nueva_factura(request):
                             borradores=Count('facturas', filter=Q(facturas__estado=Factura.BORRADOR),
                                              distinct=True))
                   .order_by('nombre_completo')[:20])
+        duenos = refrescar_duenos(duenos)   # PB-18: insignia del nivel de recurrencia
     return render(request, 'facturacion/factura_nueva.html', {'q': q, 'duenos': duenos})
 
 

@@ -7,7 +7,7 @@
 {% block title %}{% block titulo %}Inventario{% endblock %} · Prados Pets{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/inventario.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/inventario.css' %}?v=3-tema">
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
 
@@ -19,7 +19,7 @@
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         {% block migas %}<span class="app-topbar__current">Inventario</span>{% endblock %}
       </div>

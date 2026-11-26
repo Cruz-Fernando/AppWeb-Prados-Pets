@@ -4,9 +4,9 @@
    ============================================================ */
 
 :root {
-  --c-consulta: #60A5FA;
+  --c-consulta: var(--c-celeste);
   --c-consulta-2: #3B82F6;
-  --c-peluqueria: #F472B6;
+  --c-peluqueria: var(--c-rosa);
   --c-peluqueria-2: #DB2777;
   --c-cancelada: #7A6E99;
   --hour-h: 64px;
@@ -28,17 +28,14 @@
   padding: 5px 12px; border-radius: var(--radius-pill);
 }
 .cal-live-dot {
-  width: 7px; height: 7px; border-radius: 50%; background: #34D399;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--c-verde);
   box-shadow: 0 0 0 0 rgba(52, 211, 153, .7);
   animation: calPing 2s infinite;
 }
 .cal-hero__title {
   margin: 12px 0 4px !important;
   font-size: clamp(26px, 3.4vw, 36px) !important;
-  background: linear-gradient(100deg, #fff 0%, #C4B5FD 45%, #F9A8D4 70%, #fff 100%);
-  background-size: 250% 100%;
-  -webkit-background-clip: text; background-clip: text; color: transparent !important;
-  animation: calShine 7s linear infinite;
+  color: var(--text) !important;
 }
 .cal-hero__range { margin: 0; color: var(--text-muted); font-size: 15px; animation: calFade .5s .15s both; }
 
@@ -90,7 +87,7 @@
 .cal-stat__icon--cancelada { background: rgba(122,110,153,.18); color: var(--c-cancelada); }
 
 .cal-filter { cursor: pointer; }
-.cal-filter:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: rgba(167,139,250,.35); }
+.cal-filter:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .cal-filter[data-filter="consulta"]:hover { box-shadow: 0 10px 30px -12px rgba(96,165,250,.55); }
 .cal-filter[data-filter="peluqueria"]:hover { box-shadow: 0 10px 30px -12px rgba(244,114,182,.55); }
 .cal-filter:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
@@ -153,14 +150,15 @@
   position: relative; z-index: 1; padding: 7px 20px; text-align: center;
   font-size: 13px; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: color .3s;
 }
-.cal-switch__opt:hover, .cal-switch__opt.is-active { color: #fff; }
+.cal-switch__opt:hover { color: var(--text); }
+.cal-switch__opt.is-active { color: #fff; }
 
 /* ── Contenedor del calendario ────────────────────────── */
 .cal-scroll {
   position: relative; overflow: auto; max-height: 72vh;
   border: 1px solid var(--border); border-radius: var(--radius-lg);
   background:
-    radial-gradient(1200px 400px at 0% 0%, rgba(139,92,246,.07), transparent 60%),
+    radial-gradient(1200px 400px at 0% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%),
     radial-gradient(800px 300px at 100% 100%, rgba(244,114,182,.05), transparent 60%),
     var(--surface);
   box-shadow: var(--shadow-md);
@@ -168,7 +166,7 @@
   animation: calRise .6s .38s var(--ease-out) both;
 }
 .cal-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-.cal-scroll::-webkit-scrollbar-thumb { background: rgba(167,139,250,.25); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+.cal-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
 
 .cal {
   display: grid;
@@ -182,7 +180,7 @@
 /* Cabecera */
 .cal-corner, .cal-dayhead {
   position: sticky; top: 0; z-index: 5;
-  background: rgba(22, 17, 34, .88);
+  background: var(--surface-glass);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -195,7 +193,7 @@
   animation: calDrop .5s var(--ease-out) backwards;
   animation-delay: calc(var(--i) * 45ms + 420ms);
 }
-.cal-dayhead:hover { background: rgba(33, 24, 53, .95); }
+.cal-dayhead:hover { background: var(--surface-hover); }
 .cal-dayhead:hover .cal-dayhead__num { transform: scale(1.12); }
 .cal-dayhead__name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
 .cal-dayhead__num {
@@ -206,7 +204,7 @@
 .cal-dayhead.is-today { color: var(--accent-light); }
 .cal-dayhead.is-today .cal-dayhead__num {
   background: var(--accent-gradient); color: #fff;
-  box-shadow: 0 0 0 4px rgba(139,92,246,.18), var(--shadow-glow);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), var(--shadow-glow);
   animation: calGlow 2.6s ease-in-out infinite alternate;
 }
 .cal-dayhead__dots { display: flex; gap: 3px; height: 6px; margin-top: 2px; }
@@ -233,31 +231,31 @@
   position: relative; border-left: 1px solid var(--border-subtle);
   background-image:
     repeating-linear-gradient(to bottom, var(--border-subtle) 0 1px, transparent 1px calc(100% / var(--horas))),
-    repeating-linear-gradient(to bottom, transparent 0 calc(50% / var(--horas)), rgba(167,139,250,.035) calc(50% / var(--horas)) calc(50% / var(--horas) + 1px), transparent calc(50% / var(--horas) + 1px) calc(100% / var(--horas)));
+    repeating-linear-gradient(to bottom, transparent 0 calc(50% / var(--horas)), color-mix(in srgb, var(--accent) 4%, transparent) calc(50% / var(--horas)) calc(50% / var(--horas) + 1px), transparent calc(50% / var(--horas) + 1px) calc(100% / var(--horas)));
   transition: background-color .3s;
 }
-.cal-col:hover { background-color: rgba(167,139,250,.025); }
+.cal-col:hover { background-color: color-mix(in srgb, var(--accent) 2%, transparent); }
 .cal-col.is-today {
-  background-color: rgba(139, 92, 246, .06);
-  box-shadow: inset 1px 0 0 rgba(167,139,250,.25), inset -1px 0 0 rgba(167,139,250,.25);
+  background-color: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--accent) 25%, transparent), inset -1px 0 0 color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 /* Línea de "ahora" */
 .cal-now {
   position: absolute; left: 0; right: 0; z-index: 3; height: 2px; pointer-events: none;
-  background: linear-gradient(90deg, #F43F5E, #FB7185 60%, rgba(251,113,133,0));
+  background: linear-gradient(90deg, var(--c-rojo-vivo), var(--c-rojo-vivo) 60%, rgba(251,113,133,0));
   box-shadow: 0 0 12px rgba(244, 63, 94, .8);
   transition: top 1s linear;
 }
 .cal-now::before {
   content: ""; position: absolute; left: -6px; top: -5px; width: 12px; height: 12px; border-radius: 50%;
-  background: #F43F5E; box-shadow: 0 0 0 0 rgba(244,63,94,.7); animation: calPingRed 1.8s infinite;
+  background: var(--c-rojo-vivo); box-shadow: 0 0 0 0 rgba(244,63,94,.7); animation: calPingRed 1.8s infinite;
 }
 .cal-hours__now {
   position: absolute; right: 6px; z-index: 2; transform: translateY(-50%);
   padding: 2px 7px; border-radius: var(--radius-pill);
   font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap;
-  background: #F43F5E; box-shadow: 0 0 12px rgba(244,63,94,.6);
+  background: var(--c-rojo-vivo); box-shadow: 0 0 12px rgba(244,63,94,.6);
   transition: top 1s linear;
 }
 .cal-hours__now[hidden] { display: none; }
@@ -271,7 +269,7 @@
   font-size: 12px; line-height: 1.3; color: var(--text); cursor: pointer;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--ev) 26%, transparent), color-mix(in srgb, var(--ev2) 12%, transparent)),
-    rgba(18, 14, 28, .75);
+    var(--surface-glass);
   border: 1px solid color-mix(in srgb, var(--ev) 35%, transparent);
   border-radius: 10px;
   backdrop-filter: blur(6px);
@@ -310,7 +308,7 @@
 
 .cal-event--cancelada {
   --ev: var(--c-cancelada); --ev2: #5B5075;
-  background: repeating-linear-gradient(-45deg, rgba(122,110,153,.10) 0 6px, rgba(122,110,153,.04) 6px 12px), rgba(18,14,28,.7);
+  background: repeating-linear-gradient(-45deg, rgba(122,110,153,.10) 0 6px, rgba(122,110,153,.04) 6px 12px), var(--surface-glass);
   opacity: .75;
 }
 .cal-event--cancelada .cal-event__title { text-decoration: line-through; color: var(--text-muted); }
@@ -324,7 +322,7 @@
 .cal-empty {
   position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%);
   z-index: 2; text-align: center; max-width: 320px; padding: 24px;
-  background: rgba(18,14,28,.85); border: 1px solid var(--border); border-radius: var(--radius-xl);
+  background: var(--surface-glass); border: 1px solid var(--border); border-radius: var(--radius-xl);
   backdrop-filter: blur(10px); box-shadow: var(--shadow-lg);
   animation: calPopInCenter .7s .6s var(--ease-spring) both;
 }
@@ -351,7 +349,7 @@
   --ev: var(--c-consulta); --ev2: var(--c-consulta-2);
   position: relative; width: min(420px, 100%); overflow: hidden;
   padding: 28px 24px 22px;
-  background: linear-gradient(170deg, #1C1530, var(--surface) 60%);
+  background: linear-gradient(170deg, var(--surface-alt), var(--surface) 60%);
   border: 1px solid color-mix(in srgb, var(--ev) 35%, var(--border));
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg), 0 0 60px -20px var(--ev);
@@ -406,7 +404,7 @@
 @keyframes calSlideL { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
 @keyframes calSlideR { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
 @keyframes calShine { from { background-position: 200% 0; } to { background-position: -50% 0; } }
-@keyframes calGlow { from { box-shadow: 0 0 0 4px rgba(139,92,246,.15), 0 0 14px rgba(139,92,246,.35); } to { box-shadow: 0 0 0 6px rgba(139,92,246,.22), 0 0 26px rgba(139,92,246,.6); } }
+@keyframes calGlow { from { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent), 0 0 14px color-mix(in srgb, var(--accent) 35%, transparent); } to { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 60%, transparent); } }
 @keyframes calPing { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.7); } 70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
 @keyframes calPingRed { 0% { box-shadow: 0 0 0 0 rgba(244,63,94,.7); } 70% { box-shadow: 0 0 0 10px rgba(244,63,94,0); } 100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); } }
 @keyframes calNudgeL { 50% { transform: translateX(-3px); } }
@@ -445,7 +443,7 @@
   background:
     radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.13), transparent 65%),
     linear-gradient(135deg, color-mix(in srgb, var(--ev) 32%, transparent), color-mix(in srgb, var(--ev2) 16%, transparent)),
-    rgba(18, 14, 28, .85);
+    var(--surface-glass);
 }
 
 /* ============================================================
@@ -454,7 +452,7 @@
 .cal-modal .cal-cancel {
   margin-top: 1.25rem !important;
   padding-top: 1rem !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-top: 1px solid var(--velo-3) !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -464,7 +462,7 @@
   width: 100% !important;
   padding: 0.75rem 1rem !important;
   background: rgba(239, 68, 68, 0.15) !important;
-  color: #fca5a5 !important;
+  color: var(--c-rojo-2) !important;
   border: 1px solid rgba(239, 68, 68, 0.35) !important;
   border-radius: 12px !important;
   font-size: 0.875rem !important;
@@ -481,8 +479,8 @@
 
 .cal-modal .cal-cancel__toggle:hover {
   background: rgba(239, 68, 68, 0.28) !important;
-  border-color: #f87171 !important;
-  color: #ffffff !important;
+  border-color: var(--c-rojo) !important;
+  color: var(--text) !important;
 }
 
 .cal-modal .cal-cancel__toggle svg {
@@ -503,7 +501,7 @@
 .cal-modal .cal-cancel__form label {
   font-size: 0.825rem !important;
   font-weight: 600 !important;
-  color: #e2e8f0 !important;
+  color: var(--c-texto-frio) !important;
   display: block !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
@@ -513,9 +511,9 @@
 .cal-modal .cal-cancel__form textarea {
   width: 100% !important;
   max-width: 100% !important;
-  background: rgba(15, 23, 42, 0.85) !important;
-  color: #f8fafc !important;
-  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  background: var(--surface-alt) !important;
+  color: var(--text) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
   border-radius: 10px !important;
   padding: 0.75rem !important;
   font-family: inherit !important;
@@ -529,11 +527,11 @@
 }
 
 .cal-modal .cal-cancel__form textarea::placeholder {
-  color: #64748b !important;
+  color: var(--c-gris-frio) !important;
 }
 
 .cal-modal .cal-cancel__form textarea:focus {
-  border-color: #f87171 !important;
+  border-color: var(--c-rojo) !important;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
 }
 
@@ -550,9 +548,9 @@
 
 .cal-modal .cal-cancel__back {
   padding: 0.6rem 1.1rem !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #cbd5e1 !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: var(--velo-2) !important;
+  color: var(--c-texto-frio-2) !important;
+  border: 1px solid var(--velo-3) !important;
   border-radius: 8px !important;
   font-size: 0.85rem !important;
   font-weight: 600 !important;
@@ -561,8 +559,8 @@
 }
 
 .cal-modal .cal-cancel__back:hover {
-  background: rgba(255, 255, 255, 0.18) !important;
-  color: #ffffff !important;
+  background: var(--velo-3) !important;
+  color: var(--text) !important;
 }
 
 .cal-modal .cal-cancel__confirm {
@@ -587,7 +585,7 @@
   transform: scale(0.97) !important;
 }
 /* Peluquería: reenviar la confirmación al cliente (detalle de la cita) */
-.cal-modal .cal-enviar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.cal-modal .cal-enviar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--velo-3); }
 .cal-modal .cal-enviar[hidden], .cal-modal .cal-enviar a[hidden] { display: none; }
 .cal-modal .cal-enviar a {
   display: inline-flex; align-items: center; justify-content: center; flex: 1 1 180px;
@@ -595,5 +593,5 @@
 }
 .cal-modal .cal-enviar__wa { color: #fff; background: #16a34a; }
 .cal-modal .cal-enviar__wa:hover { background: #15803d; }
-.cal-modal .cal-enviar__pdf { color: var(--text, #EDE9F8); border: 1px solid rgba(167, 139, 250, .35); }
-.cal-modal .cal-enviar__pdf:hover { background: rgba(167, 139, 250, .12); }
+.cal-modal .cal-enviar__pdf { color: var(--text, var(--text)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.cal-modal .cal-enviar__pdf:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }

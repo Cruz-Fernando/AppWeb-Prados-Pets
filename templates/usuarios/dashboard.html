@@ -1,31 +1,28 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Panel · Prados Pets{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{% static 'css/panel.css' %}?v=2.0">{% endblock %}
 {% block body %}
+{# Los permisos por rol son los mismos del menú lateral (usuarios/_sidebar.html). #}
+{% with rol=user.id_rol|stringformat:'s'|lower %}
 <div class="app-shell">
   {% include "usuarios/_sidebar.html" %}
 
   <div class="app-main">
-    <!-- Topbar superior -->
     <header class="app-topbar">
       <button type="button" class="app-topbar__toggle" id="sidebar-toggle-btn" aria-label="Abrir menú">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="3" y1="12" x2="21" y2="12"></line>
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <span class="app-topbar__current">Dashboard</span>
-      </div>
-      <div class="app-topbar__actions">
-        {% if messages %}
-        <!-- mensajes flash aparecen abajo -->
-        {% endif %}
+        <span class="app-topbar__current">Panel</span>
       </div>
     </header>
 
-    <main class="app-content">
+    <main class="app-content panel">
       {% if messages %}
       <ul class="app-messages">
         {% for message in messages %}
@@ -34,218 +31,216 @@
       </ul>
       {% endif %}
 
-      <!-- Hero -->
-      <section class="app-hero">
-        <div class="app-hero__content">
-          <span class="app-hero__badge">Sistema Veterinario</span>
-          <h1 class="app-hero__title">¡Hola, {{ user.nombre_completo|default:user.username }}!</h1>
-          <p class="app-hero__description">
-            Bienvenido al panel principal de <strong>Prados Pets</strong>.<br>
-            Gestiona pacientes, propietarios y los servicios de la peluquería.
+      {% now "G" as hora %}
+      {% now "l j \d\e F" as hoy %}
+
+      <!-- Cabecera: el día de hoy -->
+      <header class="panel-cabeza{% if not user.is_superuser and not user.es_administrador and rol not in 'administrador,veterinario,auxiliar' %} panel-cabeza--sin-buscador{% endif %}">
+        <div class="panel-cabeza__texto">
+          <p class="panel-saludo">
+            {% if hora|add:0 < 12 %}Buenos días{% elif hora|add:0 < 19 %}Buenas tardes{% else %}Buenas noches{% endif %}, {{ user.nombre_completo|default:user.username }}
           </p>
-          <div class="app-hero__actions">
-            <a href="/directorio/registrar-dueno/" class="btn btn--primary" id="btn-hero-dueno">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-              Registrar Dueño
-            </a>
-            <a href="/directorio/mascotas/registrar/" class="btn btn--primary" id="btn-hero-mascota">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/><path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5"/><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/></svg>
-              Registrar Mascota
-            </a>
-            <a href="/directorio/buscar/" class="btn btn--ghost" id="btn-hero-buscar">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Buscar
-            </a>
-          </div>
+          <h1 class="panel-fecha">{{ hoy|lower|capfirst }}</h1>
         </div>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-          <a href="/directorio/registrar-dueno/" class="btn btn--primary" style="font-size: 0.85rem; padding: 6px 12px; text-align: center; flex: 1;">Dueño</a>
-          <a href="/directorio/mascotas/registrar/" class="btn btn--primary" style="font-size: 0.85rem; padding: 6px 12px; text-align: center; flex: 1;">Mascota</a>
-          <a href="/directorio/buscar/" class="btn btn--ghost" style="font-size: 0.85rem; padding: 6px 12px; text-align: center; flex: 1;">Buscar</a>
-        </div>
-      </section>
+        <img class="panel-mascotas" src="{% static 'img/mascotas_prados_pets.webp' %}" alt="" width="561" height="446">
+      </header>
+
+      {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar' %}
+      <form class="panel-buscar" method="get" action="/directorio/buscar/" role="search">
+        <svg class="panel-buscar__icono" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <label class="sr-only" for="panel-q">Buscar en el directorio</label>
+        <input class="panel-buscar__campo" id="panel-q" type="search" name="q" placeholder="Dueño, mascota o teléfono" autocomplete="off">
+        <button class="panel-buscar__boton" type="submit">Buscar</button>
+      </form>
+      {% endif %}
+
+      <div class="panel-acciones">
+        {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar' %}
+        <a href="/directorio/registrar-dueno/" class="btn btn--ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Registrar dueño
+        </a>
+        <a href="/directorio/mascotas/registrar/" class="btn btn--ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/><path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5"/><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/></svg>
+          Registrar mascota
+        </a>
+        <a href="{% url 'agendamiento:agendar_cita' %}" class="btn btn--ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+          Agendar cita
+        </a>
+        {% endif %}
+        {% if user.is_superuser or user.es_administrador or rol in 'administrador,groomer,auxiliar' %}
+        <a href="{% url 'peluqueria:agendar' %}" class="btn btn--ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+          Agendar peluquería
+        </a>
+        {% endif %}
+      </div>
 
       <!-- PB-14: recordatorios por avisar (de hoy y atrasados) -->
-      {% if recordatorios_pendientes %}
-      <section class="app-card dash-rec" id="recordatorios-hoy">
-        <div class="dash-rec__cabeza">
-          <h2>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            Recordatorios por avisar ({{ recordatorios_pendientes|length }})
-          </h2>
-          <a href="{% url 'clinico:recordatorios' %}" class="btn btn--ghost btn--sm">Ver todos los recordatorios →</a>
+      <section class="panel-seccion" id="recordatorios-hoy" aria-labelledby="titulo-avisos">
+        <div class="panel-seccion__cabeza">
+          <h2 class="panel-seccion__titulo" id="titulo-avisos">Recordatorios por avisar{% if recordatorios_pendientes %} ({{ recordatorios_pendientes|length }}){% endif %}</h2>
+          {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar,groomer' %}
+          <a class="panel-seccion__enlace" href="{% url 'clinico:recordatorios' %}">{% if recordatorios_pendientes %}Ver todos los recordatorios{% else %}Ver los próximos{% endif %}</a>
+          {% endif %}
         </div>
-        <ul class="dash-rec__lista">
+
+        {% if recordatorios_pendientes %}
+        <ul class="avisos">
           {% for r in recordatorios_pendientes|slice:":6" %}
-          <li>
-            <span><strong>{{ r.mascota.nombre }}</strong> · {{ r.tipo }} · {{ r.mascota.id_dueno.nombre_completo }}
-              {% if r.estado == 'atrasado' %}<em class="dash-rec__atraso">tocaba {{ r.cuando_aviso|lower }}</em>{% endif %}</span>
-            <span class="dash-rec__acciones">
-              {% if r.whatsapp %}<a href="{{ r.whatsapp }}" target="_blank" rel="noopener" class="dash-rec__wa">WhatsApp</a>{% endif %}
-              <a href="tel:{{ r.mascota.id_dueno.telefono }}">{{ r.mascota.id_dueno.telefono }}</a>
+          <li class="aviso{% if r.estado == 'atrasado' %} aviso--atrasado{% endif %}">
+            <div class="aviso__quien">
+              <strong class="aviso__mascota">{{ r.mascota.nombre }}</strong>
+              <span class="aviso__dueno">{{ r.mascota.id_dueno.nombre_completo }}</span>
+            </div>
+            <span class="aviso__tipo">
+              {% if r.tipo_clave == 'vacunacion' %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+              {% else %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+              {% endif %}
+              {{ r.tipo }}
+            </span>
+            <span class="aviso__cuando">{% if r.estado == 'atrasado' %}Tocaba {{ r.cuando_aviso|lower }}{% else %}Hoy{% endif %}</span>
+            <div class="aviso__acciones">
+              {% if r.whatsapp %}
+              <a class="aviso__wa" href="{{ r.whatsapp }}" target="_blank" rel="noopener">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+                WhatsApp<span class="sr-only"> a {{ r.mascota.id_dueno.nombre_completo }}</span>
+              </a>
+              {% endif %}
+              {% if r.mascota.id_dueno.telefono %}
+              <a class="aviso__tel" href="tel:{{ r.mascota.id_dueno.telefono }}">{{ r.mascota.id_dueno.telefono }}</a>
+              {% endif %}
+              {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar,groomer' %}
               <form method="post" action="{% url 'clinico:recordatorio_avisado' %}">
                 {% csrf_token %}
                 <input type="hidden" name="tipo_recordatorio" value="{{ r.tipo_clave }}">
                 <input type="hidden" name="cita_id" value="{{ r.cita_id }}">
                 <input type="hidden" name="fecha" value="{{ r.fecha_aviso|date:'Y-m-d' }}">
                 <input type="hidden" name="next" value="{% url 'usuarios:dashboard' %}">
-                <button type="submit" class="dash-rec__ok">✓ Ya avisé</button>
+                <button type="submit" class="aviso__ok">Ya avisé<span class="sr-only"> sobre {{ r.mascota.nombre }}</span></button>
               </form>
-            </span>
+              {% endif %}
+            </div>
           </li>
           {% endfor %}
         </ul>
-        {% if recordatorios_pendientes|length > 6 %}<p class="dash-rec__mas">y {{ recordatorios_pendientes|length|add:"-6" }} más…</p>{% endif %}
-      </section>
-      <style>
-        .dash-rec { margin: 0 0 24px; padding: 18px 20px; border: 1px solid rgba(251, 191, 36, .35); background: rgba(251, 191, 36, .08); border-radius: var(--radius-lg); }
-        .dash-rec__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-        .dash-rec__cabeza h2 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
-        .dash-rec__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-        .dash-rec__lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted); }
-        .dash-rec__lista strong { color: var(--text); }
-        .dash-rec__atraso { margin-left: 6px; font-style: normal; font-size: 12px; font-weight: 600; color: #F87171; }
-        .dash-rec__acciones { display: inline-flex; align-items: center; gap: 10px; }
-        .dash-rec__acciones form { margin: 0; }
-        .dash-rec__wa { font-weight: 600; color: #4ade80; }
-        .dash-rec__ok { padding: 4px 10px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent-light); cursor: pointer; background: var(--accent-soft); border: 1px solid rgba(167, 139, 250, .35); border-radius: 8px; }
-        .dash-rec__ok:hover { color: #fff; background: #8b5cf6; }
-        .dash-rec__mas { margin: 8px 0 0; font-size: 0.85rem; color: var(--text-muted); }
-      </style>
-      {% endif %}
-
-      <!-- Módulos -->
-      <div class="app-section-header">
-        <div>
-          <h2>Módulos del Sistema</h2>
-          <p>Estado actual de cada área operativa</p>
-        </div>
-      </div>
-
-      <div class="app-modules-grid">
-
-        <!-- Directorio (activo) -->
-        <div class="app-module-card app-module-card--available" style="grid-column: span 1;">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Directorio</div>
-            <div class="app-module-card__desc">Propietarios, mascotas y búsqueda unificada.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-            <a href="/directorio/buscar/" class="btn btn--ghost btn--sm" id="btn-mod-buscar">Ir al directorio →</a>
-          </div>
-        </div>
-
-        <!-- Citas -->
-        <div class="app-module-card">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Citas</div>
-            <div class="app-module-card__desc">Agendamiento y gestión de citas médicas.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-            <a href="/agendamiento/agendar/" class="btn btn--ghost btn--sm">Ir a Citas →</a>
-          </div>
-        </div>
-
-        <!-- Consulta e historial clínico -->
-        <div class="app-module-card app-module-card--available">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Historia clínica</div>
-            <div class="app-module-card__desc">Registro de consultas médicas y seguimiento clínico por mascota.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-            <a href="{% url 'clinico:seleccionar_mascota_historial' %}" class="btn btn--ghost btn--sm">Abrir historias →</a>
-          </div>
-        </div>
-
-        <!-- Peluquería (ACTIVADO) -->
-        <div class="app-module-card app-module-card--available">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Peluquería</div>
-            <div class="app-module-card__desc">Servicios de baño, corte y estética canina.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-            <a href="{% url 'peluqueria:agendar' %}" class="btn btn--ghost btn--sm">Ir a Peluquería →</a>
-          </div>
-        </div>
-
-        <!-- Facturación -->
-        <div class="app-module-card">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Facturación</div>
-            <div class="app-module-card__desc">Ganancias y comisión del 40 % de cada groomer por día, semana o mes.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-            <a href="{% url 'facturacion:panel' %}" class="btn btn--ghost btn--sm">Ir a Facturación →</a>
-          </div>
-        </div>
-
-        <!-- Inventario -->
-        <div class="app-module-card app-module-card--available">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Inventario</div>
-            <div class="app-module-card__desc">Stock, movimientos (Kardex) y carga desde Excel.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-            <a href="{% url 'inventario:lista' %}" class="btn btn--ghost btn--sm">Ir a Inventario →</a>
-          </div>
-        </div>
-
-        <!-- Reportes -->
-        <div class="app-module-card app-module-card--disabled">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Reportes</div>
-            <div class="app-module-card__desc">Estadísticas y análisis del negocio.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--soon">Próximamente</span>
-          </div>
-        </div>
-
-        {% if es_administrador %}
-        <!-- Usuarios y Roles (admin) -->
-        <a href="{% url 'usuarios:usuarios_lista' %}" class="app-module-card app-module-card--available" id="mod-usuarios" style="text-decoration:none;color:inherit;">
-          <div class="app-module-card__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <div class="app-module-card__body">
-            <div class="app-module-card__title">Usuarios y Roles</div>
-            <div class="app-module-card__desc">Personal de la clínica y sus permisos de acceso.</div>
-          </div>
-          <div class="app-module-card__footer">
-            <span class="app-module-card__tag app-module-card__tag--active">Activo</span>
-          </div>
-        </a>
+        {% if recordatorios_pendientes|length > 6 %}
+        <p class="avisos__mas">Hay {{ recordatorios_pendientes|length|add:"-6" }} más en la pantalla de recordatorios.</p>
         {% endif %}
+        {% else %}
+        <p class="avisos-vacio">Hoy no hay a quién avisar. Cuando a una mascota le toque vacuna o baño, aparece aquí con el botón para escribirle al dueño por WhatsApp.</p>
+        {% endif %}
+      </section>
 
-      </div>
+      <!-- Accesos a cada área, según el rol -->
+      <section class="panel-seccion" aria-labelledby="titulo-areas">
+        <div class="panel-seccion__cabeza">
+          <h2 class="panel-seccion__titulo" id="titulo-areas">Áreas de la clínica</h2>
+        </div>
+        <div class="atajos-marco">
+          <ul class="atajos">
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar' %}
+            <li>
+              <a class="atajo" href="/directorio/buscar/">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <span class="atajo__nombre">Directorio</span>
+                <span class="atajo__desc">Dueños y mascotas, con sus datos de contacto.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,groomer,auxiliar' %}
+            <li>
+              <a class="atajo" href="{% url 'agendamiento:calendario' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                <span class="atajo__nombre">Calendario</span>
+                <span class="atajo__desc">Las citas de consulta y peluquería del día y la semana.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar' %}
+            <li>
+              <a class="atajo" href="{% url 'clinico:seleccionar_mascota_historial' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                <span class="atajo__nombre">Historia clínica</span>
+                <span class="atajo__desc">Consultas, récipes y el seguimiento de cada mascota.</span>
+              </a>
+            </li>
+            <li>
+              <a class="atajo" href="{% url 'clinico:hospitalizacion' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg></span>
+                <span class="atajo__nombre">Hospitalización</span>
+                <span class="atajo__desc">Pacientes internados y su evolución.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar,groomer' %}
+            <li>
+              <a class="atajo" href="{% url 'clinico:recordatorios' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                <span class="atajo__nombre">Recordatorios</span>
+                <span class="atajo__desc">Vacunas y baños que toca avisar a los dueños.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,groomer,auxiliar' %}
+            <li>
+              <a class="atajo" href="{% url 'peluqueria:agendar' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span>
+                <span class="atajo__nombre">Peluquería</span>
+                <span class="atajo__desc">Baños, cortes y los turnos de cada groomer.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,auxiliar' %}
+            <li>
+              <a class="atajo" href="{% url 'facturacion:facturas' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                <span class="atajo__nombre">Facturación</span>
+                <span class="atajo__desc">Facturas, caja y ganancias por groomer.</span>
+              </a>
+            </li>
+            {% elif rol in 'groomer' %}
+            <li>
+              <a class="atajo" href="{% url 'facturacion:panel' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                <span class="atajo__nombre">Mis ganancias</span>
+                <span class="atajo__desc">Tus servicios y tu comisión del día, la semana o el mes.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser or user.es_administrador or rol in 'administrador,veterinario,auxiliar' %}
+            <li>
+              <a class="atajo" href="{% url 'inventario:lista' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+                <span class="atajo__nombre">Inventario</span>
+                <span class="atajo__desc">Stock, movimientos y carga desde Excel.</span>
+              </a>
+            </li>
+            {% endif %}
+            {% if es_administrador %}
+            <li>
+              <a class="atajo" href="{% url 'reportes:semanal' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                <span class="atajo__nombre">Reportes</span>
+                <span class="atajo__desc">El análisis de cada semana, con pronóstico. Se genera los sábados.</span>
+              </a>
+            </li>
+            <li>
+              <a class="atajo" href="{% url 'usuarios:usuarios_lista' %}">
+                <span class="atajo__icono"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+                <span class="atajo__nombre">Usuarios y roles</span>
+                <span class="atajo__desc">El personal de la clínica y lo que puede hacer cada uno.</span>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </section>
     </main>
   </div>
 </div>
+{% endwith %}
 {% endblock %}

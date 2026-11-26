@@ -1,0 +1,259 @@
+/* ============================================================
+   Prados Pets: capa del diseño nuevo
+   Se carga después de styles.css y ajusta los componentes que
+   comparten todas las pantallas. Los colores salen de las variables
+   de styles.css, así sirve igual en modo día y en modo noche.
+   ============================================================ */
+
+body {
+  font-family: var(--font-texto);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Fundido del cambio de modo (solo donde existe View Transitions) */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.25s; }
+
+/* ------------------------------------------------------------
+   Interruptor día / noche
+   ------------------------------------------------------------ */
+
+.tema-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.tema-boton__op {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 32px;
+  color: var(--text-dim);
+  background: transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.tema-boton__op:hover { color: var(--text); }
+
+.tema-boton__op:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* La opción activa se pinta según el modo actual, sin esperar al JS */
+:root[data-tema="dia"] .tema-boton__op[data-tema-op="dia"],
+:root:not([data-tema]) .tema-boton__op[data-tema-op="dia"] {
+  color: #8A4D06;
+  background: #FCEFD6;
+}
+
+:root[data-tema="noche"] .tema-boton__op[data-tema-op="noche"] {
+  color: #F1EAF6;
+  background: #4A2F63;
+}
+
+/* ------------------------------------------------------------
+   Barra superior
+   ------------------------------------------------------------ */
+
+.app-topbar {
+  height: 60px;
+  padding: 0 40px;
+  justify-content: flex-start;
+  background: var(--surface-glass);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.app-topbar__breadcrumb { font-size: 14px; }
+.app-topbar__current { font-weight: 700; }
+.app-topbar__actions { margin-left: auto; }
+
+.app-topbar__toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.app-topbar__toggle:hover { background: var(--surface-hover); color: var(--text); }
+
+/* ------------------------------------------------------------
+   Contenido
+   ------------------------------------------------------------ */
+
+.app-content {
+  animation: none;   /* sin entrada animada en cada página */
+  padding: 28px 40px 72px;
+}
+
+.app-content h1 {
+  font-family: var(--font-marca);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.app-section-header h2,
+.app-card h2 {
+  font-family: var(--font-marca);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* ------------------------------------------------------------
+   Botones
+   ------------------------------------------------------------ */
+
+.btn {
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  overflow: visible;
+}
+
+.btn:active { transform: none; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; box-shadow: none; }
+
+.btn--primary {
+  color: #fff;
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn--primary::before { display: none; }
+
+.btn--primary:hover {
+  color: #fff;
+  background: var(--accent-gradient-hover);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn--ghost:hover {
+  background: var(--surface);
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  transform: none;
+}
+
+.btn--danger {
+  color: var(--c-rojo);
+  background: var(--error-bg);
+  border-color: var(--error-border);
+}
+
+.btn--danger:hover {
+  color: #fff;
+  background: #B42318;
+  border-color: #B42318;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn--sm { padding: 6px 12px; font-size: 14px; border-radius: 10px; }
+
+/* ------------------------------------------------------------
+   Campos, tablas y etiquetas compartidas
+   ------------------------------------------------------------ */
+
+.app-input:focus,
+.app-form .app-input:focus,
+.app-form input:focus,
+.app-form select:focus,
+.app-form textarea:focus {
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.app-form label,
+.app-table th,
+.badge,
+.app-module-card__tag {
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.app-form label { font-size: 14px; }
+.app-table th { font-size: 13px; }
+
+.app-card:hover,
+.app-module-card--available:hover { transform: none; }
+
+/* ------------------------------------------------------------
+   Mensajes flash
+   ------------------------------------------------------------ */
+
+.app-messages__item {
+  font-size: 15px;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.app-messages__cerrar:hover { background: var(--velo-2); }
+
+/* ------------------------------------------------------------
+   Campana de notificaciones
+   ------------------------------------------------------------ */
+
+.notif-boton {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.notif-boton.tiene-pendientes svg { color: var(--rosa-texto); }
+.notif-burbuja { background: var(--rosa-relleno); }
+.notif-cabeza__total { color: var(--rosa-texto); }
+.notif-grupo h3 { font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--text-muted); }
+.notif-item--peligro { border-left-color: var(--rosa); }
+.notif-mini--wa { color: var(--c-verde-3); }
+.notif-mini--ok { color: var(--accent-strong); }
+.notif-mini--ok:hover { color: #fff; background: var(--accent-gradient); }
+
+/* ------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .app-topbar { padding: 0 16px; }
+  .app-content { padding: 20px 16px 56px; }
+}

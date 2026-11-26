@@ -12,7 +12,7 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="app-topbar__breadcrumb">
-        <a href="{% url 'usuarios:dashboard' %}">Dashboard</a>
+        <a href="{% url 'usuarios:dashboard' %}">Panel</a>
         <span class="app-topbar__sep">›</span>
         <a href="{% url 'buscar_directorio' %}" style="color: inherit; text-decoration: none;">Directorio</a>
         <span class="app-topbar__sep">›</span>
@@ -30,6 +30,14 @@
             <p class="pp-form-card__sub">{% if es_edicion %}Actualiza los datos del propietario{% else %}Ingresa los datos del propietario de la mascota{% endif %}</p>
           </div>
         </div>
+
+        {% if es_edicion and dueno %}
+        {# PB-18: nivel de recurrencia del cliente #}
+        <p class="pp-nivel-ficha">
+          {% include "directorio/_insignia_nivel.html" with nivel=dueno.nivel_recurrencia %}
+          <span>{{ dueno.resumen_visitas }}</span>
+        </p>
+        {% endif %}
 
         {% if messages %}
         <ul class="pp-alert-list">
